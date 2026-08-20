@@ -1,0 +1,28 @@
+.DS_Store
+
+# node
+node_modules/
+*.tsbuildinfo
+
+# quartz build output + plugin cache
+sites/quartz/public/
+sites/quartz/.quartz/
+sites/quartz/.quartz-cache/
+sites/quartz/prof/
+
+# NOTE: do NOT gitignore anything under sites/quartz/quartz/static/ or vault/.
+# Quartz globs both with `gitignore: true`, so an ignored file is silently
+# dropped from the build. Generated-but-published assets are committed instead.
+
+# python
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# obsidian workspace state (keep shared vault settings if you add them)
+vault/.obsidian/workspace*.json
+vault/.trash/
+
+# local tooling state
+.serena/

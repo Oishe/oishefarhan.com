@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Explorables lab</title>
+<style>
+  body {
+    font: 16px/1.6 system-ui, sans-serif;
+    max-width: 42rem;
+    margin: 4rem auto;
+    padding: 0 1.5rem;
+  }
+  h1 { font-size: 1.4rem; }
+  li { margin: 0.35rem 0; }
+  .empty { color: #666; font-style: italic; }
+</style>
+
+<h1>Explorables lab</h1>
+
+<p>
+  One page per widget. Save a component and HMR swaps it in without a reload —
+  slider state survives, because there is no kernel to round-trip through.
+</p>
+
+<ul id="widgets">
+  <li class="empty">No widgets yet. Phase 2 adds the first one.</li>
+</ul>
+
+<p>
+  Open this page on a phone using the LAN URL Vite prints on startup; this index
+  doubles as the manual mobile QA sweep before a release.
+</p>

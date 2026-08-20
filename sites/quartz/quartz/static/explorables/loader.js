@@ -1,0 +1,1 @@
+const s={},r=Object.keys(s);if(r.length>0){const o=new IntersectionObserver(t=>{for(const e of t)e.isIntersecting&&(o.unobserve(e.target),s[e.target.tagName.toLowerCase()]?.())},{rootMargin:"200px"}),n=()=>{for(const t of r)for(const e of document.querySelectorAll(t))o.observe(e)};n(),document.addEventListener("nav",n)}

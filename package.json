@@ -1,0 +1,11 @@
+{
+  "name": "oishefarhan.com",
+  "private": true,
+  "type": "module",
+  "description": "Root build entrypoint. Cloudflare Pages runs `npm run build` here and publishes sites/quartz/public.",
+  "scripts": {
+    "build:widgets": "npm --prefix packages/explorables ci && npm --prefix packages/explorables run build",
+    "build:site": "npm --prefix sites/quartz ci && npm --prefix sites/quartz run install-plugins && npm --prefix sites/quartz exec -- quartz build -d ../../vault -o public",
+    "build": "npm run build:widgets && npm run build:site"
+  }
+}
