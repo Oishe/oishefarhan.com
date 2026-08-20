@@ -5,7 +5,8 @@ prototypes numerics in marimo, and ships interactive widgets as small, framework
 Web Components.
 
 **Audience:** Claude Code, working in this repo.
-**Status:** greenfield. Nothing below is built yet.
+**Status:** Phase 0 complete (2026-08-20). Phase 1 is next.
+See §12 for where the build deviated from this document.
 
 ---
 
@@ -541,3 +542,40 @@ broken wikilinks.
    per-page, that's fine: `loader.js` is 1 KB and no-ops when no widget tags are present.
    Don't build a per-page mechanism unless measurement says it matters.
 4. **KaTeX font loading** — subset the fonts. The full set is heavier than KaTeX itself.
+
+---
+
+## 12. Build log — deviations from the plan above
+
+### Phase 0, 2026-08-20
+
+**Quartz content root is `vault/`, not `vault/posts/`** (§2 said otherwise).
+Quartz's asset emitter only copies non-Markdown files that live *inside* the
+content root. With the root at `vault/posts/`, everything in `vault/attachments/`
+would have been skipped and every figure would 404. Pointing it at `vault/` makes
+the Obsidian vault root and the site root the same thing, which is also how
+wikilinks already behave. Posts are served under `/posts/`; `vault/figures/`
+(figure sources) is excluded via `ignorePatterns`.
+
+**Quartz 5 restructured plugins**, so §7's custom-transformer sketch no longer
+applies verbatim. v5 has no `quartz.config.ts`/`quartz.layout.ts`: configuration
+is `quartz.config.yaml` and plugins are npm packages under `@quartz-community/*`.
+The good news for §7 and open question 3 — local-path plugin sources (`./path`)
+are supported and get symlinked in, so the Explorables transformer can live in
+this repo as a normal local plugin. Its exact API needs checking against v5's
+`QuartzTransformerPlugin` type when Phase 2 wires up `loader.js`.
+
+**Quartz globs with `gitignore: true`.** Anything in `.gitignore` is silently
+dropped from the build — locally and on Cloudflare alike. This bit once already:
+the built widget bundle was ignored as "generated output" and simply never
+appeared in `public/`. Generated-but-published assets are therefore committed,
+which is what §8 already prescribed for figures; it now applies to widget
+bundles too.
+
+**Deploying to Cloudflare Workers static assets, not Pages** (§10 said Pages).
+Same static output, same custom domain; Workers is Cloudflare's current
+recommendation for new static projects. `wrangler.jsonc` declares an assets-only
+Worker with no `main` script.
+
+**Production sourcemaps are off.** The bundle is committed, and `.map` files are
+pure diff noise.
