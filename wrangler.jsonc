@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oishefarhan-com",
+  "compatibility_date": "2026-08-20",
+
+  // Assets-only Worker: there is no `main` script, because there is no server.
+  // Every page here is a file on disk, built by `just site`.
+  "assets": {
+    "directory": "./sites/quartz/public",
+    // Quartz links to extensionless paths (/posts/hello-world) and emits
+    // hello-world.html, so leave html_handling on its auto default.
+    "not_found_handling": "404-page"
+  },
+
+  "routes": [
+    { "pattern": "oishefarhan.com", "custom_domain": true },
+    { "pattern": "www.oishefarhan.com", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}

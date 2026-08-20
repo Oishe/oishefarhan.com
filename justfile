@@ -33,6 +33,14 @@ site: widgets
 serve: widgets
     cd {{quartz}} && npx quartz build -d ../../{{vault}} -o public --serve
 
+# Build and publish to Cloudflare Workers (static assets). Needs `wrangler login`.
+deploy: site
+    npx wrangler deploy
+
+# Show what a deploy would upload, without touching Cloudflare.
+deploy-check: site
+    npx wrangler deploy --dry-run
+
 # --- generated inputs -----------------------------------------------------
 
 # Regenerate the numpy/scipy parity fixtures (§5).
