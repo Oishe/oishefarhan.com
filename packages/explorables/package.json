@@ -10,11 +10,9 @@
     "test:run": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "lit": "^3.2.1"
-  },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "lit": "^3.3.3",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"

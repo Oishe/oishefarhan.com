@@ -10,4 +10,5 @@ a Python runtime to move a slider.
 
 ## Posts
 
+- [[a-signal-is-a-vector]] — a signal is a point in 64-dimensional space, and the right rotation makes almost all of it vanish
 - [[hello-world]] — the skeleton works

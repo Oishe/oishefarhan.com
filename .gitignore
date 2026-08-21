@@ -26,3 +26,6 @@ vault/.trash/
 
 # local tooling state
 .serena/
+
+# Playwright MCP scratch output
+.playwright-mcp/

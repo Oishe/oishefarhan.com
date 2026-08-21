@@ -12,6 +12,9 @@ export default defineConfig({
   // The alias keeps lab pages importing real source paths (`/src/...`)
   // rather than reaching up out of the dev root.
   root: dir("./lab"),
+  // Serve the vault's committed figures at the dev-server root, so a lab page
+  // exercises the exact fallback SVG the post ships rather than a stand-in.
+  publicDir: dir("../../vault/attachments/figs"),
   resolve: {
     alias: [{ find: /^\/src\//, replacement: dir("./src") + "/" }],
   },
@@ -19,6 +22,9 @@ export default defineConfig({
     outDir: OUT,
     emptyOutDir: true,
     target: "es2022",
+    // publicDir is the vault's figures — they are published by Quartz, and have
+    // no business being copied into the widget bundle directory.
+    copyPublicDir: false,
     // Off: this output is committed, and .map files are pure diff noise.
     sourcemap: false,
     rollupOptions: {

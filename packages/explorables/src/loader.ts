@@ -8,7 +8,7 @@
 
 /** Tag name → the module that defines it. Add every widget here. */
 const REGISTRY: Record<string, () => Promise<unknown>> = {
-  // "basis-rotation": () => import("./components/basis-rotation.js"),
+  "basis-rotation": () => import("./components/basis-rotation.ts"),
 }
 
 const TAGS = Object.keys(REGISTRY)

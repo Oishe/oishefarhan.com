@@ -82,6 +82,11 @@ plugins:
   - source: "@quartz-community/description"
     enabled: true
     order: 70
+  # Local plugin, symlinked in by `npm run install-plugins`. Source lives at
+  # sites/quartz/plugins/explorables.
+  - source: "./plugins/explorables"
+    enabled: true
+    order: 95
   - source: "@quartz-community/latex"
     enabled: true
     options:
@@ -136,8 +141,13 @@ plugins:
     layout:
       position: left
       priority: 50
+  # Off. The graph view eagerly loads pixi.js (2.3 MB) and d3 (273 KB) from a
+  # CDN on EVERY page — 2.6 MB of WebGL renderer, against a 200 KB page budget,
+  # to draw a graph of a handful of notes. The plugin has no lazy option.
+  # Backlinks and wikilinks cover the wiki behaviour that actually earns its
+  # keep. Revisit if the plugin ever defers its renderer.
   - source: "@quartz-community/graph"
-    enabled: true
+    enabled: false
     layout:
       position: right
       priority: 10

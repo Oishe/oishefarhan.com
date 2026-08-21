@@ -1,0 +1,64 @@
+<!doctype html>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>basis-rotation — Explorables lab</title>
+<style>
+  body {
+    font: 16px/1.6 system-ui, sans-serif;
+    max-width: 42rem;
+    margin: 3rem auto;
+    padding: 0 1.5rem;
+    background: #faf8f8;
+    color: #2b2b2b;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #161618; color: #ebebec; }
+  }
+  h1 { font-size: 1.3rem; }
+  .note { font-size: 0.85rem; opacity: 0.7; }
+  hr { border: 0; border-top: 1px solid currentColor; opacity: 0.15; margin: 2.5rem 0; }
+</style>
+
+<h1><code>basis-rotation</code></h1>
+
+<p class="note">
+  Both instances below carry the same static fallback the vault embeds. Before
+  the module loads you should see the figure, not a gap — that is the no-JS and
+  first-paint story, so check it by throttling the network rather than trusting it.
+</p>
+
+<h2>As the post embeds it</h2>
+<basis-rotation vx="1.0" vy="1.6" theta="30">
+  <img
+    src="/basis-rotation-30.svg"
+    alt="A vector measured against a standard basis in blue and a basis rotated 30 degrees in red."
+  />
+</basis-rotation>
+
+<hr />
+
+<h2>Off-default, to check the attributes are read</h2>
+<basis-rotation vx="-1.4" vy="0.8" theta="-55">
+  <img
+    src="/basis-rotation-30.svg"
+    alt="A vector measured against a standard basis in blue and a basis rotated 30 degrees in red."
+  />
+</basis-rotation>
+
+<hr />
+
+<p class="note">
+  Scroll down. The chunk is only fetched when a widget is within 200px of the
+  viewport — watch the network panel stay empty until then.
+</p>
+<div style="height: 120vh"></div>
+
+<h2>Below the fold, for the lazy-load check</h2>
+<basis-rotation vx="0.6" vy="1.9" theta="15">
+  <img
+    src="/basis-rotation-30.svg"
+    alt="A vector measured against a standard basis in blue and a basis rotated 30 degrees in red."
+  />
+</basis-rotation>
+
+<script type="module" src="/src/loader.ts"></script>

@@ -47,9 +47,13 @@ deploy-check: site
 fixtures:
     uv run scripts/export_fixtures.py
 
-# Rebuild any figure whose source is newer than its output (§8).
-figures:
+# Rebuild every figure: the marimo-drawn ones, then the typst/d2/tex/manim ones (§8).
+figures: notebook-figures
     make -f figures.mk
+
+# Render post figures straight out of the marimo notebooks into vault/attachments/figs.
+notebook-figures:
+    uv run scripts/export_figures.py
 
 # --- gates ----------------------------------------------------------------
 

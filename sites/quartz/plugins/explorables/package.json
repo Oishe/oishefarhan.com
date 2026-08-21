@@ -1,0 +1,15 @@
+{
+  "name": "quartz-plugin-explorables",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Puts the Explorables widget loader on every page.",
+  "exports": { ".": "./index.js" },
+  "main": "./index.js",
+  "quartz": {
+    "name": "explorables",
+    "displayName": "Explorables",
+    "category": "transformer",
+    "quartzVersion": ">=5.0.0"
+  }
+}
