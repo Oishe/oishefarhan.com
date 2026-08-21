@@ -5,7 +5,7 @@ prototypes numerics in marimo, and ships interactive widgets as small, framework
 Web Components.
 
 **Audience:** Claude Code, working in this repo.
-**Status:** Phase 0 complete (2026-08-20). Phase 1 is next.
+**Status:** Phase 1 complete for notebook 01 (2026-08-21). Phase 2 is next.
 See §12 for where the build deviated from this document.
 
 ---
@@ -579,3 +579,17 @@ Worker with no `main` script.
 
 **Production sourcemaps are off.** The bundle is committed, and `.map` files are
 pure diff noise.
+
+**Phase 1 was scoped to notebook 01 alone.** §11's phase table lists the whole
+numeric core — FFT, DCT-II/III, DWT (db4), `threshold_keep`, `energy_curve`,
+`psnr`, `mse` — as one phase. In practice those come from two different
+notebooks, and porting numerics for a post that is not being written yet is
+speculative work with no reader to check it against. So Phase 1 ports exactly
+what `01_signal_is_a_vector.py` uses: 1-D FFT, DCT-II/III, the orthonormal DCT
+and real Fourier bases, `keep_top`, `coeffs_for_energy`, and the demo signal.
+
+Deferred to a Phase 1b that lands with `02_compression_via_sparsity.py`:
+`threshold_keep`, `psnr`, `mse`, the separable 2-D transforms and `fftshift`,
+and the wavelets. Wavelets stay deferred on purpose until DFT and DCT are proven
+in a shipped post — which also postpones open question 1 (`discrete-wavelets`
+db4 support) rather than answering it now.
