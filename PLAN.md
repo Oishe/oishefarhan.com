@@ -5,7 +5,7 @@ prototypes numerics in marimo, and ships interactive widgets as small, framework
 Web Components.
 
 **Audience:** Claude Code, working in this repo.
-**Status:** Phase 1 complete for notebook 01 (2026-08-21). Phase 2 is next.
+**Status:** Phase 2 complete (2026-08-21). Phase 3 is next.
 See §12 for where the build deviated from this document.
 
 ---
@@ -593,3 +593,43 @@ Deferred to a Phase 1b that lands with `02_compression_via_sparsity.py`:
 and the wavelets. Wavelets stay deferred on purpose until DFT and DCT are proven
 in a shipped post — which also postpones open question 1 (`discrete-wavelets`
 db4 support) rather than answering it now.
+
+**Quartz's graph view is disabled.** §1 lists graph view among the reasons to
+pick Quartz. In practice `@quartz-community/graph` eagerly loads pixi.js
+(2.3 MB) and d3 (273 KB) from a CDN on *every* page, with no option to defer —
+2.6 MB of WebGL renderer against §11's 200 KB page budget, for a graph of three
+notes. That is precisely the failure mode §1 measures and rejects. Wikilinks,
+backlinks and Obsidian compatibility are untouched and remain the real reason
+for Quartz. Revisit only if the plugin learns to defer its renderer.
+
+**Webfonts are off; the site uses system fonts.** Quartz's font emitter does not
+self-host despite `fontOrigin`'s naming, so the configured typography cost two
+render-blocking requests to a second origin plus ~250 KB. Turning it off moved
+mobile Lighthouse performance from 70 to 98. `theme.typography` still names the
+faces, so this is one config line to revert if the typography is worth it.
+
+**§7's KaTeX-in-the-widget sketch is not budget-viable.** KaTeX is ~78 KB
+gzipped — eight times the rest of `basis-rotation` — to typeset eight numbers
+that change and a structure that never does. The widget draws its matrix
+equation with CSS instead. The same question §7 asks about numerics ("is the
+interactive part closed-form?") applies to typesetting.
+
+**One figure embeds a raster inside its SVG.** `matrix-equation.svg` shows a
+64x64 heatmap; matplotlib's `imshow` writes that as an embedded PNG, 22 KB of a
+32 KB file. The vector alternative is 4096 `<rect>`s and a much larger file. A
+heatmap is raster data, so this is the right encoding, and it stays well under
+the 80 KB figure budget. It is the only figure that does this.
+
+### Known follow-ups, deliberately not done in Phase 2
+
+* **KaTeX CSS is still render-blocking** (~830 ms of a mobile run) because
+  `@quartz-community/latex` hardcodes a jsdelivr URL. Fixing it means owning the
+  math plugin — which is also the prerequisite for open question 4, subsetting
+  the KaTeX fonts. Performance is 98 with it in place, so it can wait.
+* **Two accessibility failures remain, both in Quartz's own chrome** (Lighthouse
+  a11y 91): an `aria-*`/role mismatch on the explorer, and footer links whose
+  opacity drops them to 3.5:1. The latter is a one-line palette change but it
+  would lighten every link on the site, so it is a taste call, not a fix to make
+  silently.
+* **Figures carry no explicit `width`/`height`.** CLS measures 0, but that is
+  luck rather than design; a manifest of intrinsic sizes would make it so.

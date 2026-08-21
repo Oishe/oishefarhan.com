@@ -14,7 +14,9 @@ configuration:
     - figures          # figure SOURCES (.typ/.d2/.tex/.py) — only attachments/ is published
     - .trash
   theme:
-    fontOrigin: googleFonts
+    # Self-hosted. googleFonts costs two render-blocking requests to a second
+    # origin before any text can paint.
+    fontOrigin: local
     cdnCaching: true
     typography:
       header: Schibsted Grotesk
@@ -24,7 +26,7 @@ configuration:
       lightMode:
         light: "#faf8f8"
         lightgray: "#e5e5e5"
-        gray: "#b8b8b8"
+        gray: "#6e6e6e"   # was #b8b8b8 — 1.9:1 on #faf8f8, under AA
         darkgray: "#4e4e4e"
         dark: "#2b2b2b"
         secondary: "#284b63"
@@ -34,7 +36,7 @@ configuration:
       darkMode:
         light: "#161618"
         lightgray: "#393639"
-        gray: "#646464"
+        gray: "#8f8f8f"   # was #646464 — 3.05:1 on #161618, under AA
         darkgray: "#d4d4d4"
         dark: "#ebebec"
         secondary: "#7b97aa"
@@ -104,8 +106,15 @@ plugins:
   - source: "@quartz-community/roam"
     enabled: false
     order: 92
+  # System fonts. The emitter does not actually self-host despite its name, so
+  # webfonts here mean two render-blocking requests to a second origin plus
+  # ~250 KB before any text paints. The stacks in theme.typography still name
+  # Schibsted Grotesk / Source Sans Pro / IBM Plex Mono, so this is one line to
+  # revert if the typography turns out to be worth the second origin.
   - source: "@quartz-community/quartz-fonts"
     enabled: true
+    options:
+      fontOrigin: local
   - source: "@quartz-themes/core"
     enabled: false
     options:
