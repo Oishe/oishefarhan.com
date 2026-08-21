@@ -29,3 +29,6 @@ vault/.trash/
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Lighthouse report scratch
+.lh.json
