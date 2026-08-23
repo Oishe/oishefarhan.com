@@ -4,9 +4,15 @@ import { pathToFileURL } from "node:url"
 
 const executableFence = /^\s*(`{3,}|~{3,})\s*\{[^}]+\}\s*$/
 
+// Bridge-only metadata (section 21): it identifies the stub to the Quartz page type
+// and records the authoritative source, and never appears in vault frontmatter.
+function stubMetadata(sourcePath: string): string {
+  return `sourceType: quarto\nquartoStub: true\nsourcePath: ${JSON.stringify(sourcePath)}`
+}
+
 function addStubFrontmatter(source: string, sourcePath: string): string {
   if (!source.startsWith("---\n")) {
-    return `---\nquartoStub: true\nsourcePath: ${JSON.stringify(sourcePath)}\n---\n\n${source}`
+    return `---\n${stubMetadata(sourcePath)}\n---\n\n${source}`
   }
 
   const closingDelimiter = source.indexOf("\n---\n", 4)
@@ -16,7 +22,7 @@ function addStubFrontmatter(source: string, sourcePath: string): string {
 
   const frontmatter = source.slice(0, closingDelimiter)
   const body = source.slice(closingDelimiter + "\n---\n".length)
-  return `${frontmatter}\nquartoStub: true\nsourcePath: ${JSON.stringify(sourcePath)}\n---\n${body}`
+  return `${frontmatter}\n${stubMetadata(sourcePath)}\n---\n${body}`
 }
 
 export function stripExecutableCells(source: string): string {

@@ -2,6 +2,7 @@
 title: Citation Demo
 tags:
   - experiment/citations
+publish: true
 ---
 
 # Citation Demo

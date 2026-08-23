@@ -2,6 +2,7 @@
 title: Callouts and Tasks
 tags:
   - experiment/obsidian-syntax
+publish: true
 ---
 
 # Callouts and Tasks

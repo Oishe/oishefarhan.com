@@ -6,6 +6,7 @@ aliases:
   - Stochastics
 tags:
   - concepts/probability
+publish: true
 ---
 
 # Stochastic Processes

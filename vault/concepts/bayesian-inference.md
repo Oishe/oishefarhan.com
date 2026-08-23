@@ -3,6 +3,7 @@ title: Bayesian Inference
 tags:
   - concepts/statistics
   - methods/bayesian
+publish: true
 ---
 
 # Bayesian Inference

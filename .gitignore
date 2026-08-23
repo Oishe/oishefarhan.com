@@ -4,10 +4,13 @@
 .playwright-mcp/
 .DS_Store
 
-# Generated publishing artifacts.
-# generated/quartz-content/ is intentionally NOT ignored: it is the staged tree
-# Quartz reads through site/content, and Phase 9 will make it fully derivable.
-generated/quarto/
+# Generated publishing artifacts. Everything under generated/ is derivable:
+# scripts/prepare-publication.ts rebuilds the staged tree and link map from the
+# vault, and `quarto render` rebuilds generated/quarto/.
+generated/
+
+# Node dependencies for the publication-prep scripts.
+node_modules/
 
 # Python / Quarto / Jupyter working state.
 # vault/_freeze/ is deliberately absent: section 27 requires committing frozen

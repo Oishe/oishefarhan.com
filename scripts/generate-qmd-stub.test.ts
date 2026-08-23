@@ -13,6 +13,7 @@ publish: true
   const stub = generateQmdStub(source, "vault/example.qmd")
 
   assert.match(stub, /title: Example/)
+  assert.match(stub, /sourceType: quarto/)
   assert.match(stub, /quartoStub: true/)
   assert.match(stub, /sourcePath: "vault\/example.qmd"/)
   assert.match(stub, /# Example/)

@@ -2,6 +2,7 @@
 title: Statistics
 tags:
   - concepts/statistics
+publish: true
 ---
 
 # Statistics

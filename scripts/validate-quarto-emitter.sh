@@ -5,8 +5,10 @@ quarto_page="site/public/research/monte-carlo.html"
 dependency_root="site/public/research/monte-carlo_files"
 
 test -f "$quarto_page"
-test -f "$dependency_root/libs/quarto-html/quarto.js"
+# With format.html.minimal, Quarto emits only the dependencies the page really
+# uses -- no quarto-html or Bootstrap. The emitter must copy exactly those.
 test -f "$dependency_root/libs/clipboard/clipboard.min.js"
+grep -Fq 'monte-carlo_files/libs/clipboard/clipboard.min.js' "$quarto_page"
 
 grep -Fq '<meta name="generator" content="Quartz"' "$quarto_page"
 grep -Fq 'id="quartz-root"' "$quarto_page"

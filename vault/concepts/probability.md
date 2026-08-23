@@ -4,6 +4,7 @@ aliases:
   - Probability Theory
 tags:
   - concepts/mathematics
+publish: true
 ---
 
 # Probability

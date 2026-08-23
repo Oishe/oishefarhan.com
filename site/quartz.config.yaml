@@ -45,9 +45,10 @@ plugins:
     enabled: true
     options:
       defaultDateType: modified
+      # No git step: the staged tree is generated and untracked, and
+      # publication prep carries the vault file's timestamps onto it.
       priority:
         - frontmatter
-        - git
         - filesystem
     order: 10
   - source: "@quartz-community/syntax-highlighting"
@@ -125,8 +126,10 @@ plugins:
       mode: both
   - source: "@quartz-community/remove-draft"
     enabled: true
+  # Layer 2 of the privacy boundary (section 22.1). Publication prep is the
+  # primary gate; this fails closed if anything unpublished reaches content/.
   - source: "@quartz-community/explicit-publish"
-    enabled: false
+    enabled: true
   - source: "@quartz-community/unlisted-pages"
     enabled: true
     options: {}

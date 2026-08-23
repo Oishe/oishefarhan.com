@@ -2,46 +2,60 @@
 
 This repository is implementing the architecture in [Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md](./Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md).
 
-Current work is the Quartz v5 spike:
+Phase 9 (publication prep) is in place, so the public site is now fully derived from the vault:
 
 ```text
-generated/quartz-content/   disposable public test content
+vault/                      source of truth: notes, Quarto documents, attachments
+generated/                  disposable derivatives (git-ignored)
+  quartz-content/           staged public tree Quartz reads through site/content
+  quarto/                   rendered Quarto HTML and dependencies
+  link-map.json             title/alias/slug/path -> canonical URL
 site/                       pinned Quartz v5 source and configuration
-site/content                symlink to the staged content tree
+scripts/                    publication prep, stub generation, validation
 ```
 
-Build the spike with:
+Nothing under `generated/` is edited by hand or committed. `scripts/prepare-publication.ts` rebuilds it.
+
+## Build
 
 ```bash
-cd site
 npm install
-node quartz/bootstrap-cli.mjs build
+npm run build
 ```
 
-The generated site is written to `site/public/` and is ignored by Git.
+That runs the section 28 pipeline in order:
 
-## Current validation commands
+```text
+prepare-publication      select publish:true sources, stage them, write the link map, validate
+quarto render            render published .qmd into generated/quarto/
+prepare-publication      re-verify with --require-quarto (stub slug == Quarto URL)
+quartz build             emit site/public/
+```
+
+Individual stages are available as `npm run prepare-publication`, `npm run render`, and `npm run site`.
+Prep clears `generated/quarto/` when it stages, because Quarto will not remove stale dependency
+directories from an output tree outside its own project; re-run `npm run render` after it.
+
+## Publishing a note
+
+Publication is opt-in. A note reaches the site only with `publish: true` in its frontmatter, and an
+attachment only when published content references it. The build fails rather than leaking: a link
+from a published note to an unpublished one, a stale Quarto artifact for a private document, or
+frozen output for a document that is not published all stop the pipeline.
+
+## Validation
 
 ```bash
+npm test
+./scripts/validate-publication-prep.sh
 ./scripts/validate-qmd-obsidian-spike.sh
 ./scripts/validate-qmd-obsidian-render.sh
 ./scripts/validate-frozen-prose-render.sh
-node --experimental-strip-types --test scripts/generate-qmd-stub.test.ts
 ./scripts/validate-qmd-stub.sh
 ./scripts/validate-qmd-stub-suppression.sh
 ./scripts/validate-quarto-emitter.sh
 ./scripts/validate-interactive-components.sh
 ```
 
-Render the authoritative Quarto documents before building the site:
-
-```bash
-cd vault && uv run quarto render && cd ..
-for f in monte-carlo convergence-diagnostics interactive-ojs interactive-widgets; do
-  node --experimental-strip-types scripts/generate-qmd-stub.ts \
-    "vault/research/$f.qmd" "generated/quartz-content/research/$f.md"
-done
-cd site && node quartz/bootstrap-cli.mjs build
-```
-
-Stub generation is still manual; Phase 9 (`prepare-publication.ts`) replaces this loop.
+The rendered-output validators read artifacts produced by `npm run build`, plus the two experiment
+sites under `experiments/` (`uv run quarto render` in each).

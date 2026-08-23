@@ -2,6 +2,7 @@
 title: Shared Definition
 tags:
   - experiment/transclusion
+publish: true
 ---
 
 # Shared Definition

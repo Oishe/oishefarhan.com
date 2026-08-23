@@ -2,6 +2,7 @@
 title: Transclusion Demo
 tags:
   - experiment/transclusion
+publish: true
 ---
 
 # Transclusion Demo

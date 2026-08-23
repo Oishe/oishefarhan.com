@@ -1,0 +1,17 @@
+{
+  "name": "knowledge-publishing-system",
+  "private": true,
+  "type": "module",
+  "description": "Publication prep and validation for the Obsidian -> Quarto -> Quartz pipeline.",
+  "scripts": {
+    "prepare-publication": "node --experimental-strip-types scripts/prepare-publication.ts",
+    "render": "cd vault && uv run quarto render",
+    "site": "cd site && node quartz/bootstrap-cli.mjs build",
+    "build": "npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto && npm run site",
+    "validate": "./scripts/validate-publication-prep.sh",
+    "test": "node --experimental-strip-types --test scripts/*.test.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  }
+}
