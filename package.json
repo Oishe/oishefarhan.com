@@ -7,6 +7,7 @@
     "prepare-publication": "node --experimental-strip-types scripts/prepare-publication.ts",
     "render": "cd vault && uv run quarto render",
     "site": "cd site && node quartz/bootstrap-cli.mjs build",
+    "serve": "cd site && node quartz/bootstrap-cli.mjs build --serve",
     "build": "npm run design-tokens -- --check && npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto && npm run site",
     "validate": "./scripts/validate-publication-prep.sh",
     "test": "node --experimental-strip-types --test scripts/*.test.ts",
