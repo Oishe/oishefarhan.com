@@ -16,6 +16,12 @@ import {
 
 interface QuartoPageOptions {
   sourceDirectory: string
+  /**
+   * Classic scripts to execute at the top of the Quarto fragment, before any
+   * module or AMD loader the document brings with it. Used to pin Quartz's own
+   * UMD libraries as globals; see the note in quartoPageHtml.ts.
+   */
+  preloadScripts?: string[]
 }
 
 function artifactPath(sourceRoot: string, slug: FullSlug): string {
@@ -75,7 +81,11 @@ export const QuartoPage: QuartzPageTypePlugin<QuartoPageOptions> = (options) => 
           broken: resolution === undefined,
         }
       }
-      tree = extractQuartoPage(fs.readFileSync(source, "utf8"), resolveWikilink)
+      tree = extractQuartoPage(
+        fs.readFileSync(source, "utf8"),
+        resolveWikilink,
+        options.preloadScripts ?? [],
+      )
       cache.set(slug, tree)
     }
 

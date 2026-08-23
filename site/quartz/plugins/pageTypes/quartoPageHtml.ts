@@ -75,21 +75,29 @@ function isBrokenPlotlyPreload(body: string): boolean {
   return match !== undefined && match !== null && !match[1].endsWith(".js")
 }
 
-function isAmdShim(element: Element): boolean {
+// Some Quarto output genuinely consumes AMD. The Jupyter widget manager ships
+// as `embed-amd.js`, which throws "define is not defined" without a loader
+// already in place, and it resolves third-party widget bundles (ipyleaflet and
+// friends) through `require` long after first paint. On such a page the loader
+// has to stay.
+function consumesAmd(resources: Element[]): boolean {
+  return resources.some((resource) => /embed-amd\.js/.test(resourcePath(resource) ?? ""))
+}
+
+function isAmdShim(element: Element, amdIsLoadBearing: boolean): boolean {
   if (element.tagName !== "script") return false
 
   const source = resourcePath(element)
   if (source) {
-    return /\brequirejs\b/.test(source)
+    return !amdIsLoadBearing && /\brequirejs\b/.test(source)
   }
 
   const body = scriptText(element)
+  if (isBrokenPlotlyPreload(body)) return true
+  if (amdIsLoadBearing) return false
   return (
     /^define\(\s*['"]jquery['"]/.test(body) ||
-    /window\.(backupDefine|define)\s*=\s*(window\.(backupDefine|define)|undefined)\s*;/.test(
-      body,
-    ) ||
-    isBrokenPlotlyPreload(body)
+    /window\.(backupDefine|define)\s*=\s*(window\.(backupDefine|define)|undefined)\s*;/.test(body)
   )
 }
 
@@ -183,7 +191,19 @@ function transformWikilinks(node: Root | Element, resolve: QuartoWikilinkResolve
   node.children = children as typeof node.children
 }
 
-export function extractQuartoPage(html: string, resolveWikilink?: QuartoWikilinkResolver): Root {
+// Quartz loads its graph libraries (d3, PIXI) lazily at runtime, well after the
+// Quarto fragment has installed a module loader. Both are UMD bundles, so an
+// AMD loader on the page hijacks them: d3 calls an anonymous define(), RequireJS
+// rejects it with "Mismatched anonymous define", window.d3 is never set, and the
+// graph dies -- and the failed define can poison the require context badly enough
+// that third-party widget bundles stop resolving too. Loading them as classic
+// scripts at the top of the fragment makes them execute during parsing, before
+// any loader exists, so both sides get what they need.
+export function extractQuartoPage(
+  html: string,
+  resolveWikilink?: QuartoWikilinkResolver,
+  preloadScripts: string[] = [],
+): Root {
   const document = fromHtml(html) as Root
   const head = findElement(document, (element) => element.tagName === "head")
   const body = findElement(document, (element) => element.tagName === "body")
@@ -203,7 +223,9 @@ export function extractQuartoPage(html: string, resolveWikilink?: QuartoWikilink
   const bodyResources = body.children.filter(
     (child): child is Element => isElement(child) && child !== main && isQuartoResource(child),
   )
-  const resources = [...headResources, ...bodyResources].filter((resource) => !isAmdShim(resource))
+  const allResources = [...headResources, ...bodyResources]
+  const amdIsLoadBearing = consumesAmd(allResources)
+  const resources = allResources.filter((resource) => !isAmdShim(resource, amdIsLoadBearing))
   assertNoBootstrapResources(resources)
 
   const contentRoot = main ?? body
@@ -216,9 +238,17 @@ export function extractQuartoPage(html: string, resolveWikilink?: QuartoWikilink
       ),
   )
 
+  const preloads: Element[] = preloadScripts.map((src) => ({
+    type: "element",
+    tagName: "script",
+    properties: { src, crossOrigin: "anonymous" },
+    children: [],
+  }))
+
   const root: Root = {
     type: "root",
     children: [
+      ...preloads,
       ...resources,
       {
         type: "element",

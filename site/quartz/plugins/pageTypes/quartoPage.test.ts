@@ -156,3 +156,50 @@ test("keeps an ESM Plotly import that names a real .js bundle", () => {
     true,
   )
 })
+
+test("keeps the AMD loader when the Jupyter widget manager needs it", () => {
+  const result = extractQuartoPage(`<!doctype html><html><head>
+    <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js"></script>
+    <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@*/dist/embed-amd.js"></script>
+  </head><body>
+    <script type="application/vnd.jupyter.widget-state+json">{}</script>
+  </body></html>`)
+
+  const scripts = elements(result).filter((element) => element.tagName === "script")
+  const sources = scripts.map((element) => String(element.properties?.src ?? ""))
+
+  // embed-amd.js throws "define is not defined" without a loader already present.
+  assert.equal(
+    sources.some((src) => src.includes("requirejs")),
+    true,
+  )
+  assert.equal(
+    sources.some((src) => src.includes("embed-amd.js")),
+    true,
+  )
+})
+
+test("preloads Quartz's UMD libraries ahead of any loader the fragment brings", () => {
+  const preloads = [
+    "https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js",
+    "https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.js",
+  ]
+  const result = extractQuartoPage(
+    `<!doctype html><html><head>
+      <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@*/dist/embed-amd.js"></script>
+    </head><body><p>Prose</p></body></html>`,
+    undefined,
+    preloads,
+  )
+
+  const sources = elements(result)
+    .filter((element) => element.tagName === "script")
+    .map((element) => String(element.properties?.src ?? ""))
+
+  // Order is the whole point: d3 must execute before RequireJS exists, or its
+  // anonymous define() is swallowed and window.d3 is never set.
+  assert.deepEqual(sources.slice(0, 2), preloads)
+  assert.ok(sources.indexOf(preloads[0]) < sources.findIndex((s) => s.includes("requirejs")))
+})

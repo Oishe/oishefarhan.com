@@ -4,7 +4,7 @@
 >
 > Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
 >
-> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged eleven-note fixture, two authoritative Quarto documents, and a passing production build. Experiments 0-6 have all passed, including the browser pass. The next unbuilt piece is Phase 9 publication prep, which is now the load-bearing gap: `generated/` is still hand-maintained rather than generated.
+> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged eleven-note fixture, two authoritative Quarto documents, and a passing production build. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). The next unbuilt piece is Phase 9 publication prep, which is now the load-bearing gap: `generated/` is still hand-maintained rather than generated.
 >
 > - **[DECIDED]** — a choice has been made and the design is written around it.
 > - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
@@ -2160,6 +2160,107 @@ The stub has been regenerated, but the *mechanism* is still absent — `scripts/
 is a manually-invoked CLI and no build step calls it. This is the strongest argument for treating
 Phase 9 as the next milestone rather than a later chore: publication prep makes drift impossible by
 construction, and nothing else does.
+
+---
+
+## Experiment 7 — Interactive Client-Side Components  **[VERIFIED]**
+
+Interactive client-side components are a hard project requirement, so they were validated before
+Phase 9 rather than after. Quarto offers four routes; two of them are ruled out by constraints this
+project already has:
+
+| Route | Engine | Deployment | Verdict |
+|---|---|---|---|
+| **Observable JS** | JavaScript | fully static | **Adopted** |
+| **Jupyter Widgets** | Python / Jupyter | fully static | **Adopted** |
+| htmlwidgets | R / Knitr | static | **Excluded** — R-only framework, no Python path |
+| Shiny | R, or Shiny for Python | **requires a server** | **Excluded** — conflicts with the static-hosting constraint |
+
+Shiny for Python exists, but plain Shiny needs a live server process. The statically deployable
+variant is **Shinylive**, which compiles Python to WebAssembly and ships it as files. That remains a
+viable future option and is genuinely serverless, but it is a heavyweight addition (a Quarto
+extension plus a multi-megabyte WASM payload per page) and is not needed for v1.
+
+Fixtures:
+
+```text
+vault/research/interactive-ojs.qmd       reactive input, derived cell, Plot chart, Inputs.table
+vault/research/interactive-widgets.qmd   jslink slider/progress/text, Tab container, ipyleaflet map
+```
+
+`vault/pyproject.toml` gained `ipywidgets` and `ipyleaflet`, re-locked with `uv`.
+
+### The AMD collision
+
+Both technologies work, but getting them to coexist with Quartz exposed a genuine conflict that the
+Plotly fixture had only hinted at.
+
+Quartz loads its graph libraries — **d3 and PIXI, both UMD bundles** — lazily at runtime. A UMD
+bundle checks for an AMD loader first: if `define.amd` exists, it registers as a module and **never
+sets its global**. Quarto's computational output frequently installs exactly such a loader:
+
+```text
+Plotly       ships a RequireJS shim it does not actually need
+ipywidgets   ships embed-amd.js, which REQUIRES a loader and throws
+             "define is not defined" without one
+```
+
+This produced a pair of mutually exclusive failures:
+
+```text
+RequireJS stripped  ->  Plotly fine, graph fine   |  ipywidgets do not render at all
+RequireJS kept      ->  ipywidgets render         |  window.d3 undefined, graph dead,
+                                                  |  "Mismatched anonymous define() module",
+                                                  |  and the poisoned require context also
+                                                  |  breaks third-party widget bundles
+```
+
+Note the second row's sting: leaving RequireJS in place damaged *both* sides, because the rejected
+anonymous `define()` from d3 corrupts the require context that `ipyleaflet` later needs.
+
+### Resolution
+
+Two rules, both in `quartoPageHtml.ts`:
+
+1. **Strip the AMD shim only when nothing on the page consumes AMD.** A page carrying
+   `embed-amd.js` keeps its loader; a page that merely carries Plotly does not.
+2. **Preload Quartz's UMD libraries as classic scripts at the top of the fragment**, before any
+   module or AMD loader the document brings with it. They then execute during parsing, populate
+   their globals, and are immune to whatever loader appears afterwards. The URLs are supplied from
+   `quartz.ts` via `QuartoPage({ preloadScripts: [...] })` so they stay next to the Quartz config
+   rather than hardcoded in the extractor.
+
+Rule 2 also fixed an unrelated d3 race that had been breaking the graph on the Observable page.
+
+### Verified in the browser
+
+**Observable JS** — zero console errors. Moving `viewof cutoff` from 1000 to 50 propagated through
+three dependent cells simultaneously: the `md` readout (7 → 3 points), `Inputs.table` (7 → 3 rows),
+and `Plot.plot` (7 → 3 marks). `ojs_define` carried the Python-computed series into the runtime
+intact. Quartz's Explorer, Graph View, and TOC all render around it.
+
+**Jupyter Widgets** — the `jslink` slider drives the progress bar and number field with no kernel;
+the `Tab` container switches panes; **`ipyleaflet` renders a live, pannable OpenStreetMap map**,
+proving the widget manager resolves third-party bundles beyond the built-in control set. Quartz's
+graph works on the same page.
+
+**Plotly** — unchanged, still interactive, still passing its own validation.
+
+Regression coverage: four cases in `quartoPage.test.ts` and a new
+`scripts/validate-interactive-components.sh`, which asserts the runtime markers, the conditional
+RequireJS rule in both directions, and the byte-offset ordering of the d3 preload against each
+page's module loader.
+
+### Residual issues, none blocking
+
+- Quarto emits **no `require.config` paths**, so the widget manager first probes
+  `/<dir>/jupyter-leaflet.js` and 404s before falling back. Cosmetic; reproduces in plain Quarto.
+- Quartz's `katex copy-tex` helper is loaded after RequireJS on widget pages and logs one
+  "Mismatched anonymous define". Copy-tex silently does not register. Cosmetic.
+- `@jupyter-widgets/html-manager@*` is an **unpinned** CDN reference, worse than `katex@latest`.
+  Pin both before publishing.
+- Widget chrome and `Inputs.table` render on white backgrounds in dark mode — the same Phase 11
+  theming gap noted for Plotly.
 
 ---
 

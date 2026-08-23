@@ -1,0 +1,77 @@
+---
+title: Observable JS
+description: Validating Observable JS reactivity and the Python-to-OJS data handoff.
+aliases:
+  - Observable JS
+  - OJS
+tags:
+  - research/computation
+  - research/interactive
+publish: true
+format: html
+execute:
+  freeze: true
+  cache: true
+---
+
+Observable JS is Quarto's native client-side reactive runtime. Unlike Jupyter Widgets it
+needs no widget manager: cells re-evaluate in dependency order in the browser. This note
+checks that the runtime survives extraction into the Quartz page frame, and that data
+computed in Python reaches it. Background in [[Monte Carlo Simulation]].
+
+## Handing data from Python to Observable
+
+`ojs_define` serialises a Python value into the page for the Observable runtime to pick up.
+
+```{python}
+#| label: convergence-series
+sample_sizes = [10, 20, 50, 100, 200, 500, 1000]
+errors = [0.25, 0.16, 0.09, 0.06, 0.04, 0.025, 0.018]
+series = [{"n": n, "error": e} for n, e in zip(sample_sizes, errors)]
+ojs_define(series=series)
+```
+
+## A reactive input
+
+Moving the slider must recompute the filtered table and the chart below it without a page
+reload. This is the core reactivity test: if the runtime failed to initialise, the input
+would not render at all.
+
+```{ojs}
+//| label: ojs-input
+viewof cutoff = Inputs.range([10, 1000], { value: 1000, step: 10, label: "max samples" })
+```
+
+```{ojs}
+//| label: ojs-derived
+filtered = series.filter((row) => row.n <= cutoff)
+```
+
+```{ojs}
+//| label: ojs-readout
+md`Showing **${filtered.length}** of **${series.length}** points, up to n = **${cutoff}**.`
+```
+
+## A reactive chart
+
+```{ojs}
+//| label: ojs-plot
+Plot.plot({
+  marks: [
+    Plot.line(filtered, { x: "n", y: "error", stroke: "steelblue" }),
+    Plot.dot(filtered, { x: "n", y: "error", fill: "steelblue" })
+  ],
+  x: { type: "log", label: "samples" },
+  y: { type: "log", label: "absolute error" },
+  height: 300
+})
+```
+
+## A reactive table
+
+```{ojs}
+//| label: ojs-table
+Inputs.table(filtered)
+```
+
+Compare with the widget approach in [[Jupyter Widgets]].
