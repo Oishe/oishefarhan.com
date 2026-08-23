@@ -1,0 +1,45 @@
+# Generated from design/tokens.yaml by scripts/generate-design-tokens.ts.
+# Edit that file and run `npm run design-tokens`; do not edit this one.
+#
+# A figure is rasterised once and served to both themes, so it carries no
+# background of its own and draws in a neutral that clears 3:1 on each.
+
+figure.facecolor: none
+axes.facecolor: none
+savefig.facecolor: none
+savefig.edgecolor: none
+savefig.transparent: True
+
+font.family: sans-serif
+font.sans-serif: Source Sans Pro, DejaVu Sans, sans-serif
+font.size: 10
+
+text.color: #797979
+axes.labelcolor: #797979
+axes.edgecolor: #797979
+axes.titlecolor: #797979
+xtick.color: #797979
+ytick.color: #797979
+xtick.labelcolor: #797979
+ytick.labelcolor: #797979
+
+axes.grid: True
+grid.color: #797979
+grid.alpha: 0.3
+grid.linewidth: 0.6
+
+axes.spines.top: False
+axes.spines.right: False
+axes.prop_cycle: cycler('color', ['4e7fa2', '9e6e4c', '418663', '9e61b3', '7f7a3d', 'b15d79'])
+
+lines.linewidth: 1.6
+lines.markersize: 4.5
+
+legend.frameon: False
+legend.labelcolor: #797979
+
+figure.dpi: 144
+savefig.dpi: 144
+savefig.bbox: tight
+
+# series: #4e7fa2, #9e6e4c, #418663, #9e61b3, #7f7a3d, #b15d79

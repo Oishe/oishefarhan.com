@@ -4,7 +4,7 @@
 >
 > Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
 >
-> As of **2026-08-23**, the public site is derived end to end from the vault: `scripts/prepare-publication.ts` stages it, Quarto renders the computational documents, and Quartz builds the result. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). Phase 9 (publication prep) and Phase 10 (Quarto bridge) are implemented; the bridge now lives in `site/bridge/` and the vendored Quartz tree carries a single documented patch. The next unbuilt piece is Phase 11, the shared visual language: Quarto output still styles itself independently of Quartz's theme variables.
+> As of **2026-08-23**, the public site is derived end to end from the vault: `scripts/prepare-publication.ts` stages it, Quarto renders the computational documents, and Quartz builds the result. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). Phases 9 (publication prep), 10 (Quarto bridge), and 11 (shared visual language) are implemented; the bridge lives in `site/bridge/`, the vendored Quartz tree carries a single documented patch, and `design/tokens.yaml` is the one place the visual language is decided. The next unbuilt piece is Phase 12, reproducibility.
 >
 > - **[DECIDED]** — a choice has been made and the design is written around it.
 > - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
@@ -2070,9 +2070,9 @@ Regression coverage: two new cases in `site/bridge/quartoPage.test.ts`, and
 `scripts/validate-quarto-emitter.sh` now asserts the figure, table, and Plotly payload are present
 while the three AMD shim markers are absent.
 
-**Open, not blocking:** the Plotly widget and the Matplotlib PNG both render on white backgrounds in
-dark mode. That is Phase 11 (shared visual language) work — Quarto output needs to derive its
-surface colours from Quartz theme variables.
+**Closed by Phase 11.** The Plotly widget and the Matplotlib PNG rendered on white backgrounds in
+dark mode. Plotly is now rethemed at runtime from Quartz's theme variables; the Matplotlib figure is
+drawn on a transparent background in a neutral chosen to clear 3:1 against both page backgrounds.
 
 ---
 
@@ -2259,8 +2259,9 @@ page's module loader.
   "Mismatched anonymous define". Copy-tex silently does not register. Cosmetic.
 - `@jupyter-widgets/html-manager@*` is an **unpinned** CDN reference, worse than `katex@latest`.
   Pin both before publishing.
-- Widget chrome and `Inputs.table` render on white backgrounds in dark mode — the same Phase 11
-  theming gap noted for Plotly.
+- Widget chrome and `Inputs.table` rendered on white backgrounds in dark mode. Closed by Phase 11:
+  both are overridden from Quartz theme variables, with `!important` because a library that injects
+  its stylesheet at runtime is unlayered and outranks Quartz's `@layer quartz-base`.
 
 ---
 
@@ -2480,6 +2481,87 @@ light/dark theme variables
 ```
 
 Quartz now supplies shared navigation directly through the `QuartoPage` frame. Keep Quarto-specific styling scoped beneath `.quarto-content` and derive it from Quartz theme variables.
+
+---
+
+### Phase 11 implementation status — 2026-08-23
+
+**Implemented.** `design/tokens.yaml` is now the only place a colour, font, or chart value is
+written down. `scripts/generate-design-tokens.ts` projects it into the four consumers that cannot
+read YAML at build time, and `--check` proves none has drifted:
+
+```text
+site/quartz.config.yaml                          configuration.theme + the fonts plugin, between markers
+site/bridge/styles/quartoTokens.scss             CSS custom properties and the pandoc-class mixin
+vault/_theme/knowledge_theme/tokens.json         the token tree, for the Python side
+vault/_theme/knowledge_theme/knowledge.mplstyle  matplotlib rc derived from the chart tokens
+```
+
+`npm run design-tokens` rewrites them; `npm run build` runs `--check` first and fails on a stale one.
+
+**The work splits three ways, by what can actually reach the pixels.**
+
+*CSS, for markup inside the Quartz frame.* `bridge/styles/quartoPage.scss` grew from a stub to a
+full sheet, still scoped beneath `.quarto-page`. Every value in it is a Quartz theme variable or a
+`--qmd-*` token — a validation step fails the build on a literal hex — so the Quarto fragment
+follows the theme toggle without knowing the toggle exists. The largest addition is code
+highlighting: Quartz colours Markdown code with shiki's `github-light`/`github-dark`, and pandoc
+under `minimal: true` emits its token classes with no colours at all, so a Python cell used to
+render as flat text beside a fully highlighted fenced block. The generated mixin colours those
+classes from the same GitHub Primer values shiki uses.
+
+*Runtime, for output CSS cannot reach.* Plotly keeps its surface, axis and hover colours in the
+figure JSON and writes them into inline SVG attributes at draw time. `bridge/scripts/quartoTheme`
+rewrites them from the same theme variables on load, whenever a figure appears late, and on every
+`themechange`. This is strictly better than a build-time fix: a live figure gets the theme's real
+text colour rather than a compromise neutral.
+
+*Build time, for output that is rasterised once.* `vault/_theme/knowledge_theme` is a uv path
+dependency of the vault environment exposing `apply()`, which installs the generated matplotlib
+style and registers a Plotly template with transparent surfaces and the shared palette. A document
+that draws figures calls it once in a hidden setup cell.
+
+**One colour cannot be a theme variable, and the tokens say so.** A matplotlib figure is rasterised
+once and served to both themes. No single ink can clear the 4.5:1 AA text threshold against both
+page backgrounds — 4.35:1 and 3.91:1 is the best available pair — so `chart.ink` and the six
+`chart.series` colours are chosen to maximise the smaller ratio, and the generator refuses to emit
+any chart colour below the 3:1 WCAG 1.4.11 floor on either ground. That check is what stops someone
+tuning a chart for light mode and losing it in dark.
+
+**`configuration.theme` is inert, and this matters.** The site loads `@quartz-themes/core`, whose
+Obsidian theme CSS is injected *unlayered*; Quartz emits its own palette inside `@layer
+quartz-base`, and unlayered declarations beat layered ones at any specificity. The browser resolves
+`--light` to `#ffffff` and `#1C1C1C`, not to the values in `quartz.config.yaml`. Two consequences:
+
+- `chart.grounds` in `design/tokens.yaml` records the backgrounds that actually ship, separately
+  from `colors.*.light`, so the legibility check measures a palette someone can see.
+- Every rule in `quartoPage.scss` that overrides a colour a third-party script painted —
+  `Inputs.table`'s white sticky header, widget chrome, Leaflet, the Plotly modebar — carries
+  `!important`. That is the cascade-layer rule, not specificity padding; the rules that merely
+  restate a Quartz convention do not need it.
+
+  Deciding whether the theme plugin or `configuration.theme` should own the palette is a real
+  choice and is deferred, not resolved. Until it is made, the generated theme block is documentation
+  of intent rather than the live palette.
+
+**Covered by tests.** `scripts/generate-design-tokens.test.ts` (12 cases) covers token validation,
+the contrast floor in both directions, marker replacement, and that all four projections are
+current. `site/bridge/quartoTheme.test.ts` (5 cases) covers the Plotly update: no white survives, no
+colour that is not a theme variable appears, every declared axis is touched, and no axis the figure
+does not declare is named — `relayout` would otherwise draw one.
+`scripts/validate-shared-visual-language.sh` asserts the end-to-end claims against the built site.
+
+**Residual gaps.**
+
+- The matplotlib figure remains the one piece that cannot follow the toggle. Inlining the SVG
+  through the bridge would make it fully theme-reactive and is the obvious next move if a static
+  figure ever carries text that matters; it needs id-namespacing and is not worth it yet.
+- The Observable and widget chrome rules beyond `Inputs.table` are written from the libraries'
+  published class names but only `Inputs.table`, Observable Plot, and Plotly have been checked in a
+  browser. The Leaflet and Lumino rules are unverified.
+- Spacing and content width are inherited from the Quartz frame rather than tokenised. Nothing in
+  the Quarto fragment sets its own width, so there is currently no divergence to reconcile.
+
 
 ---
 

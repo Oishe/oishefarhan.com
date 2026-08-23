@@ -1,3 +1,16 @@
+@use "./quartoTokens.scss" as tokens;
+
+// Quarto-specific styling, scoped beneath .quarto-page so it cannot reach the
+// Quartz shell around it (section 24). Every value here is either a Quartz
+// theme variable or a --qmd-* token from quartoTokens.scss, so the Quarto
+// fragment follows the theme toggle without knowing the toggle exists.
+//
+// The rules fall into two groups. Most restate a Quartz convention for markup
+// Quartz never sees -- pandoc's `pre.sourceCode`, Quarto's `.cell-output`,
+// `Inputs.table` -- so a Python cell and a Markdown fenced block read the same.
+// The rest neutralise a hard-coded colour that a client-side library paints on
+// its own; those are the ones a reader notices in dark mode.
+
 .quarto-page {
   min-width: 0;
 
@@ -10,52 +23,193 @@
       margin-top: 0;
     }
 
+    // -----------------------------------------------------------------------
+    // Cells
+    // -----------------------------------------------------------------------
+
     .cell {
       margin: 1.5rem 0;
     }
 
-    .cell-output {
-      margin-top: 0.75rem;
+    // Quartz styles `pre` for its own fenced blocks; pandoc's wrapper markup
+    // sits one level deeper, so the same border and radius are restated here
+    // rather than inherited.
+    div.sourceCode {
+      background: none;
+      margin: 0;
     }
 
-    .cell-output > pre,
-    .sourceCode {
+    pre.sourceCode {
+      font-family: var(--codeFont);
+      border: 1px solid var(--lightgray);
+      border-radius: 5px;
+      overflow-x: auto;
+      padding: 0 0.5rem;
+
+      > code.sourceCode {
+        background: none;
+        display: block;
+        font-size: 0.85rem;
+        padding: 0.5rem 0;
+
+        // Quartz's base rule makes `pre > code` a grid for its line-number
+        // gutter. Pandoc's per-line spans are already block-level, and the grid
+        // collapses the blank ones, so the fragment opts back out.
+        > span {
+          display: block;
+          min-height: 1.25em;
+        }
+
+        // Pandoc anchors every line for deep linking. Quarto's own themes hide
+        // the marker; there is no Quartz equivalent to inherit.
+        a[href^="#cb"] {
+          background: none;
+          color: inherit;
+          text-decoration: none;
+        }
+      }
+
+      @include tokens.quarto-syntax-tokens;
+    }
+
+    // Cell output is not source: no border, so it reads as a result rather than
+    // as a second code block.
+    .cell-output {
+      margin-top: 0.75rem;
+
+      > pre {
+        border: none;
+        padding: 0;
+
+        > code {
+          background: none;
+          color: var(--darkgray);
+          display: block;
+          font-size: 0.85rem;
+          padding: 0;
+        }
+      }
+    }
+
+    .cell-output-stderr > pre > code {
+      color: var(--qmd-syntax-error);
+    }
+
+    // Anything a computation emits can be wider than the column.
+    .cell-output-display {
       max-width: 100%;
+      overflow-x: auto;
     }
 
     .code-copy-outer-scaffold {
       position: relative;
     }
 
+    // Quarto renders the glyph with Bootstrap Icons, which `minimal: true`
+    // never loads. The label is drawn here instead of pulling in a font.
     .code-copy-button {
-      background: var(--lightgray);
-      border: 1px solid var(--gray);
-      border-radius: 0.25rem;
+      background: var(--light);
+      border: 1px solid var(--lightgray);
+      border-radius: 5px;
       color: var(--darkgray);
       cursor: pointer;
-      padding: 0.25rem 0.5rem;
+      font-family: var(--codeFont);
+      font-size: 0.7rem;
+      line-height: 1;
+      opacity: 0;
+      padding: 0.3rem 0.45rem;
       position: absolute;
       right: 0.5rem;
       top: 0.5rem;
+      transition:
+        opacity 0.2s ease,
+        border-color 0.2s ease;
+
+      > i.bi {
+        display: none;
+      }
+
+      &::after {
+        content: "copy";
+      }
+
+      &:hover,
+      &:focus-visible {
+        border-color: var(--secondary);
+        color: var(--secondary);
+      }
+
+      &.code-copy-button-checked::after {
+        content: "copied";
+      }
     }
+
+    .code-copy-outer-scaffold:hover .code-copy-button,
+    .code-copy-button:focus-visible {
+      opacity: 1;
+    }
+
+    // -----------------------------------------------------------------------
+    // Tables. Quartz uses a horizontal rule per row rather than a full grid;
+    // pandoc and pandas both emit their own table markup that never reaches it.
+    // -----------------------------------------------------------------------
 
     table {
       border-collapse: collapse;
+      font-variant-numeric: tabular-nums;
       width: 100%;
     }
 
-    th,
-    td {
-      border: 1px solid var(--lightgray);
+    th {
+      border-bottom: 2px solid var(--gray);
       padding: 0.4rem 0.7rem;
       text-align: left;
     }
+
+    td {
+      border: none;
+      padding: 0.2rem 0.7rem;
+    }
+
+    tr {
+      border-bottom: 1px solid var(--lightgray);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    // pandas ships its own alignment rules in a scoped <style>; the colours it
+    // leaves to the page, so only the surface needs claiming.
+    .dataframe {
+      background: none;
+
+      th,
+      td {
+        background: none;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Figures
+    // -----------------------------------------------------------------------
 
     img,
     svg,
     canvas {
       height: auto;
       max-width: 100%;
+    }
+
+    figure {
+      margin: 1.5rem 0;
+    }
+
+    figcaption {
+      color: var(--gray);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      text-align: center;
     }
 
     .math.display {
@@ -69,6 +223,143 @@
         display: block;
         margin: 0;
         padding: 0.25rem 0;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Observable JS. The runtime paints inline SVG and its own input chrome, so
+    // unlike Plotly it is reachable from CSS and needs no runtime pass.
+    // -----------------------------------------------------------------------
+
+    .observablehq {
+      color: var(--darkgray);
+      font-family: var(--bodyFont);
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    // Observable Plot draws axes and rules in a fixed near-black. The chart
+    // tokens are the same neutrals a matplotlib figure uses, so a static and a
+    // reactive chart on one page agree.
+    svg[class^="plot-"],
+    svg[class*=" plot-"] {
+      // Plot draws axis text, ticks and grid lines with currentColor, and
+      // reads --plot-background for text halos and frames.
+      color: var(--qmd-chart-ink);
+      --plot-background: var(--light);
+    }
+
+    .observablehq form,
+    [class^="oi-"],
+    [class*=" oi-"] {
+      color: var(--darkgray);
+      font-family: var(--bodyFont);
+    }
+
+    // Inputs.table renders a sticky header on an opaque white by default.
+    //
+    // The !important below is not specificity padding. Quartz emits component
+    // CSS inside `@layer quartz-base`, and a library that injects its own
+    // stylesheet at runtime is unlayered -- unlayered normal declarations beat
+    // layered ones no matter how specific the layered selector is. Every rule
+    // in this file that overrides a colour a third-party script painted needs
+    // it for the same reason; the rules that merely restate a Quartz
+    // convention do not, because nothing else is claiming them.
+    .observablehq table {
+      thead th {
+        background: var(--light) !important;
+        color: var(--dark) !important;
+      }
+
+      tbody tr:hover {
+        background: var(--highlight);
+      }
+    }
+
+    input[type="range"] {
+      accent-color: var(--secondary);
+    }
+
+    // -----------------------------------------------------------------------
+    // Jupyter widgets. The widget manager ships a Lumino stylesheet built for a
+    // light notebook; these are its surface colours, remapped.
+    // -----------------------------------------------------------------------
+
+    .jupyter-widgets,
+    .widget-html-content {
+      color: var(--darkgray) !important;
+      font-family: var(--bodyFont) !important;
+    }
+
+    .jp-OutputArea,
+    .jupyter-widget-Collapse,
+    .jupyter-widget-TabPanel {
+      background: none !important;
+    }
+
+    .widget-readout,
+    .jupyter-widgets input[type="text"],
+    .jupyter-widgets input[type="number"] {
+      background: var(--light) !important;
+      border: 1px solid var(--lightgray) !important;
+      border-radius: 5px;
+      color: var(--darkgray) !important;
+    }
+
+    .widget-slider .ui-slider {
+      background: var(--lightgray) !important;
+      border: none !important;
+
+      .ui-slider-handle {
+        background: var(--secondary) !important;
+        border: none !important;
+      }
+
+      .ui-slider-range {
+        background: var(--tertiary) !important;
+      }
+    }
+
+    .progress-bar {
+      background-color: var(--secondary) !important;
+    }
+
+    .widget-hprogress,
+    .widget-vprogress {
+      background: var(--lightgray) !important;
+    }
+
+    // Leaflet's own chrome, for the map widget.
+    .leaflet-container {
+      background: var(--lightgray) !important;
+    }
+
+    .leaflet-bar a {
+      background: var(--light) !important;
+      color: var(--darkgray) !important;
+    }
+
+    // -----------------------------------------------------------------------
+    // Plotly. Its surface colours live in the figure JSON rather than in CSS,
+    // so bridge/scripts/quartoTheme.inline.ts rewrites them from these same
+    // variables on load and on every theme change. Only the frame is styled
+    // here.
+    // -----------------------------------------------------------------------
+
+    .plotly,
+    .js-plotly-plot {
+      max-width: 100%;
+
+      .modebar {
+        background: none !important;
+      }
+
+      .modebar-btn path {
+        fill: var(--gray) !important;
+      }
+
+      .modebar-btn:hover path {
+        fill: var(--secondary) !important;
       }
     }
   }

@@ -6,6 +6,8 @@ import { QuartzPageTypePlugin } from "../quartz/plugins/types"
 import { FilePath, FullSlug, resolveRelative } from "../quartz/util/path"
 import { htmlToJsx } from "../quartz/util/jsx"
 import style from "./styles/quartoPage.scss"
+// @ts-ignore -- resolved to a string by the inline-script loader at build time
+import themeScript from "./scripts/quartoTheme.inline"
 import { slugifyPath } from "@quartz-community/utils"
 import {
   elementAttribute,
@@ -105,6 +107,7 @@ export const QuartoPage: QuartzPageTypePlugin<QuartoPageOptions> = (options) => 
     )
   }
   QuartoBody.css = style
+  QuartoBody.afterDOMLoaded = themeScript
 
   return {
     name: "QuartoPage",

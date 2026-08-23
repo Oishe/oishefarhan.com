@@ -1,0 +1,107 @@
+// Generated from design/tokens.yaml by scripts/generate-design-tokens.ts.
+// Edit that file and run `npm run design-tokens`; do not edit this one.
+//
+// Only the tokens Quartz has no equivalent for live here. Everything else in
+// the Quarto frame is written against Quartz's own theme variables.
+
+:root {
+  --qmd-syntax-keyword: #cf222e;
+  --qmd-syntax-type: #953800;
+  --qmd-syntax-number: #0550ae;
+  --qmd-syntax-string: #0a3069;
+  --qmd-syntax-comment: #6e7781;
+  --qmd-syntax-function: #8250df;
+  --qmd-syntax-variable: #953800;
+  --qmd-syntax-builtin: #0550ae;
+  --qmd-syntax-operator: #0550ae;
+  --qmd-syntax-meta: #6e7781;
+  --qmd-syntax-error: #82071e;
+
+  --qmd-chart-ink: #797979;
+  --qmd-chart-grid: rgba(121, 121, 121, 0.3);
+  --qmd-chart-series-1: #4e7fa2;
+  --qmd-chart-series-2: #9e6e4c;
+  --qmd-chart-series-3: #418663;
+  --qmd-chart-series-4: #9e61b3;
+  --qmd-chart-series-5: #7f7a3d;
+  --qmd-chart-series-6: #b15d79;
+}
+
+:root[saved-theme="dark"] {
+  --qmd-syntax-keyword: #ff7b72;
+  --qmd-syntax-type: #ffa657;
+  --qmd-syntax-number: #79c0ff;
+  --qmd-syntax-string: #a5d6ff;
+  --qmd-syntax-comment: #8b949e;
+  --qmd-syntax-function: #d2a8ff;
+  --qmd-syntax-variable: #ffa657;
+  --qmd-syntax-builtin: #79c0ff;
+  --qmd-syntax-operator: #79c0ff;
+  --qmd-syntax-meta: #8b949e;
+  --qmd-syntax-error: #ffa198;
+}
+
+// Pandoc emits one two-letter class per highlighted token. The mixin keeps the
+// class-to-token mapping next to the values it resolves, and quartoPage.scss
+// decides where it applies.
+@mixin quarto-syntax-tokens {
+  span.kw,
+  span.cf,
+  span.im {
+    color: var(--qmd-syntax-keyword);
+  }
+
+  span.dt {
+    color: var(--qmd-syntax-type);
+  }
+
+  span.dv,
+  span.bn,
+  span.fl {
+    color: var(--qmd-syntax-number);
+  }
+
+  span.ch,
+  span.st,
+  span.vs,
+  span.ss {
+    color: var(--qmd-syntax-string);
+  }
+
+  span.co,
+  span.do,
+  span.cv {
+    color: var(--qmd-syntax-comment);
+  }
+
+  span.fu {
+    color: var(--qmd-syntax-function);
+  }
+
+  span.va {
+    color: var(--qmd-syntax-variable);
+  }
+
+  span.bu,
+  span.cn,
+  span.sc {
+    color: var(--qmd-syntax-builtin);
+  }
+
+  span.op {
+    color: var(--qmd-syntax-operator);
+  }
+
+  span.pp,
+  span.at,
+  span.an,
+  span.in {
+    color: var(--qmd-syntax-meta);
+  }
+
+  span.al,
+  span.er,
+  span.wa {
+    color: var(--qmd-syntax-error);
+  }
+}

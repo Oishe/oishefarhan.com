@@ -1,0 +1,132 @@
+# Shared design tokens — the single source of truth for the visual language on
+# both sides of the renderer boundary (Phase 11).
+#
+# Nothing reads this file at build time. A generator projects it into the four
+# places that actually need the values, and each projection is checkable:
+#
+#   site/quartz.config.yaml            configuration.theme, between markers
+#   site/bridge/styles/quartoTokens.scss   CSS custom properties for the Quarto frame
+#   vault/_theme/knowledge_theme/tokens.json         the same tokens, for Python
+#   vault/_theme/knowledge_theme/knowledge.mplstyle  matplotlib rc from chart tokens
+#
+#   npm run design-tokens              rewrite all four
+#   npm run design-tokens -- --check   fail if any is stale
+#
+# Edit this file, never a generated one.
+
+# ---------------------------------------------------------------------------
+# Colours. Quartz emits these as :root custom properties (--light, --dark, ...)
+# and every Quarto rule in bridge/styles/quartoPage.scss is written against
+# those properties rather than against literals, so the Quarto fragment follows
+# the theme toggle for free.
+# ---------------------------------------------------------------------------
+colors:
+  light:
+    light: "#faf8f8"
+    lightgray: "#e5e5e5"
+    gray: "#b8b8b8"
+    darkgray: "#4e4e4e"
+    dark: "#2b2b2b"
+    secondary: "#284b63"
+    tertiary: "#84a59d"
+    highlight: "rgba(143, 159, 169, 0.15)"
+    textHighlight: "#fff23688"
+  dark:
+    light: "#161618"
+    lightgray: "#393639"
+    gray: "#646464"
+    darkgray: "#d4d4d4"
+    dark: "#ebebec"
+    secondary: "#7b97aa"
+    tertiary: "#84a59d"
+    highlight: "rgba(143, 159, 169, 0.15)"
+    textHighlight: "#b3aa0288"
+
+typography:
+  header: Schibsted Grotesk
+  body: Source Sans Pro
+  code: IBM Plex Mono
+
+# ---------------------------------------------------------------------------
+# Code highlighting. Quartz highlights Markdown code with shiki's github-light
+# and github-dark themes; Quarto emits pandoc's skylighting token classes with
+# no colours of their own under `minimal: true`. Colouring those classes here,
+# with the same GitHub Primer values shiki uses, is what makes a Python cell
+# read identically on both sides of the boundary.
+#
+# Pandoc class -> token, as applied in bridge/styles/quartoPage.scss:
+#   kw cf im       keyword      dv bn fl       number
+#   dt             type         ch st vs ss    string
+#   co do cv       comment      fu             function
+#   va             variable     bu cn sc       builtin
+#   op             operator     pp at an in    meta
+#   al er wa       error
+# ---------------------------------------------------------------------------
+syntax:
+  light:
+    keyword: "#cf222e"
+    type: "#953800"
+    number: "#0550ae"
+    string: "#0a3069"
+    comment: "#6e7781"
+    function: "#8250df"
+    variable: "#953800"
+    builtin: "#0550ae"
+    operator: "#0550ae"
+    meta: "#6e7781"
+    error: "#82071e"
+  dark:
+    keyword: "#ff7b72"
+    type: "#ffa657"
+    number: "#79c0ff"
+    string: "#a5d6ff"
+    comment: "#8b949e"
+    function: "#d2a8ff"
+    variable: "#ffa657"
+    builtin: "#79c0ff"
+    operator: "#79c0ff"
+    meta: "#8b949e"
+    error: "#ffa198"
+
+# ---------------------------------------------------------------------------
+# Charts. These are the one part of the system that cannot be a theme variable.
+# A matplotlib figure is rasterised once at render time and served to both
+# themes, so its ink and series colours have to be legible against *both*
+# background colours above.
+#
+# `ink` is the neutral that maximises the smaller of its two contrast ratios
+# against colors.light.light and colors.dark.light: 4.11:1 on each. That is the
+# ceiling for any single colour against this pair — no fixed ink can reach the
+# 4.5:1 AA threshold on both — which is why a build-time raster is a compromise
+# and live output is rethemed at runtime instead (bridge/scripts/quartoTheme).
+#
+# `series` are muted mid-lightness hues, each at or above 4.06:1 on both
+# grounds, well clear of the 3:1 WCAG 1.4.11 minimum for graphical objects.
+#
+# Backgrounds are transparent everywhere so the Quartz surface shows through.
+# ---------------------------------------------------------------------------
+chart:
+  # The two page backgrounds a figure has to survive. These are NOT taken from
+  # colors.*.light above, and that is deliberate: the site loads
+  # @quartz-themes/core, whose Obsidian theme CSS is injected unlayered and so
+  # supersedes the `configuration.theme` palette Quartz emits from this file.
+  # The values below are what the browser actually resolves --light to in each
+  # mode. If the theme plugin is ever disabled or swapped, re-read them from a
+  # built page and update here, or the legibility check is measuring a palette
+  # nobody sees.
+  grounds:
+    light: "#ffffff"
+    dark: "#1C1C1C"
+  ink: "#797979"
+  gridAlpha: 0.3
+  series:
+    - "#4e7fa2"
+    - "#9e6e4c"
+    - "#418663"
+    - "#9e61b3"
+    - "#7f7a3d"
+    - "#b15d79"
+  # Point sizes in the figure, in the same units matplotlib uses.
+  fontSize: 10
+  lineWidth: 1.6
+  markerSize: 4.5

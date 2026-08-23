@@ -17,6 +17,17 @@ Estimator error shrinks as samples accumulate, but the rate matters more than th
 direction. This note works through that rate for the estimator defined in
 [[Monte Carlo Simulation]], using the error conventions from [[Statistics]].
 
+The static and interactive figures below draw their colours and typography from the
+shared design tokens, applied once here rather than per figure.
+
+```{python}
+#| label: theme-setup
+#| include: false
+import knowledge_theme
+
+knowledge_theme.apply()
+```
+
 ## The rate
 
 For independent samples with finite variance $\sigma^2$, the standard error of the

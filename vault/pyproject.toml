@@ -11,4 +11,12 @@ dependencies = [
   "plotly>=6.5,<7",
   "ipywidgets>=8.1,<9",
   "ipyleaflet>=0.19,<1",
+  "knowledge-theme",
 ]
+
+# knowledge-theme is this vault's own design-token package (Phase 11), not a
+# published one, so it is pointed at the local _theme/ directory rather than
+# an index. Editable so document renders pick up a rebuilt tokens.json or
+# knowledge.mplstyle without a reinstall.
+[tool.uv.sources]
+knowledge-theme = { path = "_theme", editable = true }

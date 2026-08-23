@@ -54,12 +54,22 @@ md`Showing **${filtered.length}** of **${series.length}** points, up to n = **${
 
 ## A reactive chart
 
+The mark colour is read from the page's own CSS custom properties rather than named
+here, so the chart tracks the shared palette (and stays correct under both page themes)
+without a copy of it baked into this document.
+
+```{ojs}
+//| label: ojs-palette
+//| echo: false
+seriesColor = (n) => getComputedStyle(document.documentElement).getPropertyValue(`--qmd-chart-series-${n}`).trim()
+```
+
 ```{ojs}
 //| label: ojs-plot
 Plot.plot({
   marks: [
-    Plot.line(filtered, { x: "n", y: "error", stroke: "steelblue" }),
-    Plot.dot(filtered, { x: "n", y: "error", fill: "steelblue" })
+    Plot.line(filtered, { x: "n", y: "error", stroke: seriesColor(1) }),
+    Plot.dot(filtered, { x: "n", y: "error", fill: seriesColor(1) })
   ],
   x: { type: "log", label: "samples" },
   y: { type: "log", label: "absolute error" },
