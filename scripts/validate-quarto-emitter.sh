@@ -33,7 +33,21 @@ fi
 grep -Fq '"research/monte-carlo"' site/public/static/contentIndex.json
 grep -Fq '../research/monte-carlo' site/public/concepts/probability.html
 test -f site/public/monte-carlo-simulation.html
-grep -Fq '.math.display' site/quartz/plugins/pageTypes/styles/quartoPage.scss
+grep -Fq '.math.display' site/bridge/styles/quartoPage.scss
+
+# --- Renderer boundary: Quarto pages leave the SPA lifecycle -----------------
+# Quarto's scripts initialize on a full document load, so the bridge marks its
+# article `data-spa-exclude` and Quartz's router does a full load into or out of
+# such a page. Ordinary Quartz pages must not carry the marker.
+grep -Fq 'data-spa-exclude' "$quarto_page"
+if grep -Fq 'data-spa-exclude' site/public/concepts/probability.html; then
+  printf '%s\n' 'A plain Quartz page claims the SPA exclusion marker.' >&2
+  exit 1
+fi
+if ! grep -rlFq 'querySelector("[data-spa-exclude]")' site/public/static/scripts >/dev/null 2>&1; then
+  printf '%s\n' 'The emitted SPA router does not honour the data-spa-exclude marker.' >&2
+  exit 1
+fi
 
 # --- Computational payload: figures, tables, and interactive widgets ---------
 # The trivial monte-carlo fixture cannot exercise the reason this bridge extracts

@@ -24,15 +24,16 @@ const isSamePage = (url: URL): boolean => {
   return sameOrigin && samePath
 }
 
-const isQuartoPage = (root: Document | Element = document): boolean =>
-  root.querySelector("article.quarto-page") !== null
+// A page can opt out of SPA navigation by marking its root element
+// `data-spa-exclude`. Navigation into or out of such a page is a full document
+// load, so a page whose scripts only initialize on `DOMContentLoaded` still
+// works. See QUARTZ_UPSTREAM.md; the Quarto bridge sets this marker.
+const isSpaExcluded = (root: Document | Element = document): boolean =>
+  root.querySelector("[data-spa-exclude]") !== null
 
 const getOpts = ({ target }: Event): { url: URL; scroll?: boolean } | undefined => {
   if (!isElement(target)) return
-  // Quarto scripts currently initialize on a full document load. Keep navigation
-  // across the renderer boundary out of the SPA lifecycle until those scripts
-  // have explicit Quartz `nav`/cleanup handlers.
-  if (isQuartoPage()) return
+  if (isSpaExcluded()) return
   if (target.attributes.getNamedItem("target")?.value === "_blank") return
   const a = target.closest("a")
   if (!a) return
@@ -101,7 +102,7 @@ async function _navigate(url: URL, isBack: boolean = false) {
   const html = p.parseFromString(contents, "text/html")
   normalizeRelativeURLs(html, url)
 
-  if (isQuartoPage(html)) {
+  if (isSpaExcluded(html)) {
     window.location.assign(url)
     return
   }

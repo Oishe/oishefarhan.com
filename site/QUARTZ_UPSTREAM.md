@@ -28,20 +28,36 @@ must travel with it) and `quartz.config.default.yaml` (useful reference when con
 
 ## Upgrading
 
-Because the bridge currently lives _inside_ `quartz/plugins/`, a future upgrade is easier as a
-re-vendor than a merge: fetch the new upstream tree, delete the files listed above again, and re-apply
-the three bridge files plus `quartz.ts`. Phase 10 moves the bridge out to `site/bridge/`, after which
-the vendored tree becomes untouched upstream code and this step gets simpler.
-
-The bridge files are:
+The bridge lives in `bridge/`, outside the vendored tree, so an upgrade is a re-vendor: fetch the new
+upstream tree, delete the files listed above again, and restore the project-owned files. Those are:
 
 ```text
-quartz/plugins/pageTypes/quartoPage.tsx
-quartz/plugins/pageTypes/quartoPageHtml.ts
-quartz/plugins/pageTypes/quartoPage.test.ts
-quartz/plugins/emitters/quartoArtifacts.ts
-quartz.ts
+bridge/                    the Quarto bridge; no upstream file imports it
+quartz.ts                  wires the bridge into the loaded config
+quartz.config.yaml         plugin and layout configuration
+tsconfig.json              upstream's, plus bridge/ in `include`
+package.json               upstream's, minus the `docs` script, plus @quartz-themes/default
+QUARTZ_UPSTREAM.md         this file
 ```
+
+One upstream file is patched: `quartz/components/scripts/spa.inline.ts`. The SPA router honours a
+`data-spa-exclude` marker on a page's root element, doing a full document load into or out of such a
+page instead of a SPA swap. The Quarto bridge sets that marker, because Quarto's scripts initialize
+on a full document load and have no Quartz `nav`/cleanup handlers. The patch itself contains no
+Quarto knowledge, so it can be re-applied to a newer `spa.inline.ts` by hand in a minute, or dropped
+if upstream grows an equivalent hook.
+
+The claim that this is the _only_ patched file is checkable, and worth re-checking after a re-vendor:
+
+```bash
+git clone --filter=blob:none --no-checkout https://github.com/jackyzha0/quartz.git /tmp/quartz-upstream
+git -C /tmp/quartz-upstream checkout 075afd3f712da0088a07f5284a7b3aba37dd61b6
+diff -rq -x node_modules -x .git -x public -x .quartz -x .quartz-cache \
+  -x content -x package-lock.json -x tsconfig.tsbuildinfo /tmp/quartz-upstream .
+```
+
+Everything it reports should be either a deliberate deletion, a project-owned file listed above, or
+`spa.inline.ts`.
 
 ## Local commands
 

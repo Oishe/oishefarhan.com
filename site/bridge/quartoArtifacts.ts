@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
-import type { QuartzEmitterPlugin } from "../types"
-import type { FilePath } from "../../util/path"
+import type { QuartzEmitterPlugin } from "../quartz/plugins/types"
+import type { FilePath } from "../quartz/util/path"
 
 interface QuartoArtifactsOptions {
   sourceDirectory: string

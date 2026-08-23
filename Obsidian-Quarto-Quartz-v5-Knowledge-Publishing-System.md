@@ -4,7 +4,7 @@
 >
 > Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
 >
-> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged eleven-note fixture, two authoritative Quarto documents, and a passing production build. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). The next unbuilt piece is Phase 9 publication prep, which is now the load-bearing gap: `generated/` is still hand-maintained rather than generated.
+> As of **2026-08-23**, the public site is derived end to end from the vault: `scripts/prepare-publication.ts` stages it, Quarto renders the computational documents, and Quartz builds the result. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). Phase 9 (publication prep) and Phase 10 (Quarto bridge) are implemented; the bridge now lives in `site/bridge/` and the vendored Quartz tree carries a single documented patch. The next unbuilt piece is Phase 11, the shared visual language: Quarto output still styles itself independently of Quartz's theme variables.
 >
 > - **[DECIDED]** — a choice has been made and the design is written around it.
 > - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
@@ -195,6 +195,7 @@ knowledge/
 │   ├── quartz.config.yaml
 │   ├── quartz.lock.json
 │   ├── quartz.ts                  # advanced overrides / bridge wiring
+│   ├── bridge/                    # the Quarto bridge, outside the vendored tree
 │   ├── package.json
 │   └── content -> ../generated/quartz-content   # symlink or equivalent
 │
@@ -1993,8 +1994,8 @@ Implemented:
 
 - `vault/_quarto.yml` renders the authoritative allowlisted QMD into `generated/quarto/`;
 - `vault/pyproject.toml` and `uv.lock` pin its Python/Jupyter environment;
-- `site/quartz/plugins/emitters/quartoArtifacts.ts` recursively copies Quarto dependency files into the Quartz output directory, excludes Quarto's complete HTML pages, and rejects artifact-tree symlinks;
-- `site/quartz/plugins/pageTypes/quartoPage.tsx` extracts minimal Quarto content into the normal Quartz content frame;
+- `site/bridge/quartoArtifacts.ts` recursively copies Quarto dependency files into the Quartz output directory, excludes Quarto's complete HTML pages, and rejects artifact-tree symlinks;
+- `site/bridge/quartoPage.tsx` extracts minimal Quarto content into the normal Quartz content frame;
 - `site/quartz.ts` installs the artifact emitter and the higher-priority `QuartoPage` Page Type.
 
 Verified:
@@ -2065,7 +2066,7 @@ Verified in the browser against the Quartz preview server:
 - navigation from `/concepts/probability` into a Quarto page is a full document load, as intended,
   and normal pages are unaffected by the widget page's globals.
 
-Regression coverage: two new cases in `site/quartz/plugins/pageTypes/quartoPage.test.ts`, and
+Regression coverage: two new cases in `site/bridge/quartoPage.test.ts`, and
 `scripts/validate-quarto-emitter.sh` now asserts the figure, table, and Plotly payload are present
 while the three AMD shim markers are absent.
 
@@ -2403,6 +2404,66 @@ copy Quarto dependency artifacts to their canonical URLs
 ```
 
 Add more only when a concrete requirement appears.
+
+---
+
+### Phase 10 implementation status — 2026-08-23
+
+**Implemented.** All three responsibilities were already working when Phase 9 closed; what Phase 10
+changed is where they live and how they attach to Quartz.
+
+The bridge moved out of the vendored tree into `site/bridge/`:
+
+```text
+bridge/index.ts                the bridge's public surface, and the only thing quartz.ts imports
+bridge/quartoPage.tsx          the Page Type for quartoStub: true Markdown
+bridge/quartoPageHtml.ts       minimal-body extraction and wikilink resolution
+bridge/quartoArtifacts.ts      the dependency-artifact Emitter
+bridge/styles/quartoPage.scss  styling scoped beneath .quarto-page
+```
+
+`quartz.ts` now reads `import { QuartoArtifacts, QuartoPage } from "./bridge"`. Nothing else in the
+project reaches into bridge internals, so the three responsibilities can be re-implemented behind
+that one import — including as a `quartz-community` package, if section 30's "if the bridge proves
+generally useful" ever comes true.
+
+**One upstream file is still patched, deliberately.** The vendored tree was diffed against the
+pinned commit (`075afd3`) to make the claim checkable rather than hopeful. Inside `quartz/`, exactly
+one file differs: `components/scripts/spa.inline.ts`. The other differences are project-owned files
+at the root — `quartz.ts`, `quartz.config.yaml`, `tsconfig.json`, and `package.json`.
+
+That patch exists because Quarto's scripts initialize on a full document load and have no Quartz
+`nav`/cleanup handlers, so navigation across the renderer boundary must leave the SPA lifecycle. It
+was rewritten to carry no Quarto knowledge: the router now honours a generic `data-spa-exclude`
+marker on a page's root element, and the bridge is what sets it. Any Page Type whose body brings its
+own document-lifecycle scripts can use the same opt-out.
+
+```text
+before   spa.inline.ts asked whether the page was article.quarto-page
+after    spa.inline.ts asks whether any element claims data-spa-exclude
+```
+
+**Why the marker cannot be replaced by link marking.** `QuartoPage` already tags content links to
+Quarto pages with `data-router-ignore`, but tree transforms only reach the content tree — not the
+Explorer, the header, or the graph and search components, which navigate programmatically through
+`spaNavigate`. Checking the fetched document is the only place that catches every entry path.
+
+Both directions were verified in a browser against the built site: entering a Quarto page through
+`spaNavigate` destroys the JavaScript context (a full load) and the page's Plotly and Matplotlib
+output renders; leaving one through a frame link does the same; navigation between two ordinary
+Quartz pages stays in the SPA.
+
+**Newly covered by tests.** `QuartoArtifacts` had only end-to-end coverage. It now has unit tests for
+the contract it is easy to get wrong: relative paths are preserved, `.html` is excluded when asked,
+a symlink in the artifact tree is refused rather than followed, and a missing artifact directory
+fails loudly. `validate-quarto-emitter.sh` additionally asserts the boundary marker — present on the
+Quarto page, absent from an ordinary page, honoured by the emitted router bundle.
+
+**Residual gap.** The bridge reads `generated/quarto/` twice, once per responsibility: the Page Type
+reads each artifact HTML, the Emitter copies everything except HTML. That is why `includeHtml: false`
+has to be passed at the call site, and why an artifact for an unpublished document would be copied if
+prep had not already failed the build. A single artifact index shared by both halves would remove
+the coupling; it is not worth building until Phase 14 makes the render list publication-aware.
 
 ---
 

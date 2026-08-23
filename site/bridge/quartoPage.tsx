@@ -1,10 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
 import { Root } from "hast"
-import { QuartzComponent, QuartzComponentConstructor } from "../../components/types"
-import { QuartzPageTypePlugin } from "../types"
-import { FilePath, FullSlug, resolveRelative } from "../../util/path"
-import { htmlToJsx } from "../../util/jsx"
+import { QuartzComponent, QuartzComponentConstructor } from "../quartz/components/types"
+import { QuartzPageTypePlugin } from "../quartz/plugins/types"
+import { FilePath, FullSlug, resolveRelative } from "../quartz/util/path"
+import { htmlToJsx } from "../quartz/util/jsx"
 import style from "./styles/quartoPage.scss"
 import { slugifyPath } from "@quartz-community/utils"
 import {
@@ -96,7 +96,10 @@ export const QuartoPage: QuartzPageTypePlugin<QuartoPageOptions> = (options) => 
     const relativePath = (fileData.relativePath ?? `${slug}.md`) as FilePath
 
     return (
-      <article class={["popover-hint", "quarto-page", ...cssClasses].join(" ")}>
+      // `data-spa-exclude` keeps navigation across the renderer boundary out of
+      // the SPA lifecycle: Quarto's own scripts initialize on a full document
+      // load and have no Quartz `nav`/cleanup handlers.
+      <article class={["popover-hint", "quarto-page", ...cssClasses].join(" ")} data-spa-exclude="">
         <div class="markdown-preview-view markdown-rendered">{htmlToJsx(relativePath, tree)}</div>
       </article>
     )

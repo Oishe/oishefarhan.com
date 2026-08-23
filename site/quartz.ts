@@ -1,6 +1,5 @@
 import { loadQuartzConfig, loadQuartzLayout } from "./quartz/plugins/loader/config-loader"
-import { QuartoArtifacts } from "./quartz/plugins/emitters/quartoArtifacts"
-import { QuartoPage } from "./quartz/plugins/pageTypes/quartoPage"
+import { QuartoArtifacts, QuartoPage } from "./bridge"
 
 const config = await loadQuartzConfig()
 

@@ -2,7 +2,8 @@
 
 This repository is implementing the architecture in [Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md](./Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md).
 
-Phase 9 (publication prep) is in place, so the public site is now fully derived from the vault:
+Phases 9 and 10 are in place: the public site is fully derived from the vault, and the Quarto bridge
+is packaged in `site/bridge/` rather than scattered through the vendored Quartz tree.
 
 ```text
 vault/                      source of truth: notes, Quarto documents, attachments
@@ -11,6 +12,7 @@ generated/                  disposable derivatives (git-ignored)
   quarto/                   rendered Quarto HTML and dependencies
   link-map.json             title/alias/slug/path -> canonical URL
 site/                       pinned Quartz v5 source and configuration
+  bridge/                   the Quarto bridge: Page Type, body extraction, artifact emitter
 scripts/                    publication prep, stub generation, validation
 ```
 
@@ -46,7 +48,8 @@ frozen output for a document that is not published all stop the pipeline.
 ## Validation
 
 ```bash
-npm test
+npm test                     # publication prep and stub generation
+(cd site && npm test)        # Quartz and the Quarto bridge
 ./scripts/validate-publication-prep.sh
 ./scripts/validate-qmd-obsidian-spike.sh
 ./scripts/validate-qmd-obsidian-render.sh
