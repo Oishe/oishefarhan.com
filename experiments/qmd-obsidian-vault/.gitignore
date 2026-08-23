@@ -1,10 +1,1 @@
-.obsidian/cache/
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-/.quarto/
 /_freeze/
-/_site/
-/.jupyter_cache/
-/.venv/
-
-**/*.quarto_ipynb

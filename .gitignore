@@ -1,15 +1,24 @@
-# Tooling
+# Tooling and session scratch
 .tools/
 .serena/
 .playwright-mcp/
 .DS_Store
 
-# Generated publishing artifacts
+# Generated publishing artifacts.
+# generated/quartz-content/ is intentionally NOT ignored: it is the staged tree
+# Quartz reads through site/content, and Phase 9 will make it fully derivable.
 generated/quarto/
 
-# Python / Quarto / Jupyter working state
+# Python / Quarto / Jupyter working state.
+# vault/_freeze/ is deliberately absent: section 27 requires committing frozen
+# output for published computational documents so CI need not execute them.
 **/.venv/
 **/.quarto/
 **/.jupyter_cache/
 **/_site/
 **/*.quarto_ipynb
+
+# Obsidian workspace churn (section 3.3); real vault config stays tracked.
+**/.obsidian/cache/
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
