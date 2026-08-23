@@ -52,6 +52,47 @@ function resourcePath(element: Element): string | undefined {
   return elementAttribute(element, "src") ?? elementAttribute(element, "href")
 }
 
+function scriptText(element: Element): string {
+  return element.children
+    .map((child) => (child.type === "text" ? child.value : ""))
+    .join("")
+    .trim()
+}
+
+// Jupyter widget output (Plotly, Bokeh, ipywidgets) ships a RequireJS/AMD shim.
+// Left in place it defines a global `define.amd`, which makes Quartz's own UMD
+// bundles register as AMD modules instead of setting their globals — the graph
+// and search components then fail with "Libraries not loaded". The widgets
+// themselves load through a plain script tag inside the cell output, so the
+// shim is redundant here and is dropped along with the guards that exist only
+// to protect other libraries from it.
+// Plotly's bare ESM preload omits the .js extension and 403s on the CDN. The
+// cell output's own <script src="...min.js"> is the real loader, so this only
+// ever contributes a console error. An extension-bearing import is left alone
+// in case it turns out to be the only loader on the page.
+function isBrokenPlotlyPreload(body: string): boolean {
+  const match = body.match(/^import\s+["'](https?:\/\/cdn\.plot\.ly\/[^"']+)["'];?$/)
+  return match !== undefined && match !== null && !match[1].endsWith(".js")
+}
+
+function isAmdShim(element: Element): boolean {
+  if (element.tagName !== "script") return false
+
+  const source = resourcePath(element)
+  if (source) {
+    return /\brequirejs\b/.test(source)
+  }
+
+  const body = scriptText(element)
+  return (
+    /^define\(\s*['"]jquery['"]/.test(body) ||
+    /window\.(backupDefine|define)\s*=\s*(window\.(backupDefine|define)|undefined)\s*;/.test(
+      body,
+    ) ||
+    isBrokenPlotlyPreload(body)
+  )
+}
+
 function assertNoBootstrapResources(resources: Element[]): void {
   const bootstrapResource = resources.find((resource) =>
     resourcePath(resource)?.split(/[?#]/, 1)[0].split("/").includes("bootstrap"),
@@ -162,7 +203,7 @@ export function extractQuartoPage(html: string, resolveWikilink?: QuartoWikilink
   const bodyResources = body.children.filter(
     (child): child is Element => isElement(child) && child !== main && isQuartoResource(child),
   )
-  const resources = [...headResources, ...bodyResources]
+  const resources = [...headResources, ...bodyResources].filter((resource) => !isAmdShim(resource))
   assertNoBootstrapResources(resources)
 
   const contentRoot = main ?? body

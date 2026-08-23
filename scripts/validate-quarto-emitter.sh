@@ -33,4 +33,43 @@ grep -Fq '../research/monte-carlo' site/public/concepts/probability.html
 test -f site/public/monte-carlo-simulation.html
 grep -Fq '.math.display' site/quartz/plugins/pageTypes/styles/quartoPage.scss
 
+# --- Computational payload: figures, tables, and interactive widgets ---------
+# The trivial monte-carlo fixture cannot exercise the reason this bridge extracts
+# an HTML fragment instead of using an iframe. convergence-diagnostics carries a
+# Matplotlib figure, a pandas table, and a live Plotly widget.
+
+widget_page="site/public/research/convergence-diagnostics.html"
+widget_deps="site/public/research/convergence-diagnostics_files"
+
+test -f "$widget_page"
+test -f "$widget_deps/figure-html/static-figure-output-1.png"
+
+grep -Fq 'class="quarto-content"' "$widget_page"
+grep -Fq 'convergence-diagnostics_files/figure-html/static-figure-output-1.png' "$widget_page"
+grep -Fq '<table' "$widget_page"
+grep -Fq 'plotly-graph-div' "$widget_page"
+grep -Fq 'Plotly.newPlot' "$widget_page"
+grep -Fq 'cdn.plot.ly/plotly-3.7.0.min.js' "$widget_page"
+
+# Jupyter widget output ships a RequireJS/AMD shim. Left in the Quartz shell it
+# defines a global define.amd, which makes Quartz's own UMD bundles register as
+# AMD modules rather than setting their globals -- the graph and search
+# components then fail at runtime with "Libraries not loaded".
+for shim in 'requirejs' 'backupDefine' "define('jquery'"; do
+  if grep -Fq "$shim" "$widget_page"; then
+    printf '%s\n' "AMD shim '$shim' leaked into the Quartz shell; it breaks graph/search library loading." >&2
+    exit 1
+  fi
+done
+
+# Plotly's bare ESM preload omits the .js extension and 403s; the cell's own
+# script tag is the real loader.
+if grep -Eq 'import "https://cdn\.plot\.ly/[^"]*[^s]"' "$widget_page"; then
+  printf '%s\n' 'Broken extensionless Plotly ESM preload leaked into the page.' >&2
+  exit 1
+fi
+
+grep -Fq '"research/convergence-diagnostics"' site/public/static/contentIndex.json
+test -f site/public/mc-diagnostics.html
+
 printf '%s\n' 'Unified Quartz and Quarto page validation passed.'

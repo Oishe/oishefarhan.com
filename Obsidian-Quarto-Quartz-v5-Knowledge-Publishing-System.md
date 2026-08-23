@@ -4,7 +4,7 @@
 >
 > Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
 >
-> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged ten-note fixture, and a passing production build. Visual and interactive browser QA for Experiment 0 remains open.
+> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged eleven-note fixture, two authoritative Quarto documents, and a passing production build. Experiments 0-6 have all passed, including the browser pass. The next unbuilt piece is Phase 9 publication prep, which is now the load-bearing gap: `generated/` is still hand-maintained rather than generated.
 >
 > - **[DECIDED]** — a choice has been made and the design is written around it.
 > - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
@@ -1226,15 +1226,21 @@ The exact authoring syntax and CSL style should be standardized during Phase 3 s
 
 ## 25.2 Mathematics
 
-Prefer **MathJax across the stack** unless a concrete performance reason later justifies divergence.
+Use **one math engine across the stack** so an equation cannot render in Obsidian and fail on a
+publication path. The implementation settled on **KaTeX**, not the MathJax originally proposed here:
 
 ```text
-Obsidian -> MathJax
-Quartz   -> MathJax renderer
-Quarto   -> MathJax HTML math method
+Obsidian -> MathJax (built in)
+Quartz   -> KaTeX   (@quartz-community/latex, renderEngine: katex)
+Quarto   -> KaTeX   (html-math-method: katex)
 ```
 
-This minimizes the risk that an equation renders in Obsidian but fails on one of the two publication paths.
+Both publication paths agree, which is the property that matters. Note that Quartz's KaTeX does not
+reach inside `.quarto-content` — that fragment is injected HTML and never passes through Quartz's
+Markdown pipeline — so Quarto must keep its own client-side math method rather than delegating.
+
+Two loose ends: Quarto's KaTeX reference is unpinned (`katex@latest`) and should be pinned, and
+Plotly pulls in a third engine (MathJax 2.7.5 from cdnjs) that nothing on these pages uses.
 
 ---
 
@@ -1753,7 +1759,7 @@ Observed constraints:
 - Default plugins from the Obsidian template are npm packages pinned by `package-lock.json`. `quartz.lock.json` applies to Git-sourced plugins; it is not created when the site uses only the bundled npm plugin set.
 - Wikilinks resolve most predictably from a filename/path. A title that differs from its filename needs an explicit alias, which Quartz emits as a redirect URL. Canonicalization and graph behaviour across alias redirects should be considered when defining vault naming conventions.
 - The default Open Graph image emitter attempted a network-dependent font operation and then failed with the available system-font fallback. It is disabled for this local spike and is not required for the knowledge-site boundary.
-- The in-app browser control surface rejected the session's sandbox metadata, so responsive layout, graph interaction, search interaction, SPA transitions, and browser back/forward behaviour still need a short manual browser pass.
+- The browser pass was completed after this section was first written. Explorer, Graph View, search, Table of Contents, breadcrumbs, and the Properties panel all render and initialise correctly; SPA transitions between ordinary notes work, and navigation across the Quarto renderer boundary is a full document load by design. The one defect it found is recorded in the Experiment 5 addendum.
 
 Run the verified build with:
 
@@ -1841,7 +1847,7 @@ Use an execution side effect such as a timestamp to prove whether code actually 
 
 ### Experiment 2 implementation status — 2026-08-23
 
-**Computation and artifact checks: passing. Browser interaction check: pending.**
+**Passing.** Interactive behaviour was subsequently confirmed inside the Quartz shell; see Experiment 5.
 
 The fixture in `experiments/quarto-frozen-prose-loop/` contains prose, LaTeX, four Python cells, a table, a static Matplotlib figure, and an interactive Plotly figure. Its Python/Jupyter environment is locked with `uv`.
 
@@ -1855,7 +1861,9 @@ Observed with Quarto 1.10.18:
 - the cached incremental render also refreshed the versioned `_freeze/` artifact;
 - the final HTML contains the table, static figure dependency, Plotly payload, LaTeX, and normal Quarto dependency directory.
 
-The remaining manual check is interactive Plotly behaviour from a plain static server. The generated page currently loads Plotly, RequireJS, MathJax, and jQuery from public CDNs, so a fully offline/self-contained policy remains a separate decision.
+Interactive Plotly behaviour was later verified end-to-end through the Quartz bridge rather than a plain static server, because that is the environment that actually matters. See the Experiment 5 addendum.
+
+The generated page loads Plotly, MathJax, and KaTeX from public CDNs, one of them unpinned (`katex@latest`). A fully offline/self-contained policy remains a separate decision, but the unpinned reference should be pinned regardless.
 
 ---
 
@@ -1979,7 +1987,7 @@ If SPA navigation causes problems when crossing renderer boundaries, test a norm
 
 ### Experiment 5 implementation status — 2026-08-23
 
-**Artifact boundary and unified Quartz-shell checks: passing. Browser interaction checks: pending.**
+**Passing**, including the computational payload and browser interaction. See the addendum below.
 
 Implemented:
 
@@ -2002,6 +2010,91 @@ Verified:
 - the Quartz TypeScript and formatting check passes.
 
 The `QuartoPage` boundary now converts literal Quarto wikilinks into canonical Quartz links using path, title, and alias resolution. Quartz detects navigation into or out of `.quarto-page` and falls back to a full document load; interactive behaviour and browser back/forward remain part of the browser pass.
+
+---
+
+### Experiment 5 addendum — computational payload and browser pass
+
+The original Experiment 5 fixture (`monte-carlo.qmd`) emits two scalar values. That is too weak a
+payload to test the reason §12 chose HTML-fragment extraction over an iframe, which is *"cells /
+figures / widgets"*. A second authoritative document was therefore added:
+
+```text
+vault/research/convergence-diagnostics.qmd
+```
+
+carrying LaTeX, a pandas table, a Matplotlib figure, a live Plotly widget, and wikilinks in all the
+directions Experiment 6 cares about. `vault/pyproject.toml` gained `matplotlib`, `pandas`, and
+`plotly`, re-locked with `uv`.
+
+**This immediately surfaced a real defect that the trivial fixture had hidden.**
+
+Jupyter widget output ships a RequireJS/AMD shim — a `require.min.js` tag, a `define('jquery', ...)`
+registration, and a `window.define = undefined` guard wrapped around Quarto's KaTeX. Hoisted into
+the Quartz shell by `extractQuartoPage`, that shim leaves a global `define.amd` in place. Quartz's
+own bundles are UMD, so they detect AMD and register as modules instead of assigning their globals.
+The observable result on the widget page was:
+
+```text
+window.d3            undefined
+console              [Graph] Libraries not loaded
+Graph View           empty
+```
+
+The Plotly chart itself rendered fine; it was *Quartz's* components that broke. The failure is
+confined to pages carrying widget output and does not leak to other pages, because navigation into
+and out of a Quarto page is a full document load.
+
+The fix follows the same policy as the existing Bootstrap rule — Quarto's page chrome must not enter
+the Quartz shell. `quartoPageHtml.ts` now drops the AMD shim and its guards during extraction, while
+leaving the widget's own `<script src="...plotly.min.js">` and `Plotly.newPlot(...)` untouched. A
+bare ESM preload that Quarto emits as `import "https://cdn.plot.ly/plotly-3.7.0.min"` (no extension,
+403s on the CDN) is dropped too; an extension-bearing import is preserved in case it is the only
+loader on the page.
+
+Verified in the browser against the Quartz preview server:
+
+- `/research/convergence-diagnostics` loads with **zero console errors**;
+- the Plotly widget is genuinely live — a scripted `Plotly.relayout` changes the axis range and reads
+  back, and the trace exposes hover handlers, so it is not a static paint;
+- the Matplotlib PNG and the pandas table render inside `.quarto-content`;
+- KaTeX renders all five math elements in the Quarto body;
+- Quartz's Explorer, breadcrumbs, Properties panel, Graph View, and Table of Contents all render
+  around it, and `window.d3` is defined again;
+- QMD wikilinks resolve to Monte Carlo Simulation, Statistics, and Bayesian Inference;
+- navigation from `/concepts/probability` into a Quarto page is a full document load, as intended,
+  and normal pages are unaffected by the widget page's globals.
+
+Regression coverage: two new cases in `site/quartz/plugins/pageTypes/quartoPage.test.ts`, and
+`scripts/validate-quarto-emitter.sh` now asserts the figure, table, and Plotly payload are present
+while the three AMD shim markers are absent.
+
+**Open, not blocking:** the Plotly widget and the Matplotlib PNG both render on white backgrounds in
+dark mode. That is Phase 11 (shared visual language) work — Quarto output needs to derive its
+surface colours from Quartz theme variables.
+
+---
+
+### Note on `minimal: true` output shape
+
+With `format.html.minimal: true`, Quarto emits **no** `<main id="quarto-document-content">`. The
+production path through `extractQuartoPage` is therefore always the `body` fallback, not the `main`
+branch that the first unit test exercises. Both branches are covered, but the fallback is the one
+that matters.
+
+### Note on `output-dir` outside the project
+
+`vault/_quarto.yml` sets `output-dir: ../generated/quarto`, which Quarto warns about:
+
+```text
+WARN: Refusing to remove directory .../generated/quarto/research/monte-carlo_files
+      since it is not a subdirectory of the main project directory.
+WARN: Quarto did not expect the path configuration being used in this project.
+```
+
+The practical consequence is that Quarto will not clean stale `*_files/` directories, so a renamed or
+deleted document leaves orphaned artifacts that the emitter will keep copying into the site. The
+publication-prep stage (Phase 9) should clear `generated/quarto/` before rendering.
 
 ---
 
@@ -2028,6 +2121,45 @@ embedded wikilinks
 ```
 
 Do not add block-reference compatibility until there is a real use case.
+
+---
+
+### Experiment 6 implementation status — 2026-08-23
+
+**Passing for the v1 contract.**
+
+The adapter lives in the Quartz `QuartoPage` parser and uses Quartz's own file index, so no second
+`link-map.json` artifact exists. All four link directions are exercised by the two authoritative
+Quarto documents plus the staged notes:
+
+```text
+.md  -> .md    concepts/probability -> concepts/statistics
+.md  -> .qmd   concepts/probability -> research/monte-carlo
+.qmd -> .md    research/convergence-diagnostics -> concepts/statistics
+.qmd -> .qmd   research/convergence-diagnostics -> research/monte-carlo
+```
+
+Verified in the browser: wikilinks written in a `.qmd` body arrive in the published page as
+`class="internal internal-link"` anchors pointing at canonical Quartz slugs, and no literal `[[...]]`
+survives. Aliases resolve (`MC Diagnostics` redirects to `research/convergence-diagnostics`), and
+resolution precedence remains canonical path, then title/alias, then basename.
+
+Still untested, as the section already noted: same-name notes in different folders, and embedded
+wikilinks. Block references remain out of scope.
+
+---
+
+### Stub drift, observed  **[RESOLVED — mechanism still missing]**
+
+§33 predicts stub drift and prescribes *"generate them on every build; fail validation if the
+expected stub is missing."* Neither was wired up, and the failure arrived within a day: a review on
+2026-08-23 found `vault/research/monte-carlo.qmd` reading `\widehat{\mu}_n` while its committed stub
+still read `\hat{\mu}_n`. The source had been edited and nothing regenerated the derivative.
+
+The stub has been regenerated, but the *mechanism* is still absent — `scripts/generate-qmd-stub.ts`
+is a manually-invoked CLI and no build step calls it. This is the strongest argument for treating
+Phase 9 as the next milestone rather than a later chore: publication prep makes drift impossible by
+construction, and nothing else does.
 
 ---
 

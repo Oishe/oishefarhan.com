@@ -22,7 +22,7 @@ Monte Carlo methods approximate quantities by repeated random sampling. They con
 For samples $X_1, \ldots, X_n$, estimate an expectation with
 
 $$
-\hat{\mu}_n = \frac{1}{n}\sum_{i=1}^n X_i.
+\widehat{\mu}_n = \frac{1}{n}\sum_{i=1}^n X_i.
 $$
 
 ## Convergence

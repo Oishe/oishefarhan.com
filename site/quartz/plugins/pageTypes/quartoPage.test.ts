@@ -85,3 +85,74 @@ test("turns Quarto's literal wikilinks into resolved Quartz links", () => {
   assert.equal(links[1].properties?.href, "../concepts/statistics#mean")
   assert.deepEqual(links[1].children, [{ type: "text", value: "the mean" }])
 })
+
+test("drops the RequireJS/AMD shim that breaks Quartz library loading", () => {
+  const result = extractQuartoPage(`<!doctype html><html><head>
+    <script src="https://cdn.jsdelivr.net/npm/requirejs@2.3.6/require.min.js"></script>
+    <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+    <script type="module">import "https://cdn.plot.ly/plotly-3.7.0.min"</script>
+    <script>window.backupDefine = window.define; window.define = undefined;</script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+    <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+  </head><body>
+    <p>Prose</p>
+    <div class="plotly-graph-div"></div>
+    <script src="https://cdn.plot.ly/plotly-3.7.0.min.js"></script>
+    <script>Plotly.newPlot("chart", [])</script>
+  </body></html>`)
+
+  const scripts = elements(result).filter((element) => element.tagName === "script")
+  const sources = scripts.map((element) => element.properties?.src ?? "")
+  const bodies = scripts.map((element) =>
+    element.children.map((child) => (child.type === "text" ? child.value : "")).join(""),
+  )
+
+  // The shim and its guards are gone...
+  assert.equal(
+    sources.some((src) => String(src).includes("requirejs")),
+    false,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes('import "https://cdn.plot.ly/plotly-3.7.0.min"')),
+    false,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes("define('jquery'")),
+    false,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes("backupDefine")),
+    false,
+  )
+
+  // ...while the widget's own loader and initialiser survive.
+  assert.equal(
+    sources.some((src) => String(src) === "https://cdn.plot.ly/plotly-3.7.0.min.js"),
+    true,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes("Plotly.newPlot")),
+    true,
+  )
+  assert.equal(
+    sources.some((src) => String(src).includes("katex")),
+    true,
+  )
+})
+
+test("keeps an ESM Plotly import that names a real .js bundle", () => {
+  const result = extractQuartoPage(`<!doctype html><html><head>
+    <script type="module">import "https://cdn.plot.ly/plotly-3.7.0.min.js"</script>
+  </head><body><p>Prose</p></body></html>`)
+
+  const bodies = elements(result)
+    .filter((element) => element.tagName === "script")
+    .map((element) =>
+      element.children.map((child) => (child.type === "text" ? child.value : "")).join(""),
+    )
+
+  assert.equal(
+    bodies.some((body) => body.includes("cdn.plot.ly/plotly-3.7.0.min.js")),
+    true,
+  )
+})
