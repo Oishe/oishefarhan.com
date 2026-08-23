@@ -1,0 +1,15 @@
+# Tooling
+.tools/
+.serena/
+.playwright-mcp/
+.DS_Store
+
+# Generated publishing artifacts
+generated/quarto/
+
+# Python / Quarto / Jupyter working state
+**/.venv/
+**/.quarto/
+**/.jupyter_cache/
+**/_site/
+**/*.quarto_ipynb

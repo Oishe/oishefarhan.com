@@ -1,0 +1,2209 @@
+# Obsidian + Quarto + Quartz v5 Knowledge Publishing System
+
+> **Status: architecture selected; implementation started with the Quartz v5 spike.**
+>
+> Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
+>
+> As of **2026-08-23**, the repository contains a pinned Quartz v5 site, a staged ten-note fixture, and a passing production build. Visual and interactive browser QA for Experiment 0 remains open.
+>
+> - **[DECIDED]** — a choice has been made and the design is written around it.
+> - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
+> - **[GATED]** — the choice still depends on a small experiment.
+
+---
+
+# 1. Project Overview
+
+The goal is to create a durable personal knowledge and publishing system that combines:
+
+- **Obsidian** for writing, knowledge management, wikilinks, and LaTeX.
+- **Quarto** for computational documents, executable code, visualizations, citations, and interactive HTML.
+- **Neovim / VS Code** for code-heavy editing and debugging.
+- **Quartz v5** for the public knowledge site: Obsidian-flavoured Markdown, navigation, backlinks, graph, search, page layouts, and static publishing.
+- A thin **publication-prep / Quarto bridge** layer that connects `.qmd` documents to Quartz without rebuilding Quartz's knowledge-graph features.
+
+The filesystem remains the source of truth.
+
+```text
+                         AUTHORING
+
+                  ┌───────────────────┐
+                  │   Obsidian Vault  │
+                  │                   │
+                  │  .md   .qmd       │
+                  │  YAML  assets     │
+                  └─────────┬─────────┘
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+             ▼              ▼              ▼
+         Obsidian        Neovim         VS Code
+         writing         coding          coding
+         linking         LSP             debugging
+         LaTeX           editing         execution
+             │              │              │
+             └──────────────┴──────────────┘
+                            │
+                            ▼
+                       Source files
+                            │
+                  ┌─────────┴─────────┐
+                  │                   │
+                  ▼                   ▼
+          Publication Prep          Quarto
+                  │                   │
+          public .md files       computation
+          .qmd index stubs       frozen output
+          safe attachments       rendered HTML
+          link map                  assets
+                  │                   │
+                  └─────────┬─────────┘
+                            ▼
+                         Quartz v5
+                            │
+             ┌──────────────┼──────────────┐
+             │              │              │
+         wikilinks       backlinks       search
+         graph           layouts         navigation
+             │              │              │
+             └──────────────┴──────────────┘
+                            │
+                            ▼
+                       Static Website
+```
+
+The central design is now:
+
+> **Quartz owns the knowledge-site representation. Quarto owns the computational rendering. A generated Markdown stub lets the same Quarto document participate in Quartz's graph, backlinks, and search.**
+
+---
+
+# 2. Core Design Principles
+
+## 2.1 Filesystem as the Source of Truth
+
+Primary content remains ordinary files:
+
+```text
+.md
+.qmd
+.yml
+.yaml
+.bib
+.json
+.csv
+.png
+.jpg
+.svg
+.pdf
+```
+
+Obsidian, Quarto, Quartz, Neovim, and VS Code operate on filesystem content rather than an application-specific database.
+
+Generated indexes and HTML are derivatives, not authoritative content.
+
+## 2.2 Separate Authoring, Computation, Indexing, and Rendering
+
+The project has four distinct responsibilities:
+
+1. **Authoring** — Obsidian / Neovim / VS Code.
+2. **Computation** — Quarto and its execution engines.
+3. **Knowledge indexing** — Quartz processing of Markdown plus generated Quarto stubs.
+4. **Presentation** — Quartz pages and Quarto pages in one static output tree.
+
+Ordinary Markdown should not need Quarto.
+
+Quartz should not execute Python, R, or Julia.
+
+Quarto should not need to recreate Quartz's graph or search implementation.
+
+## 2.3 One Logical Content Model, Two Renderers
+
+```text
+.md source
+   │
+   └──────────────► Quartz ─────────────► Quartz HTML
+
+.qmd source
+   │
+   ├──────────────► Quarto ─────────────► Quarto HTML
+   │
+   └─► generated .md stub ─► Quartz ───► graph/search/backlinks metadata
+```
+
+Both source types should participate in:
+
+- wikilinks
+- backlinks
+- tags
+- aliases
+- navigation
+- search
+- graph relationships
+- publishing rules
+
+Only their final page renderer differs.
+
+## 2.4 Prefer Adaptation Over Reimplementation
+
+Quartz v5 already supplies the majority of the knowledge-site layer. The project should not rebuild these unless a demonstrated limitation requires it:
+
+```text
+wikilink resolution
+Obsidian-flavoured Markdown
+backlinks
+graph
+full-text search
+tag pages
+folder pages
+RSS / sitemap
+page layouts
+SPA navigation
+```
+
+The custom code should remain narrowly focused on the `.qmd` boundary.
+
+---
+
+# 3. Repository Structure  **[DECIDED]**
+
+A recommended layout:
+
+```text
+knowledge/
+│
+├── vault/                         # source of truth / Obsidian vault
+│   ├── notes/
+│   │   ├── probability.md
+│   │   └── statistics.md
+│   │
+│   ├── research/
+│   │   ├── monte-carlo.qmd
+│   │   └── bayesian-model.qmd
+│   │
+│   ├── projects/
+│   │   └── ...
+│   │
+│   ├── attachments/
+│   ├── templates/
+│   ├── references.bib
+│   ├── _quarto.yml
+│   ├── _freeze/
+│   └── .obsidian/
+│
+├── site/                          # Quartz v5 project
+│   ├── quartz.config.yaml
+│   ├── quartz.lock.json
+│   ├── quartz.ts                  # advanced overrides / bridge wiring
+│   ├── package.json
+│   └── content -> ../generated/quartz-content   # symlink or equivalent
+│
+├── generated/                     # disposable publishing intermediates
+│   ├── quartz-content/
+│   │   ├── notes/                 # public .md copies
+│   │   ├── research/              # generated .md stubs for public .qmd
+│   │   └── attachments/           # only public/referenced assets
+│   │
+│   ├── quarto/                    # rendered Quarto HTML + dependencies
+│   └── link-map.json              # source title/alias/path -> canonical URL
+│
+├── scripts/
+│   ├── prepare-publication.ts
+│   ├── generate-qmd-stub.ts
+│   └── validate-content.ts
+│
+└── README.md
+```
+
+The important separation is:
+
+```text
+vault/              private source tree
+site/               Quartz application/configuration
+generated/          safe public staging + generated Quarto artifacts
+scripts/            narrow bridge/validation logic
+```
+
+## 3.1 Do Not Point Quartz at the Raw Vault
+
+This is now a hard architectural rule.
+
+Quartz's Markdown filters such as `ExplicitPublish` operate on Markdown content, while non-Markdown assets can still be emitted. A raw vault will eventually contain files that were never intended for publication.
+
+Therefore:
+
+```text
+raw vault
+   │
+   ▼
+publication-prep allowlist
+   │
+   ▼
+generated/quartz-content
+   │
+   ▼
+Quartz
+```
+
+Quartz sees only a **public staging tree**, never the full vault.
+
+`ExplicitPublish` remains enabled as defense in depth, but it is not the primary privacy boundary.
+
+## 3.2 `_quarto.yml` Uses an Explicit Render Allowlist
+
+Keep Quarto from attempting to render ordinary notes:
+
+```yaml
+project:
+  type: default
+  render:
+    - "research/**/*.qmd"
+    - "projects/**/*.qmd"
+    - "!attachments/**"
+    - "!templates/**"
+    - "!.obsidian/**"
+```
+
+The exact output directory is set so rendered artifacts land under `generated/quarto/` rather than beside source files.
+
+## 3.3 Obsidian Workspace Churn
+
+Git-ignore volatile workspace state while retaining useful Obsidian configuration:
+
+```text
+vault/.obsidian/workspace.json
+vault/.obsidian/workspace-mobile.json
+vault/.obsidian/cache
+```
+
+---
+
+# 4. Obsidian's Role
+
+Obsidian is primarily the authoring and knowledge-management interface for:
+
+- Markdown writing
+- LaTeX and mathematical notation
+- notes and research writing
+- conceptual organization
+- wikilinks
+- backlinks for native `.md`
+- tags and aliases
+- attachments
+- browsing and discovery
+
+Obsidian is **not** the production website renderer.
+
+It also does not need to be the authoritative graph implementation for `.qmd`; Quartz will provide the published graph across both file types.
+
+---
+
+# 5. Quarto Files Inside Obsidian  **[DECIDED]**
+
+Quarto `.qmd` files remain directly inside the vault.
+
+Example:
+
+```text
+vault/research/monte-carlo.qmd
+```
+
+The same file can be opened with:
+
+```text
+Obsidian
+Neovim
+VS Code
+Quarto CLI
+```
+
+There is no separate authoring copy.
+
+This preserves the desired workflow:
+
+```text
+writing / math / links     -> Obsidian
+code / LSP / debugging     -> Neovim or VS Code
+computation / publication  -> Quarto
+```
+
+The known limitation is that Obsidian does not consistently treat `.qmd` as first-class Markdown across its own metadata/indexing subsystems. Plugins can improve editing and previewing, but the architecture does not rely on Obsidian's internal `.qmd` index.
+
+---
+
+# 6. Recommended `.md` vs `.qmd` Convention  **[DECIDED] [VERIFIED]**
+
+Use `.md` for ordinary knowledge content.
+
+```text
+notes
+essays
+reference material
+concept explanations
+documentation
+literature notes
+```
+
+Use `.qmd` when the document requires Quarto-specific functionality.
+
+```text
+computational essays
+data analysis
+Python / R / Julia execution
+interactive Plotly or Observable content
+reproducible research
+Quarto cross-references
+computational notebooks presented as documents
+```
+
+Conceptually:
+
+```text
+.md
+ ├── prose
+ ├── notes
+ ├── concepts
+ └── knowledge
+
+.qmd
+ ├── prose
+ ├── mathematics
+ ├── computation
+ ├── data
+ └── interactive output
+```
+
+The previous all-`.md` fallback is removed.
+
+Current Quarto engine binding explicitly gives `.md` **no execution engine**; an `.md` document containing executable code blocks errors. `.qmd` is the correct source extension for computational documents.
+
+Therefore:
+
+> **Do not rename executable Quarto documents to `.md` merely to improve Obsidian indexing.**
+
+The publication bridge solves the website-side indexing problem without corrupting the source format distinction.
+
+---
+
+# 7. Obsidian Plugins for Quarto
+
+## qmd as md
+
+Evaluate this first for day-to-day authoring.
+
+Its role is to make `.qmd` practical to open and edit in Obsidian, with capabilities such as:
+
+- `.qmd` Markdown editing
+- Quarto preview
+- Quarto render
+- HTML preview
+- QMD outline support
+- `_quarto.yml` support
+- templates
+
+## QMD Preview
+
+Useful as a lightweight, non-authoritative preview path when the goal is prose and markup feedback rather than code execution.
+
+## Anything as Markdown
+
+Potentially useful for making `.qmd` participate in more Obsidian behaviours.
+
+Treat its deeper indexing mode as optional/experimental infrastructure, not as a requirement for the publishing architecture.
+
+## Plugin Policy
+
+The vault should remain meaningful without any one community plugin.
+
+Plugins improve the authoring experience; they do not define the durable content model.
+
+---
+
+# 8. Editing Workflow
+
+## Writing
+
+Prefer Obsidian for:
+
+```text
+prose
+Markdown
+LaTeX
+research notes
+wikilinks
+citations
+structure
+conceptual organization
+```
+
+## Programming
+
+Prefer Neovim or VS Code for:
+
+```text
+Python
+R
+Julia
+TypeScript
+large code blocks
+refactoring
+debugging
+LSP-driven development
+complex execution
+```
+
+All tools edit the same source file.
+
+```text
+                       analysis.qmd
+                            │
+            ┌───────────────┼───────────────┐
+            │               │               │
+            ▼               ▼               ▼
+        Obsidian         Neovim          VS Code
+          prose            code             code
+          math             LSP            debug
+          links            Vim            tools
+```
+
+---
+
+# 9. Quarto Execution Model
+
+Quarto remains the sole computational renderer.
+
+```text
+.qmd
+ │
+ ▼
+Quarto
+ │
+ ├── execute code
+ ├── produce figures
+ ├── produce tables
+ ├── produce widgets
+ └── produce HTML
+       │
+       ▼
+generated/quarto/
+```
+
+Quartz does not execute notebooks during its build.
+
+This lets the website build remain independent of Python/R/Julia environments once frozen or otherwise prepared Quarto output exists.
+
+---
+
+# 10. Quarto Freeze  **[VERIFIED]**
+
+Quarto freeze should be used when computation is expensive or reproducibility matters.
+
+```yaml
+execute:
+  freeze: auto
+```
+
+means a global project render re-executes when the source document changes.
+
+```yaml
+execute:
+  freeze: true
+```
+
+means global project renders reuse frozen computation until it is deliberately refreshed.
+
+Freeze is a project-build reproducibility mechanism, not the prose-iteration mechanism. Frozen Jupyter output contains the engine-produced Markdown, including the prose that existed when the document was frozen.
+
+For prose editing without re-executing unchanged code, enable execution caching as well:
+
+```yaml
+execute:
+  freeze: true
+  cache: true
+```
+
+Jupyter Cache invalidates on code-cell changes rather than narrative Markdown changes. An incremental file render can therefore incorporate current prose, reuse cached cell outputs, and refresh `_freeze/` with the newly composed document.
+
+Frozen results live under `_freeze/` and should be versioned for published computational documents when CI is expected to build without reproducing the full execution environment.
+
+---
+
+# 11. Cached Prose Preview Workflow  **[VERIFIED]**
+
+Desired loop:
+
+```text
+edit prose / LaTeX
+      │
+      ▼
+render document
+      │
+      ├── update prose/layout
+      │
+      └── reuse cached computation
+                │
+                ▼
+              HTML
+```
+
+Use an ordinary incremental render with caching enabled:
+
+```bash
+uv run quarto render analysis.qmd
+```
+
+The QMD/project metadata supplies `execute.cache: true`. With Jupyter Cache installed, a prose-only edit produces `Notebook read from cache`, preserves the execution outputs, and updates the prose in HTML.
+
+Do **not** use `--use-freezer` for this loop. It correctly forces the frozen engine output, but that also restores the prose stored in the frozen Markdown and therefore hides later prose edits.
+
+`--no-execute` is diagnostic rather than a suitable fallback for a source QMD:
+
+```bash
+quarto render analysis.qmd --no-execute
+```
+
+It renders current prose and code listings, but it does not restore prior cell outputs. For a complete prose preview with computational results, use the execution cache.
+
+---
+
+# 12. Quarto Output Boundary  **[VERIFIED]**
+
+Quarto documents are computational content islands inside Quartz-owned pages.
+
+No iframe is required.
+
+A narrow, parser-based HTML fragment extraction is required at build time. It extracts only the Quarto body and resources; it does not rewrite the completed site with string substitutions.
+
+```text
+Quartz-rendered note
+/notes/probability
+
+Quarto-rendered research page
+/research/monte-carlo
+```
+
+The exact physical output convention (`slug.html` versus a directory containing `index.html`) should be matched to Quartz's generated URLs during the implementation spike. The invariant is more important than the physical shape:
+
+> **The Quartz stub's canonical slug and the Quarto artifact's public URL must be identical.**
+
+Quartz owns the outer document, navigation, Explorer, search, responsive frame, metadata, backlinks, graph, and theme. Quarto renders minimal HTML; the bridge extracts its computational body and required resources into a dedicated Quartz Page Type.
+
+```text
+Quartz QuartoPage
++-----------------------------------+
+| Quartz Explorer / search / theme  |
+| +-------------------------------+ |
+| | Quarto computational content  | |
+| | cells / figures / widgets     | |
+| +-------------------------------+ |
+| Quartz TOC / graph / backlinks    |
++-----------------------------------+
+```
+
+Quarto is configured with `format.html.minimal: true` so Bootstrap cannot restyle the Quartz shell. Navigation across the renderer boundary uses full document loads until Quarto resources have explicit Quartz SPA lifecycle handlers.
+
+---
+
+# 13. Why Not Iframes
+
+Iframes provide strong isolation but create avoidable costs for first-class knowledge pages:
+
+```text
+deep-link awkwardness
+height management, especially on mobile
+split navigation state
+dark-mode synchronization
+poor print/PDF behaviour
+awkward backlinks / TOC integration
+weaker indexing semantics
+```
+
+The Quartz shell plus scoped Quarto content keeps navigation unified without creating a frame boundary. Quarto is rendered without Bootstrap, and its page-specific resources remain isolated beneath the computational content boundary.
+
+---
+
+# 14. Self-Contained Quarto Output
+
+Quarto can produce standalone HTML:
+
+```yaml
+format:
+  html:
+    embed-resources: true
+```
+
+Do not use this as the normal website path.
+
+For a site, normal resource directories allow the browser to cache shared dependencies and avoid duplicating large JavaScript libraries inside every document.
+
+Keep `embed-resources: true` for one-off portable exports and archival copies.
+
+---
+
+# 15. Publication Prep Replaces the General Content Compiler  **[DECIDED]**
+
+The earlier architecture proposed a custom compiler responsible for:
+
+```text
+metadata
+IDs
+slugs
+aliases
+links
+backlinks
+tags
+graph
+publication state
+search
+```
+
+That is no longer justified for v1.
+
+Quartz already implements most of that stack.
+
+The bespoke layer shrinks to **publication prep**:
+
+```text
+vault
+ │
+ ▼
+prepare-publication.ts
+ │
+ ├── select publish:true Markdown
+ ├── select publish:true Quarto documents
+ ├── generate one .md stub per .qmd
+ ├── copy only allowed/referenced attachments
+ ├── generate canonical link-map.json
+ └── validate privacy + broken links
+ │
+ ├──────────────► generated/quartz-content/
+ └──────────────► generated/link-map.json
+```
+
+The publication-prep layer should **not** generate separate graph, backlink, or search indexes unless Quartz proves unable to do so.
+
+---
+
+# 16. QMD Stub Design  **[DECIDED]**
+
+For every published Quarto document, generate one Markdown representation for Quartz.
+
+Source:
+
+```text
+vault/research/monte-carlo.qmd
+```
+
+Generated stub:
+
+```text
+generated/quartz-content/research/monte-carlo.md
+```
+
+Example stub:
+
+```markdown
+---
+title: Monte Carlo Simulation
+publish: true
+quartoStub: true
+sourceType: quarto
+tags:
+  - statistics
+  - simulation
+aliases:
+  - Monte Carlo
+---
+
+Monte Carlo methods use repeated random sampling to estimate...
+
+See also [[Probability]] and [[Bayesian Statistics]].
+
+## Sampling
+
+...
+
+## Convergence
+
+...
+```
+
+The stub should preserve content useful to Quartz:
+
+```text
+frontmatter
+title
+description
+headings
+prose
+wikilinks
+normal links
+tags
+aliases
+```
+
+and omit material that exists only to execute or render the computational document:
+
+```text
+executable code cells
+cell options
+large code output
+embedded widget payloads
+raw implementation HTML
+```
+
+For the prototype, a simple extractor is acceptable. Once the format stabilizes, prefer an AST-aware transformation over a regex-only parser.
+
+## 16.1 The Stub Is an Index Representation, Not a Public Duplicate
+
+The stub must remain in Quartz's processed Markdown collection so that search, graph, link crawling, and backlink data can see it.
+
+But Quartz must **not emit the stub as a competing HTML page**.
+
+This distinction is critical.
+
+> **Do not use a Quartz Filter to remove Quarto stubs.** A Filter removes the content from the processing set, which defeats the reason the stub exists.
+
+Instead, page emission is controlled at the Page Type layer.
+
+---
+
+# 17. Quartz v5 Integration  **[DECIDED] [VERIFIED]**
+
+Quartz v5 is a better fit than the earlier Astro design because it already provides the knowledge-site features this project needs and exposes extension points exactly where Quarto integration belongs.
+
+Current v5 exposes plugin capabilities including:
+
+```text
+Transformers
+Filters
+Emitters
+Page Types
+Components
+Bases Views
+```
+
+Basic configuration is YAML in:
+
+```text
+quartz.config.yaml
+```
+
+advanced programmatic overrides can live in:
+
+```text
+quartz.ts
+```
+
+and plugin versions are pinned by:
+
+```text
+quartz.lock.json
+```
+
+The TUI/plugin registry can be used to discover available plugins.
+
+## 17.1 Quartz Parses `.md`, Not `.qmd`
+
+Current Quartz v5 build code globs the content directory, then explicitly filters the Markdown processing set to paths ending in `.md`.
+
+Therefore raw `.qmd` files do not naturally enter the normal Markdown transform/filter/index pipeline.
+
+This is exactly why the generated `.md` stub is useful.
+
+## 17.2 Page Type Rule: Suppress Stub HTML Without Removing the Stub
+
+Quartz's normal Content Page page type matches ordinary Markdown pages broadly.
+
+The bridge should replace or override that matcher so it does **not** match:
+
+```yaml
+quartoStub: true
+```
+
+Conceptually:
+
+```text
+processed Markdown
+      │
+      ├── normal note
+      │      └── Content Page matches -> Quartz emits HTML
+      │
+      └── Quarto stub
+             └── Content Page does not match -> no Quartz HTML page
+```
+
+The stub stays available to other Quartz processing.
+
+## 17.3 Emitter Rule: Copy Real Quarto Output Into the Quartz Output Tree
+
+A custom Quartz Emitter copies the already-rendered Quarto tree from:
+
+```text
+generated/quarto/
+```
+
+into the final Quartz output.
+
+Emitters are the correct abstraction because they are intended to generate/copy output files and can use ordinary Node filesystem operations.
+
+This is preferable to abusing Quartz's `Static` plugin:
+
+```text
+Static  -> resources stored under quartz/static
+Assets  -> non-Markdown assets in the Quartz content directory
+Emitter -> generated Quarto output from a separate build tree
+```
+
+The Quarto output should stay outside `generated/quartz-content/` so Quartz never treats raw `.qmd` or Quarto dependency files as ordinary content assets.
+
+## 17.4 Why This Works
+
+```text
+                         monte-carlo.qmd
+                               │
+                 ┌─────────────┴─────────────┐
+                 │                           │
+                 ▼                           ▼
+             stub generator                Quarto
+                 │                           │
+                 ▼                           ▼
+        monte-carlo.md                  real HTML
+                 │                           │
+                 ▼                           │
+              Quartz                         │
+                 │                           │
+        graph/search/backlinks               │
+                 │                           │
+       no stub page emitted                  │
+                 │                           │
+                 └─────────────┬─────────────┘
+                               ▼
+                         same public slug
+```
+
+Quartz owns the **knowledge representation**.
+
+Quarto owns the **rendered computational page**.
+
+---
+
+# 18. Linking Strategy  **[DECIDED]**
+
+Use **Obsidian wikilinks as the authoring syntax**.
+
+```markdown
+[[Bayesian Statistics]]
+[[Monte Carlo Simulation]]
+[[Monte Carlo Simulation|simulation notes]]
+```
+
+This decision now follows naturally from choosing Quartz.
+
+Quartz v5 has native Obsidian-flavoured Markdown support, including wikilinks and transclusions, so ordinary notes do not need a custom resolver.
+
+The only custom resolution path is Quarto.
+
+## 18.1 QMD Wikilinks
+
+A `.qmd` document may also contain author-friendly wikilinks.
+
+The Quarto render path needs a small adapter:
+
+```text
+.qmd wikilink
+     │
+     ▼
+Pandoc wikilink parsing / render-copy preprocessing
+     │
+     ▼
+generated/link-map.json
+     │
+     ▼
+canonical site URL
+```
+
+Preferred implementation to test first:
+
+1. enable Pandoc's wikilink syntax for the Quarto reader;
+2. use a small Lua filter to resolve each target using `generated/link-map.json`;
+3. emit an ordinary HTML link to the canonical site URL.
+
+If enabling the Pandoc wikilink extension conflicts with Quarto-specific Markdown behaviour, the fallback is a **temporary render copy** in which wikilinks are rewritten before Quarto runs. The source vault still keeps wikilinks.
+
+## 18.2 One Resolver, Narrow Scope
+
+The project still needs canonical link resolution, but only for the bridge:
+
+```text
+title / alias / source path
+            │
+            ▼
+      canonical slug
+            │
+            ▼
+       public URL
+```
+
+Quartz handles this for Quartz content.
+
+`link-map.json` exposes the same decisions to Quarto.
+
+---
+
+# 19. Cross-Format Linking
+
+The system must support:
+
+```text
+.md  -> .md
+.md  -> .qmd
+.qmd -> .md
+.qmd -> .qmd
+```
+
+## 19.1 `.md -> .md`
+
+Handled natively by Quartz wikilink processing.
+
+## 19.2 `.md -> .qmd`
+
+The generated `.md` stub makes the Quarto document a valid Quartz link target.
+
+Quartz resolves the link to the stub's slug; the Quarto emitter places the real Quarto HTML at that slug.
+
+## 19.3 `.qmd -> .md` and `.qmd -> .qmd`
+
+The Quarto wikilink adapter resolves the target through `link-map.json` and emits the canonical site URL.
+
+## 19.4 Heading Links Need a Separate Test
+
+Page-level links are the v1 requirement.
+
+Links such as:
+
+```markdown
+[[Monte Carlo Simulation#Convergence]]
+```
+
+are more subtle because Quartz and Pandoc/Quarto may not derive identical heading IDs in every case.
+
+Do not assume cross-renderer heading links are reliable until tested.
+
+A robust later rule is to use explicit heading IDs for cross-renderer targets when necessary.
+
+## 19.5 Block References and Transclusions
+
+Obsidian block references and full transclusions into Quarto documents are not part of the v1 contract.
+
+A Quartz transclusion of a Quarto stub can at most embed the **textual stub representation**, not the interactive Quarto application.
+
+Treat interactive document embedding as a separate feature, not as ordinary wikilink resolution.
+
+---
+
+# 20. Canonical URLs, Slugs, and IDs
+
+The system should distinguish:
+
+```text
+source path
+display title
+canonical slug
+optional stable ID
+```
+
+For v1, keep this simple.
+
+Example:
+
+```yaml
+---
+title: Monte Carlo Simulation
+aliases:
+  - Monte Carlo
+publish: true
+---
+```
+
+Derive the slug predictably from the source path unless a real need for custom slugs appears.
+
+Stable IDs can be introduced later when moves/retitles create enough value to justify them:
+
+```yaml
+id: monte-carlo
+```
+
+The key invariant for Quarto integration is:
+
+```text
+Quartz stub slug == Quarto public URL
+```
+
+Build-time validation should fail if those diverge.
+
+---
+
+# 21. Frontmatter as the Interoperability API
+
+YAML frontmatter is the main metadata boundary between systems.
+
+Example source:
+
+```yaml
+---
+title: Monte Carlo Simulation
+description: An introduction to Monte Carlo methods.
+aliases:
+  - Monte Carlo
+  - MC Simulation
+tags:
+  - statistics
+  - simulation
+publish: true
+---
+```
+
+Generated-only bridge metadata belongs in the stub, not necessarily in source:
+
+```yaml
+quartoStub: true
+sourceType: quarto
+sourcePath: research/monte-carlo.qmd
+```
+
+Avoid overloading source frontmatter with implementation details that exist solely for Quartz.
+
+---
+
+# 22. Publishing and Privacy  **[DECIDED]**
+
+Publishing is opt-in.
+
+```yaml
+publish: true
+```
+
+Anything else is private by default.
+
+The raw vault may eventually contain:
+
+```text
+drafts
+scratch notes
+meeting notes
+private research
+templates
+temporary files
+data
+PDFs
+notebooks
+credentials accidentally pasted into notes
+plugin state
+```
+
+Therefore:
+
+```text
+vault != Quartz content directory
+```
+
+## 22.1 Two Privacy Layers
+
+### Layer 1 — Publication Prep
+
+Only selected content and attachments enter:
+
+```text
+generated/quartz-content/
+```
+
+This is the primary boundary.
+
+### Layer 2 — Quartz ExplicitPublish
+
+Enable Quartz's explicit-publish filter as a second check.
+
+This protects Markdown pages but must not be mistaken for a general asset privacy system.
+
+## 22.2 Validation Must Fail on Leaks
+
+The build should fail if private content appears in any public derivative:
+
+```text
+emitted pages
+QMD stubs
+link-map entries
+search/graph metadata
+backlink targets
+RSS/sitemap
+copied attachments
+Quarto output
+```
+
+Also check `_freeze/`: frozen output can contain results derived from private data even when the source document itself is not public.
+
+---
+
+# 23. Search, Backlinks, and Graph  **[DECIDED]**
+
+Do not build separate v1 implementations.
+
+The generated QMD stub exists so Quartz can use its existing content machinery.
+
+```text
+public .md ───────┐
+                  │
+QMD .md stub ─────┼──► Quartz processed content
+                  │
+                  ├──► search
+                  ├──► graph
+                  ├──► backlinks
+                  ├──► tags
+                  └──► navigation metadata
+```
+
+The source `.qmd` remains invisible to Quartz's Markdown parser; the stub is its indexable representation.
+
+This removes the former need for:
+
+```text
+content-index.json
+search-index.json
+graph.json
+custom backlink generation
+```
+
+unless a future feature requires exporting those data separately.
+
+---
+
+# 24. Quarto Pages and Quartz UI
+
+A limitation of the sibling-page design is important:
+
+> Quartz can know about a Quarto document, but the final Quarto HTML page is not rendered by Quartz's page frame.
+
+Therefore a Quarto page does not automatically receive Quartz UI components such as:
+
+```text
+backlinks panel
+Explorer sidebar
+graph widget
+Quartz table of contents
+reader-mode controls
+```
+
+This is acceptable for v1 because site-wide search, graph, and backlinks **from Quartz pages** can still understand the document through the stub.
+
+Later, if desired, add a small bridge artifact such as:
+
+```text
+quarto-page-metadata.json
+```
+
+and inject selected site UI into Quarto via template partials.
+
+Do not make this a prerequisite for initial publishing.
+
+---
+
+# 25. Citations and Mathematics  **[REVISED]**
+
+## 25.1 Citations
+
+Keep one bibliography at vault root:
+
+```text
+vault/references.bib
+```
+
+Quarto handles citations natively for `.qmd`.
+
+Quartz v5 also has a citations plugin based on a bibliography file, so ordinary `.md` notes do **not** need to be forced through Quarto merely because they contain citations.
+
+The exact authoring syntax and CSL style should be standardized during Phase 3 so the Markdown and Quarto paths render consistently.
+
+## 25.2 Mathematics
+
+Prefer **MathJax across the stack** unless a concrete performance reason later justifies divergence.
+
+```text
+Obsidian -> MathJax
+Quartz   -> MathJax renderer
+Quarto   -> MathJax HTML math method
+```
+
+This minimizes the risk that an equation renders in Obsidian but fails on one of the two publication paths.
+
+---
+
+# 26. Reproducible Computational Environments
+
+Freeze preserves output, not the environment that produced it.
+
+Important projects should eventually track dependencies.
+
+Example:
+
+```text
+research/
+└── housing/
+    ├── index.qmd
+    ├── pyproject.toml
+    ├── uv.lock
+    └── data/
+```
+
+Alternatives include:
+
+```text
+requirements.txt
+conda environments
+renv for R
+containers
+Nix
+```
+
+Rule of thumb:
+
+> If losing the frozen output would be painful, preserve enough environment metadata to regenerate it.
+
+---
+
+# 27. Git
+
+Track durable source and reproducibility state:
+
+```text
+vault content
+selected .obsidian configuration
+site/quartz.config.yaml
+site/quartz.lock.json
+site/quartz.ts
+bridge/plugin source
+publication scripts
+Quarto configuration
+dependency lockfiles
+published _freeze output
+```
+
+Generated publication staging should normally be rebuildable:
+
+```text
+generated/quartz-content/
+generated/link-map.json
+generated/quarto/
+```
+
+Whether rendered Quarto HTML itself is committed depends on deployment architecture.
+
+For published computational documents, commit the corresponding `_freeze/` state when CI is expected not to execute the computation.
+
+---
+
+# 28. Build Pipeline  **[DECIDED]**
+
+Because `.qmd` source uses wikilinks and Quarto needs the canonical target map, publication prep happens before Quarto rendering.
+
+```text
+                           VAULT
+                             │
+                             ▼
+                   validate source metadata
+                             │
+                             ▼
+                  prepare-publication.ts
+                             │
+              ┌──────────────┴──────────────┐
+              │                             │
+              ▼                             ▼
+ generated/quartz-content/          generated/link-map.json
+ .md + QMD stubs + assets                   │
+              │                             │
+              │                             ▼
+              │                           Quarto
+              │                             │
+              │                             ▼
+              │                    generated/quarto/
+              │                             │
+              └──────────────┬──────────────┘
+                             ▼
+                          Quartz v5
+                             │
+                  ┌──────────┴──────────┐
+                  │                     │
+          normal Quartz pages     QMD stubs indexed
+                                  but not emitted
+                  │                     │
+                  └──────────┬──────────┘
+                             │
+                    Quarto bridge Emitter
+                             │
+                             ▼
+                        static output
+```
+
+Potential orchestration command:
+
+```bash
+bun run build
+```
+
+with stages approximately:
+
+```text
+validate
+-> prepare public staging + link map
+-> render/reuse Quarto artifacts
+-> build Quartz
+-> verify output URLs and privacy
+```
+
+---
+
+# 29. Quartz v5 Configuration and Bridge Plan
+
+Quartz v5 moved normal configuration to YAML and keeps programmatic escape hatches for advanced behaviour.
+
+The project should favor configuration first and custom code second.
+
+## 29.1 Use Existing Quartz Plugins for Existing Problems
+
+Configure first-party/community packages for features such as:
+
+```text
+Obsidian-flavoured Markdown
+search
+graph
+backlinks
+citations
+LaTeX
+ExplicitPublish
+Explorer / navigation
+RSS / sitemap
+```
+
+Do not create project-local equivalents.
+
+## 29.2 The Custom Bridge Has Only Two Quartz Responsibilities
+
+### A. Page Type behaviour
+
+Prevent `quartoStub: true` Markdown from being emitted as a Quartz content page while leaving it in processed content.
+
+### B. Emitter behaviour
+
+Copy `generated/quarto/` into the final output tree at the canonical URLs represented by those stubs.
+
+That is the entire required Quartz integration for v1.
+
+## 29.3 `Static` vs `Assets` vs Custom Emitter
+
+Keep these responsibilities distinct:
+
+```text
+Static
+  Quartz-owned static resources under quartz/static
+
+Assets
+  non-Markdown files inside the Quartz content tree
+
+Quarto bridge Emitter
+  generated computational site artifacts outside the content tree
+```
+
+---
+
+# 30. Future Quartz-Native QMD Integration
+
+Quartz v5 Page Types can define new file extensions and can generate virtual pages.
+
+That creates a possible future design:
+
+```text
+.qmd
+ │
+ ▼
+custom Quarto Page Type
+ │
+ ├── extract metadata/prose/links
+ ├── create virtual Quartz representation
+ └── coordinate final Quarto artifact
+```
+
+Virtual pages are made available to later Quartz emitters, so a sufficiently complete QMD Page Type could eventually remove the physical stub files.
+
+Do **not** begin there.
+
+Physical generated `.md` stubs are simpler because they naturally pass through Quartz's ordinary Markdown transformer pipeline. That gives the project Obsidian-flavoured Markdown handling, link crawling, tags, descriptions, and indexing with much less custom code.
+
+If the bridge proves generally useful, it could later become a standalone Quartz v5 plugin in the `quartz-community` ecosystem.
+
+---
+
+# 31. Astro as a Fallback, Not a Dependency  **[DECIDED]**
+
+Astro is removed from the v1 architecture.
+
+Reconsider it only if the project becomes substantially more application-like, for example:
+
+```text
+authenticated areas
+server endpoints
+complex client-side application state
+dashboards
+commerce
+heavy custom application routing
+UI requirements that continually fight Quartz's page model
+```
+
+If the site remains primarily:
+
+```text
+knowledge base
+digital garden
+research site
+essays
+computational documents
+interactive visualizations
+```
+
+Quartz is the better default because it removes a large amount of infrastructure that Astro would require this project to build or assemble.
+
+---
+
+# 32. Important Design Constraints
+
+Avoid assumptions such as:
+
+```text
+Obsidian will always exist
+Quartz will always exist
+Quarto will always exist
+one community plugin will always work
+all Markdown dialects are identical
+all vault files are safe to publish
+file paths will never change
+```
+
+Prefer durable concepts:
+
+```text
+plain text
+Markdown
+YAML
+BibTeX
+HTML
+filesystem paths
+Git
+static output
+stable metadata conventions
+```
+
+The architecture should make replacing an application inconvenient, not catastrophic.
+
+---
+
+# 33. Known Risks and Pitfalls  **[REVISED]**
+
+## Markdown Dialect Differences
+
+The main authoring/rendering dialects still differ:
+
+```text
+Obsidian Markdown
+Quartz / unified Markdown pipeline
+Pandoc / Quarto Markdown
+```
+
+Quartz removes most Obsidian-vs-site duplication for `.md`, but any syntax used inside `.qmd` still needs Quarto compatibility.
+
+Keep a small supported subset and test it explicitly.
+
+## Obsidian `.qmd` Indexing
+
+Editing `.qmd` in Obsidian is practical; first-class graph/backlink/search behaviour is less dependable.
+
+The generated Quartz stub fixes the **published** knowledge graph, not Obsidian's internal metadata cache.
+
+Avoid depending on automatic rename-updates-links for QMD targets until Experiment 1 proves the exact local behaviour.
+
+## QMD Stub Drift
+
+A stale stub can cause search/graph metadata to disagree with the real Quarto page.
+
+Mitigation:
+
+```text
+never hand-edit stubs
+generate them on every build
+record source hash if useful
+fail validation if expected stub is missing
+```
+
+## Stub/Page URL Collision
+
+If Quartz emits the stub and Quarto also writes the same URL, the build is invalid.
+
+Mitigation: exclude `quartoStub: true` at the **Page Type** matching stage and verify only one final file owns each public URL.
+
+## Quarto URL Drift
+
+If Quarto's output path differs from the Quartz stub slug, search and graph links lead to a missing page.
+
+Mitigation: one canonical URL map plus an output validation step.
+
+## Cross-Renderer Heading IDs
+
+`[[Page#Heading]]` may not be safe across Quartz and Quarto until anchor-generation rules are tested.
+
+Start with page-level links and use explicit IDs for important cross-renderer headings if needed.
+
+## Transclusions
+
+Quartz can transclude a generated textual stub, but that is not equivalent to embedding the interactive Quarto page.
+
+Keep interactive embedding out of v1.
+
+## Quarto Preview Execution
+
+`freeze: auto` is not a prose-only cache. Use `freeze: true`, `--use-freezer`, or chunk caching according to the workflow being performed.
+
+## Private Asset Leakage
+
+Quartz explicitly warns that non-Markdown assets can be published regardless of Markdown filters.
+
+This is why Quartz receives a staged public directory rather than the raw vault.
+
+## Attachment Management
+
+Use a stable attachment convention that both source types can resolve.
+
+Prefer a single known attachment root and standard relative Markdown image links when possible.
+
+## Quarto Page UI Divergence
+
+Quarto pages will not automatically contain every Quartz component.
+
+Shared typography/navigation is a v1 goal; full component parity is not.
+
+## Reproducibility
+
+Frozen output is not a preserved environment. Track dependency versions for important work.
+
+## Quartz v5 Ecosystem Maturity
+
+Quartz v5 has a substantial official plugin ecosystem and a plugin registry/TUI, but the v5 ecosystem is newer than long-established editor ecosystems. Pin plugin versions with `quartz.lock.json`, prefer first-party/official community plugins for critical functions, and keep the custom bridge small.
+
+---
+
+# 34. Remaining Open Decisions
+
+The major architecture question is resolved. Remaining decisions are implementation details rather than platform selection.
+
+| # | Decision | Default | Gate |
+|---|---|---|---|
+| 1 | Quartz vs Astro | **Quartz v5** | Decided |
+| 2 | Link syntax | **Wikilinks** | Decided |
+| 3 | `.qmd` vs all-`.md` | **Keep `.qmd`** | Verified by Quarto engine rules |
+| 4 | QMD knowledge representation | **Generated `.md` stub** | Confirm in Quartz spike |
+| 5 | Stub suppression | **Page Type matcher, not Filter** | Confirm with prototype |
+| 6 | Quarto artifact integration | **Custom Emitter** | Confirm exact output paths |
+| 7 | Prose computation reuse | `freeze: true` + `cache: true`; incremental file render | Verified with Quarto 1.10.18 |
+| 8 | Cross-renderer heading links | page-level only initially | Experiment |
+| 9 | Deployment target | static host + CI | Still open |
+
+## Deployment Target
+
+A static host with CI is the default assumption.
+
+Deployment choice determines:
+
+```text
+whether generated Quarto HTML is committed
+whether CI needs Quarto installed
+whether preview builds are required
+how build caches are configured
+```
+
+The design should not require server-side computation.
+
+---
+
+# 35. Verified Implementation Facts and Reference Points
+
+These facts materially changed the architecture and should be rechecked if Quartz or Quarto makes a major version change.
+
+## Quartz v5
+
+- Quartz 5 is a ground-up rearchitecture centered on extensibility and Obsidian compatibility.
+- Configuration moved to `quartz.config.yaml`; `quartz.ts` remains available for advanced programmatic overrides.
+- Plugins are standalone packages, with discovery through the TUI/registry and version pinning through `quartz.lock.json`.
+- Plugin capabilities include Transformers, Filters, Emitters, Page Types, Components, and Bases Views.
+- Emitters are intended for output generation and can use normal Node filesystem APIs.
+- Page Types define how categories of pages render and can also generate virtual pages.
+- Current build code only sends files ending in `.md` through normal Markdown parsing.
+- `ExplicitPublish` filters Markdown pages, but Quartz warns that non-Markdown assets are still emitted unless excluded.
+
+Useful references:
+
+- <https://quartz.jzhao.xyz/getting-started/whats-new>
+- <https://quartz.jzhao.xyz/advanced/making-plugins>
+- <https://quartz.jzhao.xyz/features/private-pages>
+
+## Quarto
+
+- `.qmd` automatically binds a computational engine when executable cells are present.
+- `.md` has no execution engine; executable cells in `.md` are an error.
+- `--use-freezer` is a documented render option that forces frozen computations for an incremental file render.
+- Jupyter Cache ignores narrative-only changes when deciding whether cached computation is reusable.
+
+Useful references:
+
+- <https://quarto.org/docs/computations/execution-options.html>
+- <https://quarto.org/docs/computations/caching.html>
+- <https://quarto.org/docs/projects/code-execution.html>
+- <https://quarto.org/docs/cli/render.html>
+
+## Pandoc / Wikilinks
+
+Pandoc supports a wikilink syntax extension. Use it only as part of a tested Quarto adapter; Quartz remains the canonical wikilink implementation for normal Markdown pages.
+
+Reference:
+
+- <https://pandoc.org/MANUAL.html#wikilinks>
+
+---
+
+# 36. Desired End State
+
+```text
+I want to write
+      │
+      ▼
+   Obsidian
+
+I want to program
+      │
+      ▼
+Neovim / VS Code
+
+I want computation
+      │
+      ▼
+    Quarto
+
+I want a knowledge website
+      │
+      ▼
+   Quartz v5
+
+I want Quarto documents in that knowledge graph
+      │
+      ▼
+QMD stub + narrow bridge
+```
+
+No one application owns the knowledge base.
+
+The files do.
+
+Quartz provides the site-level knowledge model rather than a custom compiler, while Quarto remains authoritative for computational rendering.
+
+---
+
+# 37. Incremental Approach
+
+The project should be built by proving the risky boundaries first. Do not implement the final bridge before the core assumptions work with real files.
+
+## Experiment 0 — Quartz v5 Spike  **(first)**
+
+Use a throwaway Quartz v5 site and roughly ten representative notes.
+
+Confirm:
+
+1. `quartz.config.yaml` and the TUI/plugin workflow are comfortable to maintain.
+2. Wikilinks, aliases, callouts, transclusions, backlinks, graph, search, tags, and citations behave correctly with representative notes.
+3. Theme/layout customization is sufficient without introducing Astro.
+4. The site can consume a staged/symlinked content directory rather than the raw vault.
+5. Plugin versions are reproducible through `quartz.lock.json`.
+
+**Exit criterion:** Quartz is accepted unless a concrete requirement proves difficult enough that Astro materially simplifies the project.
+
+The architecture no longer treats Astro and Quartz as equally likely branches.
+
+### Experiment 0 implementation status — 2026-08-23
+
+**Automated spike: passing. Manual visual/interactive QA: pending.**
+
+Implemented:
+
+- copied the official Quartz `v5` branch at commit `075afd3f712da0088a07f5284a7b3aba37dd61b6` into `site/` without nested Git metadata;
+- initialized the Obsidian template and pointed `site/content` at `../generated/quartz-content` with a directory symlink;
+- added ten representative Markdown notes plus a BibTeX file and SVG attachment;
+- enabled citations and kept the default graph, search, backlinks, aliases, tags, folder pages, LaTeX, callouts, and transclusion plugins;
+- produced a successful static build of all ten Markdown inputs;
+- verified generated HTML/index output for callouts, a collapsed callout, transclusion, citations, math, tags, folder pages, aliases, the search index, and copied assets;
+- verified that the local preview server responds successfully over HTTP.
+
+Observed constraints:
+
+- Quartz's setup command assumes its working tree is the Git repository root and attempts to configure an `upstream` remote. In this monorepo layout, the initial setup completed content/config creation but could not modify the parent repository's Git configuration. Upstream provenance is therefore recorded explicitly in `site/QUARTZ_UPSTREAM.md`.
+- Default plugins from the Obsidian template are npm packages pinned by `package-lock.json`. `quartz.lock.json` applies to Git-sourced plugins; it is not created when the site uses only the bundled npm plugin set.
+- Wikilinks resolve most predictably from a filename/path. A title that differs from its filename needs an explicit alias, which Quartz emits as a redirect URL. Canonicalization and graph behaviour across alias redirects should be considered when defining vault naming conventions.
+- The default Open Graph image emitter attempted a network-dependent font operation and then failed with the available system-font fallback. It is disabled for this local spike and is not required for the knowledge-site boundary.
+- The in-app browser control surface rejected the session's sandbox metadata, so responsive layout, graph interaction, search interaction, SPA transitions, and browser back/forward behaviour still need a short manual browser pass.
+
+Run the verified build with:
+
+```bash
+cd site
+npm install
+node quartz/bootstrap-cli.mjs build
+```
+
+---
+
+## Experiment 1 — `.qmd` in Obsidian
+
+Create:
+
+```text
+test-vault/
+├── note-a.md
+├── note-b.md
+├── analysis.qmd
+├── _quarto.yml
+└── .obsidian/
+```
+
+Test:
+
+1. opening/editing `.qmd` with the selected Obsidian plugin;
+2. `.md -> .qmd` links;
+3. `.qmd -> .md` links;
+4. `.qmd -> .qmd` links;
+5. backlinks, graph, search, quick switcher;
+6. rename behaviour for a linked `.qmd`;
+7. Quarto rendering with the project allowlist.
+
+The file-extension decision is **not** gated by this experiment anymore: executable Quarto documents stay `.qmd`. The experiment measures the authoring UX and determines whether an optional Obsidian indexing plugin is worth using.
+
+### Experiment 1 implementation status — 2026-08-23
+
+**Source and Quarto rendering checks: passing. Obsidian UI checks: pending.**
+
+Implemented in `experiments/qmd-obsidian-vault/`:
+
+- a disposable vault containing two Markdown files and two QMD files with all four link directions;
+- `showUnsupportedFiles: true`, automatic link updates, shortest-path wikilinks, and the `qmd-as-md-obsidian` community plugin ID;
+- an explicit Quarto render allowlist for `research/**/*.qmd`;
+- an isolated `uv` project with a locked Jupyter environment;
+- repeatable source and rendered-output validation scripts.
+
+Verified with Quarto 1.10.18:
+
+- the allowlist renders only the two QMD files;
+- both Python cells execute through the `uv` environment;
+- output is written under `_site/research/`;
+- plain Quarto leaves Obsidian wikilinks as literal `[[...]]` text, confirming that the Quarto-side wikilink adapter in Experiment 6 is required rather than optional.
+
+Still manual:
+
+- install/enable `qmd as md` inside the disposable vault;
+- assess QMD editing, backlinks, graph, search, quick switcher, and rename behaviour in Obsidian.
+
+---
+
+## Experiment 2 — Frozen Prose Loop
+
+Build one real `.qmd` containing:
+
+```text
+prose
+LaTeX
+Python
+a table
+a static figure
+an interactive figure
+```
+
+Test:
+
+1. normal render;
+2. `freeze: true` on a prose-only change;
+3. incremental render with `--use-freezer`;
+4. `--no-execute` as a diagnostic fallback;
+5. interactive behaviour after serving the generated files from a plain static server.
+
+Use an execution side effect such as a timestamp to prove whether code actually re-ran.
+
+### Experiment 2 implementation status — 2026-08-23
+
+**Computation and artifact checks: passing. Browser interaction check: pending.**
+
+The fixture in `experiments/quarto-frozen-prose-loop/` contains prose, LaTeX, four Python cells, a table, a static Matplotlib figure, and an interactive Plotly figure. Its Python/Jupyter environment is locked with `uv`.
+
+Observed with Quarto 1.10.18:
+
+- the initial render executed all four cells and wrote `_freeze/` plus complete HTML dependencies;
+- after a prose-only source edit, both `--use-freezer` and a global project render preserved the original execution stamp **and the original prose**;
+- `--no-execute` incorporated current prose but omitted all previous cell results;
+- enabling Jupyter Cache, priming it once, editing only prose, and incrementally rendering the file produced `Notebook read from cache`;
+- that cached render retained execution stamp `2026-08-23T06:28:22.548464+00:00` while updating the HTML prose;
+- the cached incremental render also refreshed the versioned `_freeze/` artifact;
+- the final HTML contains the table, static figure dependency, Plotly payload, LaTeX, and normal Quarto dependency directory.
+
+The remaining manual check is interactive Plotly behaviour from a plain static server. The generated page currently loads Plotly, RequireJS, MathJax, and jQuery from public CDNs, so a fully offline/self-contained policy remains a separate decision.
+
+---
+
+## Experiment 3 — QMD Stub Proof of Concept
+
+Use one Quarto document:
+
+```text
+vault/research/monte-carlo.qmd
+```
+
+Generate:
+
+```text
+generated/quartz-content/research/monte-carlo.md
+```
+
+The stub should contain:
+
+```text
+frontmatter
+prose
+headings
+wikilinks
+no executable code
+quartoStub: true
+```
+
+Confirm that Quartz:
+
+1. sees the stub in full-text search;
+2. includes it as a graph node;
+3. produces backlinks to/from it;
+4. resolves an ordinary note's `[[Monte Carlo Simulation]]` link to its slug.
+
+Do not integrate Quarto HTML yet.
+
+### Experiment 3 implementation status — 2026-08-23
+
+**Passing.**
+
+Implemented:
+
+- authoritative source at `vault/research/monte-carlo.qmd`;
+- prototype TypeScript generator at `scripts/generate-qmd-stub.ts`;
+- unit coverage for frontmatter injection, executable-cell removal, prose/wikilink retention, ordinary code retention, and malformed fences;
+- generated index representation at `generated/quartz-content/research/monte-carlo.md`.
+
+Verified:
+
+- the stub retains frontmatter, prose, headings, math, tags, aliases, and wikilinks;
+- executable Python cells do not appear in the stub;
+- Quartz parses the stub as `research/monte-carlo`;
+- the search/content index contains its prose, headings, tags, and three graph links;
+- backlinks from Probability and Statistics include Monte Carlo Simulation;
+- the normal Quartz content page is still emitted, as expected before Experiment 4.
+
+The prototype deliberately copies Quarto-only frontmatter keys such as `format` and `execute`. Publication prep may remove those later if they create a concrete conflict; they are harmless in the current Quartz build.
+
+---
+
+## Experiment 4 — Suppress Stub HTML
+
+Replace/override the normal content-page Page Type matcher so:
+
+```text
+quartoStub: true -> no Quartz content page emitted
+normal Markdown  -> normal Quartz page emitted
+```
+
+Confirm the stub **still** participates in search/graph/backlink processing.
+
+This is the decisive proof that the stub can be metadata/index content without becoming a duplicate page.
+
+If filtering the stub makes it disappear from indexes, that is expected and confirms why Filter is the wrong layer.
+
+### Experiment 4 implementation status — 2026-08-23
+
+**Passing.**
+
+`site/quartz.ts` now installs a higher-priority `QuartoPage` Page Type:
+
+```text
+quartoStub: true -> QuartoPage matches -> Quartz shell + Quarto body
+normal Markdown  -> ContentPage matches -> normal Quartz HTML
+```
+
+Verified after a clean Quartz build:
+
+- `site/public/research/monte-carlo.html` is owned by `QuartoPage`, not `ContentPage`;
+- the stub remains present as `research/monte-carlo` in `contentIndex.json` with searchable prose and graph links;
+- Probability and Statistics still render backlinks to Monte Carlo Simulation;
+- the alias redirect remains emitted;
+- a normal Markdown page still renders through `ContentPage`;
+- the full Quartz TypeScript and Prettier check passes.
+
+This confirms that Page Type selection is the correct integration layer. The stub remains parsed content for every earlier emitter while its final body is supplied by Quarto.
+
+---
+
+## Experiment 5 — Quarto Emitter Boundary
+
+Render the real Quarto page into:
+
+```text
+generated/quarto/
+```
+
+Add the smallest possible custom Emitter that copies the Quarto output into Quartz's final output tree.
+
+Confirm:
+
+1. the Quarto artifact occupies the exact URL represented by the stub;
+2. no Quartz stub HTML competes for that URL;
+3. Quarto dependency directories are copied correctly;
+4. navigation from a Quartz note to the Quarto page works;
+5. browser back/forward navigation works acceptably with Quartz SPA mode;
+6. direct loading of the Quarto URL works on the target static server.
+
+If SPA navigation causes problems when crossing renderer boundaries, test a normal full-page navigation for Quarto links before considering larger architectural changes.
+
+### Experiment 5 implementation status — 2026-08-23
+
+**Artifact boundary and unified Quartz-shell checks: passing. Browser interaction checks: pending.**
+
+Implemented:
+
+- `vault/_quarto.yml` renders the authoritative allowlisted QMD into `generated/quarto/`;
+- `vault/pyproject.toml` and `uv.lock` pin its Python/Jupyter environment;
+- `site/quartz/plugins/emitters/quartoArtifacts.ts` recursively copies Quarto dependency files into the Quartz output directory, excludes Quarto's complete HTML pages, and rejects artifact-tree symlinks;
+- `site/quartz/plugins/pageTypes/quartoPage.tsx` extracts minimal Quarto content into the normal Quartz content frame;
+- `site/quartz.ts` installs the artifact emitter and the higher-priority `QuartoPage` Page Type.
+
+Verified:
+
+- the QMD executes and produces `generated/quarto/research/monte-carlo.html` plus its dependency directory;
+- the Quartz build emits the unified page at `site/public/research/monte-carlo.html`;
+- the page identifies Quartz as its outer generator, contains the computed result inside `.quarto-content`, and retains Quartz root, Explorer, search, graph, and TOC markup;
+- no Quarto Bootstrap resource is referenced by the unified page;
+- Quarto dependency files are copied under `research/monte-carlo_files/`;
+- the stub remains in Quartz's search/graph index and still produces backlinks;
+- aliases still redirect to the canonical `research/monte-carlo` URL;
+- a direct HTTP request to `/research/monte-carlo` succeeds with status 200 through the Quartz preview server;
+- the Quartz TypeScript and formatting check passes.
+
+The `QuartoPage` boundary now converts literal Quarto wikilinks into canonical Quartz links using path, title, and alias resolution. Quartz detects navigation into or out of `.quarto-page` and falls back to a full document load; interactive behaviour and browser back/forward remain part of the browser pass.
+
+---
+
+## Experiment 6 — QMD Wikilinks
+
+Create all four link directions:
+
+```text
+.md  -> .md
+.md  -> .qmd
+.qmd -> .md
+.qmd -> .qmd
+```
+
+The baseline adapter is implemented in the Quartz `QuartoPage` parser. It uses Quartz's complete file index directly, avoiding a second generated `link-map.json` artifact.
+
+Page-level links, aliases, and heading fragments are supported. Resolution precedence is canonical path, then title/alias, then basename, which prevents generated tag pages from shadowing real notes.
+
+Continue testing:
+
+```text
+same-name notes in different folders
+embedded wikilinks
+```
+
+Do not add block-reference compatibility until there is a real use case.
+
+---
+
+## Phase 7 — Establish Vault Conventions
+
+Once the experiments pass, freeze the authoring contract:
+
+```text
+.md vs .qmd usage
+wikilinks as source syntax
+attachment root
+frontmatter keys
+publish:true policy
+citation syntax
+MathJax conventions
+supported cross-renderer Markdown subset
+```
+
+Do this before the vault grows substantially.
+
+---
+
+## Phase 8 — Minimal Production Quartz Site
+
+Configure only:
+
+```text
+homepage
+content pages
+Explorer/navigation
+search
+backlinks
+graph
+ExplicitPublish
+citations
+MathJax
+basic theme
+```
+
+Avoid custom UI beyond what is needed for the Quarto boundary.
+
+---
+
+## Phase 9 — Publication Prep
+
+Implement `prepare-publication.ts` to:
+
+```text
+select publish:true source files
+copy public .md
+create .qmd stubs
+copy only allowed attachments
+build link-map.json
+validate frontmatter
+validate internal links
+validate publication leaks
+```
+
+Keep it deliberately smaller than a general content compiler.
+
+---
+
+## Phase 10 — Quarto Bridge
+
+Package the tested Page Type override and Emitter behaviour cleanly.
+
+The bridge has three required responsibilities:
+
+```text
+select a dedicated Quartz Page Type for QMD stubs
+extract minimal Quarto bodies into the Quartz content frame
+copy Quarto dependency artifacts to their canonical URLs
+```
+
+Add more only when a concrete requirement appears.
+
+---
+
+## Phase 11 — Shared Visual Language
+
+Create shared design tokens for both renderers:
+
+```text
+colors
+typography
+spacing
+content width
+light/dark theme variables
+```
+
+Quartz now supplies shared navigation directly through the `QuartoPage` frame. Keep Quarto-specific styling scoped beneath `.quarto-content` and derive it from Quartz theme variables.
+
+---
+
+## Phase 12 — Reproducibility
+
+Add lockfiles/environments to computational projects that matter.
+
+Commit `_freeze/` output for published computational documents when CI should not execute them.
+
+---
+
+## Phase 13 — Deployment
+
+Choose the static host and CI strategy.
+
+Verify:
+
+```text
+clean URLs
+Quarto dependency paths
+SPA/full-page transitions
+404 behaviour
+RSS/sitemap URLs
+cache headers
+preview builds
+```
+
+---
+
+## Phase 14 — Automation
+
+Only after each stage works independently, create one build command:
+
+```bash
+bun run build
+```
+
+Conceptually:
+
+```text
+validate vault
+      ↓
+prepare publication staging + link map
+      ↓
+prepare/render Quarto artifacts
+      ↓
+build Quartz
+      ↓
+validate final output
+      ↓
+static site
+```
+
+---
+
+## Phase 15 — Optimize Only When Necessary
+
+Possible later improvements:
+
+- incremental QMD stub generation
+- dependency-aware Quarto rendering
+- a Quartz-native virtual QMD Page Type
+- packaging the bridge as a reusable Quartz plugin
+- richer metadata on Quarto pages
+- Quarto-side backlinks
+- shared navigation/footer components
+- asset fingerprinting
+- deployment caching
+- CI broken-link checks
+- cross-renderer explicit heading IDs
+
+The first objective is to prove this loop:
+
+```text
+write in Obsidian
+       ↓
+edit code in Neovim / VS Code
+       ↓
+render with Quarto
+       ↓
+generate QMD stub
+       ↓
+index + publish with Quartz v5
+       ↓
+follow links seamlessly between .md and .qmd pages
+```
+
+Once that loop works reliably, expand the system without rebuilding functionality Quartz already provides.

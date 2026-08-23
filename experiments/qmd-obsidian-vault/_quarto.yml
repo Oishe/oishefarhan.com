@@ -1,0 +1,14 @@
+project:
+  type: default
+  output-dir: _site
+  render:
+    - "research/**/*.qmd"
+    - "!attachments/**"
+
+execute:
+  freeze: true
+
+format:
+  html:
+    toc: true
+    embed-resources: false

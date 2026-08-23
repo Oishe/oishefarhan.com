@@ -1,0 +1,75 @@
+.quarto-page {
+  min-width: 0;
+
+  .quarto-content {
+    color: var(--darkgray);
+    font-family: var(--bodyFont);
+    min-width: 0;
+
+    > :first-child {
+      margin-top: 0;
+    }
+
+    .cell {
+      margin: 1.5rem 0;
+    }
+
+    .cell-output {
+      margin-top: 0.75rem;
+    }
+
+    .cell-output > pre,
+    .sourceCode {
+      max-width: 100%;
+    }
+
+    .code-copy-outer-scaffold {
+      position: relative;
+    }
+
+    .code-copy-button {
+      background: var(--lightgray);
+      border: 1px solid var(--gray);
+      border-radius: 0.25rem;
+      color: var(--darkgray);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      position: absolute;
+      right: 0.5rem;
+      top: 0.5rem;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--lightgray);
+      padding: 0.4rem 0.7rem;
+      text-align: left;
+    }
+
+    img,
+    svg,
+    canvas {
+      height: auto;
+      max-width: 100%;
+    }
+
+    .math.display {
+      display: block;
+      margin: 1.25rem 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      text-align: center;
+
+      .katex-display {
+        display: block;
+        margin: 0;
+        padding: 0.25rem 0;
+      }
+    }
+  }
+}

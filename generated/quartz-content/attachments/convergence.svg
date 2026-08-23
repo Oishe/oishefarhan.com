@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240" role="img" aria-labelledby="title desc">
+  <title id="title">Monte Carlo estimate converging</title>
+  <desc id="desc">A line oscillates around a target and settles as sample count increases.</desc>
+  <rect width="640" height="240" fill="#faf8f8"/>
+  <line x1="48" y1="200" x2="612" y2="200" stroke="#4e4e4e"/>
+  <line x1="48" y1="24" x2="48" y2="200" stroke="#4e4e4e"/>
+  <line x1="48" y1="112" x2="612" y2="112" stroke="#84a59d" stroke-dasharray="6 6"/>
+  <polyline points="48,44 82,184 116,72 150,154 184,88 218,138 252,96 286,130 320,101 354,123 388,105 422,119 456,108 490,116 524,110 558,114 612,112" fill="none" stroke="#284b63" stroke-width="4"/>
+  <text x="500" y="102" fill="#4e4e4e" font-family="sans-serif" font-size="14">target</text>
+  <text x="292" y="228" fill="#4e4e4e" font-family="sans-serif" font-size="14">samples</text>
+</svg>

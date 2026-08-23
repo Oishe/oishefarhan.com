@@ -1,0 +1,9 @@
+[project]
+name = "knowledge-vault-computations"
+version = "0.1.0"
+description = "Python environment for published Quarto documents"
+requires-python = ">=3.14"
+dependencies = [
+  "jupyter>=1.1,<2",
+  "jupyter-cache>=1.0,<2",
+]

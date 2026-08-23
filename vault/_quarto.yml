@@ -1,0 +1,19 @@
+project:
+  type: default
+  output-dir: ../generated/quarto
+  render:
+    - "research/**/*.qmd"
+    - "!attachments/**"
+
+execute:
+  freeze: true
+  cache: true
+
+format:
+  html:
+    minimal: true
+    toc: false
+    title-block-style: none
+    code-copy: true
+    html-math-method: katex
+    embed-resources: false
