@@ -52,7 +52,7 @@ The source remains available as [[Shared Definition]].
 
 Publication prep copies an attachment only when published content references it.
 
-![[convergence.svg]]
+![Monte Carlo estimate converging](../attachments/convergence.svg)
 
 The same file is available as an [ordinary Markdown link](../attachments/convergence.svg).
 
