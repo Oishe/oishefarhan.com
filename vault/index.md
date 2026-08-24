@@ -1,24 +1,21 @@
 ---
-title: Knowledge Publishing Spike
-description: Representative content for validating the Quartz v5 boundary.
+title: Knowledge Garden
+description: Projects, technical knowledge, structured learning, and professional practice.
 aliases:
-  - Knowledge Publishing Spike
+  - Home
 tags:
-  - experiment/quartz-v5
+  - site/home
 publish: true
 ---
 
-# Knowledge Publishing Spike
+# Knowledge Garden
 
-This vault exercises the behaviours required by the publishing architecture. Publication prep
-stages the public subset of it into `generated/quartz-content`.
+This is my working digital garden: a place to develop and connect ideas from engineering,
+data science, machine learning, artificial intelligence, and software practice.
 
-- Concepts: [[Probability]], [[Statistics]], and [[Bayesian Inference]]
-- Research: [[Monte Carlo Simulation]]
-- Obsidian syntax: [[Callouts and Tasks]] and [[Transclusion Demo]]
-- Metadata: [[Stochastic Processes]]
-- Academic writing: [[Citation Demo]]
-- Attachments: [[Attachment Embed]]
+- [[About]] explains the purpose and scope of the site.
+- [[Publishing Examples]] temporarily exercises the publishing system while real notes replace the
+  original fixtures.
 
-Everything reachable from here is opt-in public. Unpublished notes and unreferenced
-attachments stay in the vault.
+New sections will appear as the underlying projects, courses, and knowledge notes are ready to
+publish.

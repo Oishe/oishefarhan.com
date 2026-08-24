@@ -1,0 +1,80 @@
+---
+title: Computational Features
+description: A consolidated Quarto check for Python output, tables, and figures.
+aliases:
+  - Quarto Features
+tags:
+  - examples/computation
+publish: true
+format: html
+execute:
+  freeze: true
+  cache: true
+---
+
+This temporary page checks the computational side of the publishing boundary. It combines the
+distinct behaviours previously spread across several research fixtures. See [[Markdown Features]]
+for the Quartz-rendered half of the system.
+
+```{python}
+#| label: computation-setup
+#| include: false
+import knowledge_theme
+import pandas as pd
+
+knowledge_theme.apply()
+
+sample_sizes = [10, 20, 50, 100, 200, 500, 1000]
+errors = [0.25, 0.16, 0.09, 0.06, 0.04, 0.025, 0.018]
+summary = pd.DataFrame({"n": sample_sizes, "error": errors})
+```
+
+## Python output
+
+For independent samples with finite variance $\sigma^2$, the standard error of the sample mean is
+
+$$
+\operatorname{SE}(\bar{X}_n) = \frac{\sigma}{\sqrt{n}}.
+$$
+
+The final expression in a Python cell uses Jupyter's rich display system:
+
+```{python}
+#| label: computation-table
+summary
+```
+
+## Static Matplotlib figure
+
+```{python}
+#| label: fig-static-convergence
+#| fig-cap: Absolute error against sample size on log-log axes.
+import matplotlib.pyplot as plt
+
+fig, axis = plt.subplots()
+axis.plot(sample_sizes, errors, marker="o")
+axis.set(xscale="log", yscale="log", xlabel="samples", ylabel="absolute error")
+plt.show()
+```
+
+## Interactive Plotly figure
+
+```{python}
+#| label: interactive-plotly
+import plotly.express as px
+
+figure = px.line(
+    summary,
+    x="n",
+    y="error",
+    markers=True,
+    log_x=True,
+    log_y=True,
+    labels={"n": "samples", "error": "absolute error"},
+)
+figure
+```
+
+Browser-side reactive components continue in [[Interactive Features]].
+
+Return to [[Publishing Examples]].

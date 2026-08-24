@@ -7,8 +7,8 @@ set -eu
 #
 # Run after `npm run build`.
 
-quarto_page="site/public/research/convergence-diagnostics.html"
-plain_page="site/public/concepts/probability.html"
+quarto_page="site/public/examples/computational-features.html"
+plain_page="site/public/examples/markdown-features.html"
 
 test -f "$quarto_page"
 test -f "$plain_page"
@@ -71,7 +71,7 @@ grep -Fq "$(basename "$theme_script" | sed 's/\.js$//')" site/public/postscript-
 # --- Figures carry no baked-in white ----------------------------------------
 # Plotly's default template paints white paper and a #E5ECF6 plot area into the
 # payload; the shared Plotly template in vault/_theme replaces both.
-for page in site/public/research/convergence-diagnostics.html; do
+for page in "$quarto_page"; do
   if grep -Fq '"paper_bgcolor":"white"' "$page" ||
     grep -Fq '"plot_bgcolor":"#E5ECF6"' "$page" ||
     grep -Fq '"gridcolor":"white"' "$page"; then

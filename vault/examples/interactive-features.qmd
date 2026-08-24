@@ -1,0 +1,119 @@
+---
+title: Interactive Features
+description: A consolidated Quarto check for Observable JS and browser-only Jupyter widgets.
+aliases:
+  - Browser Interactivity
+tags:
+  - examples/computation
+  - examples/interactive
+publish: true
+format: html
+execute:
+  freeze: true
+  cache: true
+---
+
+This temporary page checks client-side components that remain interactive after Quarto output is
+placed inside the Quartz page frame. See [[Computational Features]] for Python tables and figures,
+and [[Markdown Features]] for the plain Markdown boundary.
+
+## Observable JS
+
+Python serialises data into the page with `ojs_define`. Observable filters and redraws it reactively
+in the browser.
+
+```{python}
+#| label: interactive-data
+#| echo: false
+sample_sizes = [10, 20, 50, 100, 200, 500, 1000]
+errors = [0.25, 0.16, 0.09, 0.06, 0.04, 0.025, 0.018]
+series = [{"n": n, "error": error} for n, error in zip(sample_sizes, errors)]
+ojs_define(series=series)
+```
+
+```{ojs}
+//| label: ojs-input
+viewof cutoff = Inputs.range([10, 1000], { value: 1000, step: 10, label: "max samples" })
+```
+
+```{ojs}
+//| label: ojs-derived
+filtered = series.filter((row) => row.n <= cutoff)
+```
+
+```{ojs}
+//| label: ojs-readout
+md`Showing **${filtered.length}** of **${series.length}** points, up to n = **${cutoff}**.`
+```
+
+```{ojs}
+//| label: ojs-palette
+//| echo: false
+seriesColor = (n) => getComputedStyle(document.documentElement).getPropertyValue(`--qmd-chart-series-${n}`).trim()
+```
+
+```{ojs}
+//| label: ojs-plot
+Plot.plot({
+  marks: [
+    Plot.line(filtered, { x: "n", y: "error", stroke: seriesColor(1) }),
+    Plot.dot(filtered, { x: "n", y: "error", fill: seriesColor(1) })
+  ],
+  x: { type: "log", label: "samples" },
+  y: { type: "log", label: "absolute error" },
+  height: 300
+})
+```
+
+```{ojs}
+//| label: ojs-table
+Inputs.table(filtered)
+```
+
+## Browser-only Jupyter widgets
+
+Published widgets have no Python kernel behind them. `jslink` keeps this slider, progress bar, and
+readout connected entirely in the browser.
+
+```{python}
+#| label: linked-widgets
+import ipywidgets as widgets
+
+slider = widgets.IntSlider(
+    value=40, min=0, max=100, step=1, description="samples:", continuous_update=True
+)
+progress = widgets.IntProgress(value=40, min=0, max=100, description="coverage:")
+readout = widgets.IntText(value=40, description="value:")
+
+widgets.jslink((slider, "value"), (progress, "value"))
+widgets.jslink((slider, "value"), (readout, "value"))
+widgets.VBox([slider, progress, readout])
+```
+
+Tabs exercise widget layout handling:
+
+```{python}
+#| label: tabbed-widgets
+tabs = widgets.Tab(
+    children=[
+        widgets.HTML("<p>Independent samples converge at a predictable rate.</p>"),
+        widgets.HTML("<p>Correlated draws reduce the effective sample size.</p>"),
+    ]
+)
+tabs.set_title(0, "Independent")
+tabs.set_title(1, "Correlated")
+tabs
+```
+
+Finally, `ipyleaflet` checks loading a third-party widget bundle:
+
+```{python}
+#| label: leaflet-map
+from ipyleaflet import Map, Marker
+
+site_map = Map(center=(43.6532, -79.3832), zoom=9)
+site_map.add(Marker(location=(43.6532, -79.3832)))
+site_map
+```
+
+Return to [[Publishing Examples]].

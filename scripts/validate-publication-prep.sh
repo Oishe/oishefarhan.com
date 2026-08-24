@@ -23,10 +23,10 @@ if [ -n "$missing_publish" ]; then
 fi
 
 # Stubs exist for the authoritative Quarto documents and carry bridge metadata.
-for name in monte-carlo convergence-diagnostics interactive-ojs interactive-widgets; do
-  grep -Fq 'quartoStub: true' "$content/research/$name.md"
-  grep -Fq "sourcePath: \"vault/research/$name.qmd\"" "$content/research/$name.md"
-  test -f "generated/quarto/research/$name.html"
+for name in computational-features interactive-features; do
+  grep -Fq 'quartoStub: true' "$content/examples/$name.md"
+  grep -Fq "sourcePath: \"vault/examples/$name.qmd\"" "$content/examples/$name.md"
+  test -f "generated/quarto/examples/$name.html"
 done
 
 # Only referenced attachments are staged.
@@ -37,7 +37,7 @@ if [ -e "$content/attachments/unreferenced-sketch.svg" ]; then
 fi
 
 # Private notes leak into no derivative: staged tree, link map, or built site.
-for canary in PRIVATE-MEASURE-THEORY-CANARY PRIVATE-MEETING-NOTES-CANARY; do
+for canary in UNPUBLISHED-EXAMPLE-CANARY PRIVATE-MEETING-NOTES-CANARY; do
   for tree in "$content" "$link_map" "$public"; do
     if [ -e "$tree" ] && grep -rIFq "$canary" "$tree"; then
       printf '%s\n' "Private content leaked into $tree" >&2
@@ -46,7 +46,7 @@ for canary in PRIVATE-MEASURE-THEORY-CANARY PRIVATE-MEETING-NOTES-CANARY; do
   done
 done
 
-for slug in measure-theory meeting-notes; do
+for slug in unpublished meeting-notes; do
   if [ -e "$public" ] && grep -rIFq "$slug" "$public"; then
     printf '%s\n' "A private slug appears in the built site: $slug" >&2
     exit 1

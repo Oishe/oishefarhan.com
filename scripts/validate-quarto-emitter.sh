@@ -1,26 +1,31 @@
 #!/bin/sh
 set -eu
 
-quarto_page="site/public/research/monte-carlo.html"
-dependency_root="site/public/research/monte-carlo_files"
+quarto_page="site/public/examples/computational-features.html"
+dependency_root="site/public/examples/computational-features_files"
+interactive_page="site/public/examples/interactive-features.html"
+plain_page="site/public/examples/markdown-features.html"
+content_index="site/public/static/contentIndex.json"
 
 test -f "$quarto_page"
-# With format.html.minimal, Quarto emits only the dependencies the page really
-# uses -- no quarto-html or Bootstrap. The emitter must copy exactly those.
-test -f "$dependency_root/libs/clipboard/clipboard.min.js"
-grep -Fq 'monte-carlo_files/libs/clipboard/clipboard.min.js' "$quarto_page"
+test -f "$interactive_page"
+test -f "$plain_page"
 
+# With format.html.minimal, Quarto emits only the dependencies a page uses.
+test -f "$dependency_root/libs/clipboard/clipboard.min.js"
+grep -Fq 'computational-features_files/libs/clipboard/clipboard.min.js' "$quarto_page"
+
+# Quarto content must live inside the normal Quartz page frame.
 grep -Fq '<meta name="generator" content="Quartz"' "$quarto_page"
 grep -Fq 'id="quartz-root"' "$quarto_page"
 grep -Fq 'class="explorer nav-files-container"' "$quarto_page"
 grep -Fq 'class="popover-hint quarto-page"' "$quarto_page"
 grep -Fq 'class="quarto-content"' "$quarto_page"
-grep -Fq '<pre><code>0.49</code></pre>' "$quarto_page"
-grep -Fq 'href="../concepts/probability" class="internal internal-link"' "$quarto_page"
-grep -Fq 'href="../concepts/statistics" class="internal internal-link"' "$quarto_page"
-grep -Fq 'href="../concepts/bayesian-inference" class="internal internal-link"' "$quarto_page"
+grep -Fq '<table' "$quarto_page"
+grep -Fq 'plotly-graph-div' "$quarto_page"
+grep -Fq 'Plotly.newPlot' "$quarto_page"
 
-if grep -Fq '[[Probability]]' "$quarto_page" || grep -Fq '[[Statistics]]' "$quarto_page"; then
+if grep -Fq '[[Markdown Features]]' "$quarto_page" || grep -Fq '[[Interactive Features]]' "$quarto_page"; then
   printf '%s\n' 'Literal QMD wikilinks leaked into the unified page.' >&2
   exit 1
 fi
@@ -30,17 +35,16 @@ if grep -Fq 'quarto-bootstrap' "$quarto_page" || grep -Fq 'libs/bootstrap' "$qua
   exit 1
 fi
 
-grep -Fq '"research/monte-carlo"' site/public/static/contentIndex.json
-grep -Fq '../research/monte-carlo' site/public/concepts/probability.html
-test -f site/public/monte-carlo-simulation.html
+grep -Fq '"examples/computational-features"' "$content_index"
+grep -Fq '"examples/interactive-features"' "$content_index"
+test -f site/public/quarto-features.html
+test -f site/public/browser-interactivity.html
 grep -Fq '.math.display' site/bridge/styles/quartoPage.scss
 
-# --- Renderer boundary: Quarto pages leave the SPA lifecycle -----------------
-# Quarto's scripts initialize on a full document load, so the bridge marks its
-# article `data-spa-exclude` and Quartz's router does a full load into or out of
-# such a page. Ordinary Quartz pages must not carry the marker.
+# Quarto scripts initialize on a full document load, so navigation into or out
+# of a Quarto page leaves Quartz's SPA lifecycle.
 grep -Fq 'data-spa-exclude' "$quarto_page"
-if grep -Fq 'data-spa-exclude' site/public/concepts/probability.html; then
+if grep -Fq 'data-spa-exclude' "$plain_page"; then
   printf '%s\n' 'A plain Quartz page claims the SPA exclusion marker.' >&2
   exit 1
 fi
@@ -49,43 +53,31 @@ if ! grep -rlFq 'querySelector("[data-spa-exclude]")' site/public/static/scripts
   exit 1
 fi
 
-# --- Computational payload: figures, tables, and interactive widgets ---------
-# The trivial monte-carlo fixture cannot exercise the reason this bridge extracts
-# an HTML fragment instead of using an iframe. convergence-diagnostics carries a
-# Matplotlib figure, a pandas table, and a live Plotly widget.
+# The consolidated computation fixture carries a Matplotlib figure, a pandas
+# table, and a live Plotly widget.
+test -f "$dependency_root/figure-html/fig-static-convergence-output-1.png"
+grep -Fq 'computational-features_files/figure-html/fig-static-convergence-output-1.png' "$quarto_page"
+grep -Fq 'cdn.plot.ly/plotly-3.7.0.min.js' "$quarto_page"
 
-widget_page="site/public/research/convergence-diagnostics.html"
-widget_deps="site/public/research/convergence-diagnostics_files"
-
-test -f "$widget_page"
-test -f "$widget_deps/figure-html/static-figure-output-1.png"
-
-grep -Fq 'class="quarto-content"' "$widget_page"
-grep -Fq 'convergence-diagnostics_files/figure-html/static-figure-output-1.png' "$widget_page"
-grep -Fq '<table' "$widget_page"
-grep -Fq 'plotly-graph-div' "$widget_page"
-grep -Fq 'Plotly.newPlot' "$widget_page"
-grep -Fq 'cdn.plot.ly/plotly-3.7.0.min.js' "$widget_page"
-
-# Jupyter widget output ships a RequireJS/AMD shim. Left in the Quartz shell it
-# defines a global define.amd, which makes Quartz's own UMD bundles register as
-# AMD modules rather than setting their globals -- the graph and search
-# components then fail at runtime with "Libraries not loaded".
+# A Plotly-only page must not retain the RequireJS shim used by Jupyter widgets.
 for shim in 'requirejs' 'backupDefine' "define('jquery'"; do
-  if grep -Fq "$shim" "$widget_page"; then
-    printf '%s\n' "AMD shim '$shim' leaked into the Quartz shell; it breaks graph/search library loading." >&2
+  if grep -Fq "$shim" "$quarto_page"; then
+    printf '%s\n' "AMD shim '$shim' leaked into the Plotly-only page." >&2
     exit 1
   fi
 done
 
 # Plotly's bare ESM preload omits the .js extension and 403s; the cell's own
 # script tag is the real loader.
-if grep -Eq 'import "https://cdn\.plot\.ly/[^"]*[^s]"' "$widget_page"; then
+if grep -Eq 'import "https://cdn\.plot\.ly/[^"]*[^s]"' "$quarto_page"; then
   printf '%s\n' 'Broken extensionless Plotly ESM preload leaked into the page.' >&2
   exit 1
 fi
 
-grep -Fq '"research/convergence-diagnostics"' site/public/static/contentIndex.json
-test -f site/public/mc-diagnostics.html
+# The companion page verifies the opposite loader branch: widget state and its
+# AMD manager must survive extraction.
+grep -Fq 'application/vnd.jupyter.widget-state+json' "$interactive_page"
+grep -Fq 'embed-amd.js' "$interactive_page"
+grep -Fq 'requirejs' "$interactive_page"
 
 printf '%s\n' 'Unified Quartz and Quarto page validation passed.'
