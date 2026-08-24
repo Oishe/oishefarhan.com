@@ -9,11 +9,11 @@ configuration:
   locale: en-US
   baseUrl: localhost:8080
   ignorePatterns:
-    - private
+    - _private
     - templates
     - .obsidian
   # >>> design tokens: theme (generated) >>>
-  # Generated from design/tokens.yaml by scripts/generate-design-tokens.ts.
+  # Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts.
   # Edit that file and run `npm run design-tokens`; do not edit this one.
   theme:
     fontOrigin: googleFonts
@@ -117,7 +117,7 @@ plugins:
     enabled: false
     order: 92
   # >>> design tokens: fonts (generated) >>>
-  # Generated from design/tokens.yaml by scripts/generate-design-tokens.ts.
+  # Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts.
   - source: "@quartz-community/quartz-fonts"
     enabled: true
     options:

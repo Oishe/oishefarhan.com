@@ -15,7 +15,7 @@ import {
   type DesignTokens,
 } from "./generate-design-tokens.ts"
 
-const tokensSource = await readFile("design/tokens.yaml", "utf8")
+const tokensSource = await readFile("vault/_theme/tokens.yaml", "utf8")
 const tokens = parseTokens(tokensSource)
 
 test("the committed token file parses and passes its own legibility rule", () => {

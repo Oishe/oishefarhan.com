@@ -40,9 +40,9 @@ publish: true                        # WITHOUT THIS THE PAGE IS NOT PUBLISHED
 ---
 ```
 
-`publish: true` is the gate. Publication prep stages only what carries it, and a second Quartz-side
-filter fails the build if anything unpublished reaches the content tree. `vault/private/` is
-excluded outright.
+`publish: true` is the website gate. Publication prep stages only what carries it, and a second
+Quartz-side filter fails the build if anything unpublished reaches the content tree. Any path with
+an `_private/` segment is excluded from Git, publication prep, and batch Quarto rendering.
 
 A published page may not link to an unpublished one. That fails the build with the offending file
 named — it is the privacy boundary doing its job, not a bug.
@@ -58,23 +58,22 @@ That is four steps, and knowing them tells you which one broke:
 ```text
 1  design-tokens --check    are the generated theme files current?
 2  prepare-publication      stage vault -> generated/quartz-content, clear generated/quarto
-3  quarto render            execute and render every .qmd under research/
+3  quarto render            render the generated allowlist of published .qmd files
 4  prepare-publication      re-check, now requiring a rendered artifact per published .qmd
 5  quartz build             generated/quartz-content -> site/public
 ```
 
-To look at the result:
+To build and serve the result:
 
 ```bash
-cd site/public && python3 -m http.server 8099
-# http://localhost:8099
+npm run build-serve # the whole pipeline + serve
 ```
 
 Faster loops while you work:
 
 ```bash
 npm run site               # prose-only change to a .md — skips Quarto entirely
-cd vault && uv run quarto render research/one-note.qmd   # one document
+cd vault && uv run quarto render path/to/one-note.qmd   # one document, anywhere in the vault
 ```
 
 After either, rerun `npm run site` before reloading the browser.
@@ -122,7 +121,7 @@ guessing.
 
 ## Changing how it looks
 
-Every colour, font, and chart value comes from **`design/tokens.yaml`**. Edit that file, then:
+Every colour, font, and chart value comes from **`vault/_theme/tokens.yaml`**. Edit that file, then:
 
 ```bash
 npm run design-tokens

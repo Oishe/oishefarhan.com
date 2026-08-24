@@ -12,6 +12,10 @@ dependencies = [
   "ipywidgets>=8.1,<9",
   "ipyleaflet>=0.19,<1",
   "knowledge-theme",
+  "torch>=2.13.0",
+  "tqdm>=4.70.0",
+  "seaborn>=0.13.2",
+  "celluloid>=0.2.0",
 ]
 
 # knowledge-theme is this vault's own design-token package (Phase 11), not a

@@ -14,7 +14,7 @@ test -f "$quarto_page"
 test -f "$plain_page"
 
 # --- One source of truth ----------------------------------------------------
-# Every generated projection must still match design/tokens.yaml. A colour
+# Every generated projection must still match vault/_theme/tokens.yaml. A colour
 # changed in quartz.config.yaml alone, or an .mplstyle edited by hand, fails
 # here rather than drifting quietly.
 npm run --silent design-tokens -- --check

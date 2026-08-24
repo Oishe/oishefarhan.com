@@ -1,8 +1,0 @@
-[project]
-name = "qmd-obsidian-spike"
-version = "0.1.0"
-description = "Disposable Python environment for the QMD-in-Obsidian experiment"
-requires-python = ">=3.14"
-dependencies = [
-  "jupyter>=1.1,<2",
-]

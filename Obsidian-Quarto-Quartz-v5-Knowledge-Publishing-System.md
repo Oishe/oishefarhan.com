@@ -4,7 +4,7 @@
 >
 > Quartz v5 is the default publishing and presentation layer. Astro is retained only as a fallback if the project later becomes substantially more application-like or Quartz creates a material constraint.
 >
-> As of **2026-08-23**, the public site is derived end to end from the vault: `scripts/prepare-publication.ts` stages it, Quarto renders the computational documents, and Quartz builds the result. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). Phases 9 (publication prep), 10 (Quarto bridge), and 11 (shared visual language) are implemented; the bridge lives in `site/bridge/`, the vendored Quartz tree carries a single documented patch, and `design/tokens.yaml` is the one place the visual language is decided. The next unbuilt piece is Phase 12, reproducibility.
+> As of **2026-08-23**, the public site is derived end to end from the vault: `scripts/prepare-publication.ts` stages it, Quarto renders the computational documents, and Quartz builds the result. Experiments 0-7 have all passed, including the browser pass and interactive client-side components (Observable JS and Jupyter Widgets). Phases 9 (publication prep), 10 (Quarto bridge), and 11 (shared visual language) are implemented; the bridge lives in `site/bridge/`, the vendored Quartz tree carries a single documented patch, and `vault/_theme/tokens.yaml` is the one place the visual language is decided. The next unbuilt piece is Phase 12, reproducibility.
 >
 > - **[DECIDED]** — a choice has been made and the design is written around it.
 > - **[VERIFIED]** — behaviour has been checked against current Quartz v5 or Quarto documentation/source.
@@ -250,22 +250,21 @@ Quartz sees only a **public staging tree**, never the full vault.
 
 `ExplicitPublish` remains enabled as defense in depth, but it is not the primary privacy boundary.
 
-## 3.2 `_quarto.yml` Uses an Explicit Render Allowlist
+## 3.2 Publication Prep Generates the Quarto Render Allowlist
 
-Keep Quarto from attempting to render ordinary notes:
+Computational documents may live beside ordinary notes anywhere in the vault. Publication prep
+generates `_quarto-publish.yml` from the exact set of `publish: true` `.qmd` files, and the build
+activates that profile. The base configuration contains only the private-path exclusion:
 
 ```yaml
 project:
   type: default
   render:
-    - "research/**/*.qmd"
-    - "projects/**/*.qmd"
-    - "!attachments/**"
-    - "!templates/**"
-    - "!.obsidian/**"
+    - "!**/_private/**"
 ```
 
-The exact output directory is set so rendered artifacts land under `generated/quarto/` rather than beside source files.
+This avoids coupling computation to folder taxonomy and prevents batch rendering of both private and
+public-source drafts. Individual private experiments remain explicitly renderable during authoring.
 
 ## 3.3 Obsidian Workspace Churn
 
@@ -1801,7 +1800,7 @@ The file-extension decision is **not** gated by this experiment anymore: executa
 
 **Source and Quarto rendering checks: passing. Obsidian UI checks: pending.**
 
-Implemented in `experiments/qmd-obsidian-vault/`:
+Implemented in a disposable fixture that was removed after the behaviour was integrated:
 
 - a disposable vault containing two Markdown files and two QMD files with all four link directions;
 - `showUnsupportedFiles: true`, automatic link updates, shortest-path wikilinks, and the `qmd-as-md-obsidian` community plugin ID;
@@ -1850,7 +1849,7 @@ Use an execution side effect such as a timestamp to prove whether code actually 
 
 **Passing.** Interactive behaviour was subsequently confirmed inside the Quartz shell; see Experiment 5.
 
-The fixture in `experiments/quarto-frozen-prose-loop/` contains prose, LaTeX, four Python cells, a table, a static Matplotlib figure, and an interactive Plotly figure. Its Python/Jupyter environment is locked with `uv`.
+The now-removed disposable fixture contained prose, LaTeX, four Python cells, a table, a static Matplotlib figure, and an interactive Plotly figure. Its Python/Jupyter environment was locked with `uv`.
 
 Observed with Quarto 1.10.18:
 
@@ -2486,7 +2485,7 @@ Quartz now supplies shared navigation directly through the `QuartoPage` frame. K
 
 ### Phase 11 implementation status — 2026-08-23
 
-**Implemented.** `design/tokens.yaml` is now the only place a colour, font, or chart value is
+**Implemented.** `vault/_theme/tokens.yaml` is now the only place a colour, font, or chart value is
 written down. `scripts/generate-design-tokens.ts` projects it into the four consumers that cannot
 read YAML at build time, and `--check` proves none has drifted:
 
@@ -2533,7 +2532,7 @@ Obsidian theme CSS is injected *unlayered*; Quartz emits its own palette inside 
 quartz-base`, and unlayered declarations beat layered ones at any specificity. The browser resolves
 `--light` to `#ffffff` and `#1C1C1C`, not to the values in `quartz.config.yaml`. Two consequences:
 
-- `chart.grounds` in `design/tokens.yaml` records the backgrounds that actually ship, separately
+- `chart.grounds` in `vault/_theme/tokens.yaml` records the backgrounds that actually ship, separately
   from `colors.*.light`, so the legibility check measures a palette someone can see.
 - Every rule in `quartoPage.scss` that overrides a colour a third-party script painted —
   `Inputs.table`'s white sticky header, widget chrome, Leaflet, the Plotly modebar — carries

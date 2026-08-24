@@ -1,7 +1,7 @@
 [project]
 name = "knowledge-theme"
 version = "0.1.0"
-description = "Shared visual language for computational figures, projected from design/tokens.yaml"
+description = "Shared visual language for computational figures, projected from vault/_theme/tokens.yaml"
 requires-python = ">=3.14"
 dependencies = []
 

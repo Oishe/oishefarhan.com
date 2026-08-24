@@ -3,7 +3,7 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse as parseYaml } from "yaml"
 
-// Shared visual language (Phase 11). design/tokens.yaml is the
+// Shared visual language (Phase 11). vault/_theme/tokens.yaml is the
 // only place a colour, font, or chart value is written down; this projects it
 // into the four consumers that cannot read it directly. Every projection is
 // reproducible from the source, so `--check` can prove none has drifted.
@@ -36,14 +36,14 @@ export type GenerateOptions = {
 }
 
 export const defaultOptions: GenerateOptions = {
-  tokensPath: "design/tokens.yaml",
+  tokensPath: "vault/_theme/tokens.yaml",
   quartzConfigPath: "site/quartz.config.yaml",
   quartoTokensScssPath: "site/bridge/styles/quartoTokens.scss",
   vaultTokensJsonPath: "vault/_theme/knowledge_theme/tokens.json",
   mplStylePath: "vault/_theme/knowledge_theme/knowledge.mplstyle",
 }
 
-const BANNER = "Generated from design/tokens.yaml by scripts/generate-design-tokens.ts."
+const BANNER = "Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts."
 const EDIT_HINT = "Edit that file and run `npm run design-tokens`; do not edit this one."
 
 /**
@@ -71,7 +71,7 @@ const COLOR_KEYS = [
 
 // Pandoc/skylighting emits a two-letter class per token. Several classes map to
 // the same semantic token; the grouping is documented alongside `syntax:` in
-// design/tokens.yaml and duplicated nowhere else.
+// vault/_theme/tokens.yaml and duplicated nowhere else.
 export const SYNTAX_CLASSES: Record<string, string[]> = {
   keyword: ["kw", "cf", "im"],
   type: ["dt"],
@@ -87,7 +87,7 @@ export const SYNTAX_CLASSES: Record<string, string[]> = {
 }
 
 function fail(message: string): never {
-  throw new Error(`design/tokens.yaml: ${message}`)
+  throw new Error(`vault/_theme/tokens.yaml: ${message}`)
 }
 
 function requireString(record: Record<string, unknown>, key: string, where: string): string {
@@ -479,7 +479,7 @@ async function main(): Promise<void> {
     }
     if (stale.length > 0) {
       console.error(
-        "These files no longer match design/tokens.yaml:\n" +
+        "These files no longer match vault/_theme/tokens.yaml:\n" +
           stale.map((file) => `  ${file}`).join("\n") +
           "\nRun `npm run design-tokens`.",
       )

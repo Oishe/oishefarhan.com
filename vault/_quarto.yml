@@ -1,9 +1,12 @@
 project:
   type: default
   output-dir: ../generated/quarto
+  # Deliberately contains no positive targets. Publication prep generates the
+  # publish:true allowlist in _quarto-publish.yml; `npm run render` activates it.
+  # Individual documents, including private experiments, remain explicitly
+  # renderable with `quarto preview path/to/document.qmd`.
   render:
-    - "research/**/*.qmd"
-    - "!attachments/**"
+    - "!**/_private/**"
 
 execute:
   freeze: true

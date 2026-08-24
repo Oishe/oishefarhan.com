@@ -51,14 +51,10 @@ frozen output for a document that is not published all stop the pipeline.
 npm test                     # publication prep and stub generation
 (cd site && npm test)        # Quartz and the Quarto bridge
 ./scripts/validate-publication-prep.sh
-./scripts/validate-qmd-obsidian-spike.sh
-./scripts/validate-qmd-obsidian-render.sh
-./scripts/validate-frozen-prose-render.sh
 ./scripts/validate-qmd-stub.sh
 ./scripts/validate-qmd-stub-suppression.sh
 ./scripts/validate-quarto-emitter.sh
 ./scripts/validate-interactive-components.sh
 ```
 
-The rendered-output validators read artifacts produced by `npm run build`, plus the two experiment
-sites under `experiments/` (`uv run quarto render` in each).
+The rendered-output validators read artifacts produced by `npm run build`.

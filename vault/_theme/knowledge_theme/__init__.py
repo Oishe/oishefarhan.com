@@ -6,7 +6,7 @@ produced by matplotlib or Plotly does not get a second render pass per theme —
 it is baked once, as a raster or as embedded JSON, so it has to be legible
 against both page backgrounds simultaneously rather than switching with them.
 
-`design/tokens.yaml` is the single place that visual language is decided, and
+`vault/_theme/tokens.yaml` is the single place that visual language is decided, and
 `scripts/generate-design-tokens.ts` projects it into the two files this
 package ships alongside its code: `tokens.json` (the whole token tree) and
 `knowledge.mplstyle` (a matplotlib style sheet). Neither generated file is
