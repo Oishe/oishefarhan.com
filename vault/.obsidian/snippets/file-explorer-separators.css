@@ -25,7 +25,12 @@
    deeper in the tree, without depending on how the root is nested. */
 .nav-files-container
   :is(.nav-file, .nav-folder):has(
-    > :is([data-path="_private"], [data-path="attachments"])
+    > :is(
+      [data-path="_hidden"],
+      [data-path="examples"],
+      [data-path="about"],
+      [data-path="projects"]
+    )
   )::after {
   content: "";
   display: block;

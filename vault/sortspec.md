@@ -8,13 +8,13 @@ sorting-spec: |
   _theme
   templates
   attachments
-  examples
-  _private
+  _hidden
+  index
   about
+  examples
   experience
   writing
   knowledge
   courses
   projects
-  index
 ---

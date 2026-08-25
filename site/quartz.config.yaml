@@ -9,7 +9,9 @@ configuration:
   locale: en-US
   baseUrl: localhost:8080
   ignorePatterns:
-    - _private
+    - "**/*_hidden/**"
+    - "**/*.hidden.md"
+    - "**/*.hidden.qmd"
     - templates
     - .obsidian
   # >>> design tokens: theme (generated) >>>

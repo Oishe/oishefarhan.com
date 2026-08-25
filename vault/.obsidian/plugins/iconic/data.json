@@ -1,0 +1,132 @@
+{
+  "biggerIcons": "on",
+  "clickableIcons": "off",
+  "showAllFileIcons": true,
+  "showAllFolderIcons": false,
+  "minimalFolderIcons": true,
+  "showMarkdownTabIcons": false,
+  "showTitleIcons": false,
+  "showTagPillIcons": false,
+  "showMenuActions": true,
+  "showSuggestionIcons": false,
+  "showQuickSwitcherIcons": true,
+  "showMoveFileIcons": true,
+  "showItemName": "desktop",
+  "useSearchKeywords": "on",
+  "maxSearchResults": 100,
+  "colorPicker1": "list",
+  "colorPicker2": "rgb",
+  "uncolorHover": false,
+  "uncolorDrag": false,
+  "uncolorSelect": false,
+  "uncolorQuick": false,
+  "maxBackups": 0,
+  "dialogState": {
+    "iconMode": true,
+    "emojiMode": false,
+    "rulePage": "file"
+  },
+  "appIcons": {},
+  "tabIcons": {},
+  "fileIcons": {
+    "about": {
+      "icon": "lucide-user",
+      "color": "green"
+    },
+    "attachments": {
+      "icon": "lucide-paperclip"
+    },
+    "examples": {
+      "icon": "lucide-square-dashed-mouse-pointer",
+      "color": "yellow"
+    },
+    "index.md": {
+      "color": "green",
+      "icon": "lucide-file-input"
+    },
+    "projects": {
+      "icon": "lucide-rocket",
+      "color": "red"
+    },
+    "templates": {
+      "icon": "templater-icon"
+    }
+  },
+  "bookmarkIcons": {},
+  "tagIcons": {},
+  "propertyIcons": {},
+  "ribbonIcons": {},
+  "fileRules": [
+    {
+      "id": "0M9xg",
+      "name": "index",
+      "match": "all",
+      "conditions": [
+        {
+          "source": "filename",
+          "operator": "is",
+          "value": "index.md"
+        }
+      ],
+      "enabled": true,
+      "icon": "lucide-file-input"
+    },
+    {
+      "id": "Dmduk",
+      "name": ".qmd",
+      "match": "all",
+      "enabled": true,
+      "icon": "lucide-pie-chart",
+      "conditions": [
+        {
+          "source": "extension",
+          "operator": "endsWith",
+          "value": "qmd"
+        }
+      ]
+    },
+    {
+      "id": "EBv3q",
+      "name": "unpublished",
+      "match": "all",
+      "conditions": [
+        {
+          "source": "property:publish",
+          "operator": "isFalse"
+        }
+      ],
+      "enabled": true,
+      "icon": "lucide-file-x"
+    },
+    {
+      "id": "ZF2dP",
+      "name": "hidden",
+      "match": "all",
+      "conditions": [
+        {
+          "source": "filename",
+          "operator": "contains",
+          "value": ".hidden."
+        }
+      ],
+      "enabled": true,
+      "icon": "lucide-hat-glasses"
+    }
+  ],
+  "folderRules": [
+    {
+      "id": "TYBfH",
+      "name": "_hidden",
+      "match": "all",
+      "conditions": [
+        {
+          "source": "name",
+          "operator": "contains",
+          "value": "_hidden"
+        }
+      ],
+      "enabled": true,
+      "icon": "lucide-hat-glasses"
+    }
+  ]
+}

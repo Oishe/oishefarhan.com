@@ -12,7 +12,10 @@ project:
   # explicit CLI target and works; for live reload use `quarto preview
   # --profile publish` with no file argument.
   render:
-    - "!**/_private/**"
+    - "!**/*_hidden/**"
+    # Per-file privacy boundary, the single-note equivalent of `*_hidden/`.
+    - "!**/*.hidden.md"
+    - "!**/*.hidden.qmd"
     # Templater templates are unrendered source: they carry `<% %>` expressions
     # and an executable cell that must never run as part of a project render.
     - "!templates/**"

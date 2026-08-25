@@ -22,8 +22,8 @@
     },
     {
       "type": "search",
-      "title": "Private",
-      "query": "path:_private"
+      "title": "Hidden",
+      "query": "path:_hidden"
     }
   ]
 }

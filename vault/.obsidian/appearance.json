@@ -12,7 +12,6 @@
   "nativeMenus": false,
   "accentColor": "",
   "enabledCssSnippets": [
-    "no-gutter",
     "file-explorer-separators"
   ]
 }

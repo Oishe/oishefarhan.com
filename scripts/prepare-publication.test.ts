@@ -94,24 +94,68 @@ test("stages published Markdown, stubs published Quarto, and skips the rest", as
   )
 })
 
-test("ignores nested _private trees regardless of frontmatter", async () => {
+test("ignores nested *_hidden trees regardless of frontmatter", async () => {
   const vault = await withVault({
     "courses/public.qmd": note("Public", "publish: true\n", "Visible."),
-    "courses/_private/experiment.qmd": note(
+    "courses/_hidden/experiment.qmd": note(
       "Private experiment",
       "publish: true\n",
       "Must remain local despite the accidental flag.",
     ),
-    "courses/_private/assets/secret.csv": "secret",
+    "courses/_hidden/assets/secret.csv": "secret",
+    // No leading underscore, so the "_"-prefix rule alone would walk into it.
+    "courses/drafts_hidden/notes.md": note("Draft notes", "publish: true\n", "Also local."),
+    "courses/drafts_hidden/assets/secret.csv": "secret",
+    // The marker is the `_hidden` suffix, not the word anywhere in the name.
+    // (Underscores are not slug-safe, so a public folder cannot end in one
+    // by accident -- the suffix only ever appears on deliberate private trees.)
+    "courses/hidden-costs/notes.md": note("Hidden costs", "publish: true\n", "An ordinary note."),
   })
 
   const result = await vault.run()
 
-  assert.deepEqual(result.documents.map((document) => document.sourcePath), ["courses/public.qmd"])
+  assert.deepEqual(
+    result.documents.map((document) => document.sourcePath).sort(),
+    ["courses/hidden-costs/notes.md", "courses/public.qmd"],
+  )
   assert.doesNotMatch(
     await readFile(path.join(vault.vaultDir, "_quarto-publish.yml"), "utf8"),
-    /_private/,
+    /_hidden/,
   )
+})
+
+test("ignores hidden notes regardless of frontmatter, and fails links into them", async () => {
+  const vault = await withVault({
+    "courses/public.md": note("Public", "publish: true\n", "Visible."),
+    "courses/draft.hidden.md": note(
+      "Hidden draft",
+      "publish: true\n",
+      "Must remain local despite the accidental flag.",
+    ),
+    "courses/experiment.hidden.qmd": note(
+      "Hidden experiment",
+      "publish: true\n",
+      "Must never reach the Quarto render allowlist.",
+    ),
+    // The marker is the `.hidden.` suffix, not the word anywhere in the name.
+    "courses/hidden-costs.md": note("Hidden costs", "publish: true\n", "An ordinary note."),
+  })
+
+  const result = await vault.run()
+  assert.deepEqual(
+    result.documents.map((document) => document.sourcePath).sort(),
+    ["courses/hidden-costs.md", "courses/public.md"],
+  )
+  assert.doesNotMatch(
+    await readFile(path.join(vault.vaultDir, "_quarto-publish.yml"), "utf8"),
+    /hidden/,
+  )
+
+  await vault.write({
+    "courses/public.md": note("Public", "publish: true\n", "See [draft](courses/draft.hidden.md)."),
+  })
+  const messages = await messagesFrom(() => vault.run())
+  assert.ok(messages.some((message) => message.includes("draft.hidden.md")))
 })
 
 test("copies only attachments that published content references", async () => {

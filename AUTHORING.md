@@ -31,13 +31,21 @@ get it automatically, and `templates/tpl-computational.qmd` adds the hidden them
 
 | State | Convention | GitHub | Website |
 |---|---|---:|---:|
-| Private | any path containing `_private/` | no | no |
+| Private | any path under a `*_hidden/` folder, or a `*.hidden.md` / `*.hidden.qmd` file | no | no |
 | Unpublished | normal path, `publish: false` | yes | no |
 | Published | normal path, `publish: true` | yes | yes |
 
-Path is the privacy boundary; frontmatter is the publication switch. Private attachments and private
-frozen output must also sit below `_private/`. Notes move `_private/inbox → section/_private →
-section (publish: false) → section (publish: true)`.
+Path is the privacy boundary; frontmatter is the publication switch. Two conventions mark a path
+private, and they share one word:
+
+```text
+*_hidden/          a folder -- `_hidden/`, `drafts_hidden/`, `research_hidden/`
+*.hidden.md/qmd    a single file, when one note in an otherwise public folder must stay local
+```
+
+Both are invisible to publication prep, so `publish: true` inside them does nothing. Private
+attachments and private frozen output must also sit below a `*_hidden/` folder. Notes move
+`_hidden/inbox → section/_hidden → section (publish: false) → section (publish: true)`.
 
 A published page may not link to an unpublished one — that fails the build with the file named. That
 is the boundary working, not a bug.

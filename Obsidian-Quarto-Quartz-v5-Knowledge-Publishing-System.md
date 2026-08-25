@@ -260,7 +260,9 @@ activates that profile. The base configuration contains only the private-path ex
 project:
   type: default
   render:
-    - "!**/_private/**"
+    - "!**/*_hidden/**"
+    - "!**/*.hidden.md"
+    - "!**/*.hidden.qmd"
 ```
 
 This avoids coupling computation to folder taxonomy and prevents batch rendering of both private and
@@ -1138,6 +1140,27 @@ Therefore:
 ```text
 vault != Quartz content directory
 ```
+
+## 22.0 Two Ways to Mark Content Private
+
+Two path conventions place content outside the boundary entirely, independent of frontmatter:
+
+```text
+*_hidden/                     any directory whose name ends in `_hidden`, anywhere in the
+                              vault -- notes, attachments, frozen output. The bare
+                              `_hidden/` is the common case; `drafts_hidden/` also counts.
+*.hidden.md, *.hidden.qmd     a single file, for one local note inside an otherwise
+                              public folder
+```
+
+Both are git-ignored and both are skipped during source discovery, so publication prep never reads
+them and `publish: true` inside them has no effect. Source discovery tests the `_hidden` suffix
+separately from its existing "_"-prefix rule, because `drafts_hidden/` carries no leading
+underscore. Underscores are not slug-safe, so no publishable folder can carry the suffix by
+accident. Skipping them in prep rather than relying on
+`.gitignore` alone is what keeps a local run and a CI run over the committed tree on the same file
+set: a published note linking into hidden content fails the build locally, not for the first time in
+CI where the target file does not exist.
 
 ## 22.1 Two Privacy Layers
 

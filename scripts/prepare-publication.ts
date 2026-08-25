@@ -128,9 +128,28 @@ function stringList(value: unknown): string[] | undefined {
 
 function isIgnoredDirectory(name: string): boolean {
   // Dot directories are tool state. "_"-prefixed directories are reserved for
-  // non-public content and tool output (_private, _freeze, _site, and so on).
+  // non-public content and tool output (_hidden, _freeze, _site, and so on).
   // "templates" holds authoring scaffolds, never content.
-  return name.startsWith(".") || name.startsWith("_") || name === "node_modules" || name === "templates"
+  //
+  // The "_hidden" suffix is the directory privacy boundary and needs its own
+  // test: "drafts_hidden" carries no leading underscore, so the prefix rule
+  // above would walk straight into it. The bare "_hidden" satisfies both.
+  return (
+    name.startsWith(".") ||
+    name.startsWith("_") ||
+    name.endsWith("_hidden") ||
+    name === "node_modules" ||
+    name === "templates"
+  )
+}
+
+function isIgnoredFile(name: string): boolean {
+  // Dotfiles are tool state. `*.hidden.md` and `*.hidden.qmd` are the per-file
+  // privacy boundary: the single-note equivalent of a `*_hidden/` directory,
+  // git-ignored by the same rule. Skipping them here keeps a local run and a CI
+  // run over the committed tree on the same file set, so a link into a hidden
+  // note fails locally instead of only in CI.
+  return name.startsWith(".") || /\.hidden\.(md|qmd)$/.test(name)
 }
 
 export async function collectFiles(root: string): Promise<string[]> {
@@ -144,7 +163,7 @@ export async function collectFiles(root: string): Promise<string[]> {
         if (!isIgnoredDirectory(entry.name)) {
           await walk(child)
         }
-      } else if (entry.isFile() && !entry.name.startsWith(".")) {
+      } else if (entry.isFile() && !isIgnoredFile(entry.name)) {
         found.push(child)
       }
     }
@@ -739,7 +758,7 @@ export async function preparePublication(
   // Quarto cannot select documents by arbitrary frontmatter. Generate a
   // profile containing the exact published QMD allowlist so computational
   // notes can live anywhere without rendering public-source drafts. The base
-  // config contributes the _private exclusion as defense in depth.
+  // config contributes the *_hidden exclusion as defense in depth.
   const quartoTargets = published
     .filter((document) => document.sourceType === "quarto")
     .map((document) => document.sourcePath)
