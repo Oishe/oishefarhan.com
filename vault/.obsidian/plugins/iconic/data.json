@@ -44,6 +44,10 @@
       "color": "green",
       "icon": "lucide-file-input"
     },
+    "knowledge": {
+      "icon": "lucide-library-big",
+      "color": "cyan"
+    },
     "projects": {
       "icon": "lucide-rocket",
       "color": "red"

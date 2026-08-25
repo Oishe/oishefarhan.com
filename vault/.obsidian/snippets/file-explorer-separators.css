@@ -29,6 +29,7 @@
       [data-path="_hidden"],
       [data-path="examples"],
       [data-path="about"],
+      [data-path="knowledge"],
       [data-path="projects"]
     )
   )::after {
