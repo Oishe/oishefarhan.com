@@ -26,6 +26,18 @@ node_modules/
 **/.obsidian/workspace.json
 **/.obsidian/workspace-mobile.json
 
+# Community plugin and theme code is third-party and reinstallable. The settings
+# that describe the setup stay tracked: community-plugins.json, each plugin's
+# data.json, and each plugin's manifest.json -- the manifest carries the id,
+# canonical name, and version, so PLUGINS.md never hand-copies a version number
+# that then drifts. Obsidian rewrites the manifest on update, so the diff
+# records the bump. See vault/.obsidian/PLUGINS.md.
+vault/.obsidian/plugins/**
+!vault/.obsidian/plugins/*/
+!vault/.obsidian/plugins/*/data.json
+!vault/.obsidian/plugins/*/manifest.json
+vault/.obsidian/themes/
+
 # Privacy boundary. Any `_private` directory may be placed anywhere in the
 # vault; this also protects private attachments and Quarto frozen output.
 vault/**/_private/

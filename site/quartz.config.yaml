@@ -4,8 +4,8 @@ configuration:
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
-  analytics:
-    provider: plausible
+  # No analytics provider configured. Set one before deployment (Phase 13).
+  analytics: null
   locale: en-US
   baseUrl: localhost:8080
   ignorePatterns:
@@ -248,9 +248,9 @@ plugins:
   - source: "@quartz-community/footer"
     enabled: true
     options:
-      links:
-        GitHub: https://github.com/jackyzha0/quartz
-        Discord Community: https://discord.gg/cRFFHYye7t
+      # Replace with your own links before deployment; upstream's defaults
+      # pointed at the Quartz project, not this site.
+      links: {}
     layout:
       position: footer
       priority: 50
@@ -286,7 +286,8 @@ plugins:
       priority: 15
       display: all
   - source: "@quartz-community/obsidian-plugin-excalidraw"
-    enabled: true
+    # Not installed; leaving this enabled makes every build warn and skip it.
+    enabled: false
     options:
       enableInteraction: true
       darkMode: auto

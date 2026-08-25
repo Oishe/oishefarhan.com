@@ -1,3 +1,26 @@
 {
-  "vimMode": true
+  "vimMode": true,
+  "promptDelete": false,
+  "showLineNumber": true,
+  "useTab": false,
+  "tabSize": 4,
+  "alwaysUpdateLinks": true,
+  "showUnsupportedFiles": true,
+  "attachmentFolderPath": "attachments",
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "userIgnoreFilters": [
+    ".venv/",
+    ".quarto/",
+    "_freeze/",
+    "_theme/",
+    ".jupyter_cache/",
+    "templates/"
+  ],
+  "showIndentGuide": true,
+  "smartIndentList": true,
+  "readableLineLength": false,
+  "showInlineTitle": false,
+  "propertiesInDocument": "visible",
+  "spellcheck": true
 }

@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "type": "file",
+      "title": "Home",
+      "path": "index.md"
+    },
+    {
+      "type": "search",
+      "title": "Published",
+      "query": "[\"publish\":true]"
+    },
+    {
+      "type": "search",
+      "title": "Not published",
+      "query": "-[\"publish\":true] -path:templates -path:sortspec"
+    },
+    {
+      "type": "search",
+      "title": "Missing description",
+      "query": "[\"publish\":true] -[\"description\"]"
+    },
+    {
+      "type": "search",
+      "title": "Private",
+      "query": "path:_private"
+    }
+  ]
+}

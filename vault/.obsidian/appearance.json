@@ -1,1 +1,18 @@
-{}
+{
+  "cssTheme": "Catppuccin",
+  "theme": "system",
+  "interfaceFontFamily": "Fira Code,JetBrainsMono Nerd Font",
+  "textFontFamily": "Fira Code,JetBrainsMono Nerd Font",
+  "monospaceFontFamily": "JetBrainsMono Nerd Font",
+  "translucency": true,
+  "baseFontSizeAction": false,
+  "baseFontSize": 16,
+  "showRibbon": false,
+  "showViewHeader": true,
+  "nativeMenus": false,
+  "accentColor": "",
+  "enabledCssSnippets": [
+    "no-gutter",
+    "file-explorer-separators"
+  ]
+}

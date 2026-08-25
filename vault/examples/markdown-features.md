@@ -44,7 +44,7 @@ also renders here.[^note]
 
 The following content is embedded from another note:
 
-![[Shared Definition]]
+![[shared-definition]]
 
 The source remains available as [[Shared Definition]].
 

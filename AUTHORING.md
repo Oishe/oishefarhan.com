@@ -1,9 +1,8 @@
-# Authoring and rebuilding
+# Authoring
 
-How to write in the vault and see the result. The architecture behind this is in
-`Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md`; this file is the operating manual.
-
-## The shape of it
+The writing reference for this vault. Architecture rationale lives in
+`Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md`; Obsidian install and plugin detail lives
+in `vault/.obsidian/PLUGINS.md`.
 
 ```text
 vault/          you edit here, and only here
@@ -11,24 +10,9 @@ generated/      derived, gitignored, never edited
 site/public/    the built site
 ```
 
-`vault/` is a normal Obsidian vault. Nothing in `generated/` or `site/public/` survives a rebuild,
-so never fix a problem there — fix it in `vault/` and rebuild.
+Nothing in `generated/` or `site/public/` survives a rebuild. Fix problems in `vault/`.
 
-## Choosing `.md` or `.qmd`
-
-| | `.md` | `.qmd` |
-|---|---|---|
-| Rendered by | Quartz | Quarto, then wrapped by Quartz |
-| Executable code cells | no | yes |
-| Obsidian editing | native | native (the `qmd as md` plugin) |
-
-The rule is only about execution. Prose, wikilinks, callouts, and maths all work in both. Use
-`.qmd` when a page computes something; use `.md` otherwise. A `.qmd` with no executable cell is
-just a slower `.md`.
-
-Executable cells in a `.md` are an error in Quarto, not a silent no-op.
-
-## Frontmatter that matters
+## Frontmatter
 
 ```yaml
 ---
@@ -40,48 +24,104 @@ publish: true                        # WITHOUT THIS THE PAGE IS NOT PUBLISHED
 ---
 ```
 
-`publish: true` is the website gate. Publication prep stages only what carries it, and a second
-Quartz-side filter fails the build if anything unpublished reaches the content tree. Any path with
-an `_private/` segment is excluded from Git, publication prep, and batch Quarto rendering.
+Templater scaffolds this: new notes in `about/ projects/ experience/ courses/ knowledge/ writing/`
+get it automatically, and `templates/tpl-computational.qmd` adds the hidden theme-setup cell.
 
-A published page may not link to an unpublished one. That fails the build with the offending file
-named — it is the privacy boundary doing its job, not a bug.
+## Visibility
 
-## The rebuild
+| State | Convention | GitHub | Website |
+|---|---|---:|---:|
+| Private | any path containing `_private/` | no | no |
+| Unpublished | normal path, `publish: false` | yes | no |
+| Published | normal path, `publish: true` | yes | yes |
+
+Path is the privacy boundary; frontmatter is the publication switch. Private attachments and private
+frozen output must also sit below `_private/`. Notes move `_private/inbox → section/_private →
+section (publish: false) → section (publish: true)`.
+
+A published page may not link to an unpublished one — that fails the build with the file named. That
+is the boundary working, not a bug.
+
+## Where notes go
+
+```text
+about/       identity, resume, current focus
+projects/    polished case studies and standalone work
+experience/  professional practice and applied expertise
+courses/     ordered curricula, lectures, course labs
+knowledge/   evergreen, topic-oriented reference notes
+writing/     essays and longer-form synthesis
+```
+
+Create a section when content needs it. Folders express a note's primary identity; wikilinks, tags,
+and metadata express everything cross-cutting. Every substantial folder eventually gets an
+`index.md`. Ordered material uses numbered files or an `order` property; evergreen notes use stable
+descriptive names. Course labs stay with the course — work that becomes independently valuable gets
+a project page linking back.
+
+## `.md` or `.qmd`
+
+The rule is only about execution: use `.qmd` when a page computes something, `.md` otherwise. A
+`.qmd` with no executable cell is just a slower `.md`. An executable cell in a `.md` is a Quarto
+error, not a silent no-op.
+
+They are rendered by different engines, so Obsidian syntax does not survive equally:
+
+| You write | `.md` (Quartz) | `.qmd` (Quarto) |
+|---|---|---|
+| `[[Note]]` | link | link |
+| `![[figure.svg]]` | rewritten to an image while staging | **build fails** — use `![](../attachments/figure.svg)` |
+| `![[figure.png]]`, `![[Note]]` | image / transclusion | **build fails** — use Markdown image syntax |
+| `%%comment%%` | stripped | **build fails** — would publish as visible text; use `<!-- -->` |
+| `> [!note]` | callout | **build fails** — use `::: {.callout-note}` |
+| `==highlight==` | highlight | **build fails** — use `<mark>` |
+| `#tag/inline` | tag link | literal text; put tags in frontmatter |
+| single newline | line break | joined into one paragraph |
+| `$math$` | KaTeX at build time | KaTeX in the browser |
+
+The five build failures are deliberate guardrails: publication prep rejects Obsidian-only syntax in
+a `.qmd` rather than letting Quarto publish it verbatim. Prose, wikilinks, footnotes, tables, and
+maths work in both.
+
+## Links and attachments
+
+Wikilinks work everywhere, including inside `.qmd`. They resolve by title, alias, filename, or path.
+An ambiguous target — two pages claiming one title — fails the build rather than guessing.
+
+Attachments live in `vault/attachments/`, and only those a published page references get copied. Use
+`![[figure.png]]` and `![[figure.svg]]` freely in `.md`. In `.qmd`, always use Markdown image syntax.
+
+## Building
 
 ```bash
 npm run build          # the whole pipeline
+npm run build-serve    # ... and serve it
+npm run site-fast      # prose-only change to a .md: restage and rebuild, no Quarto
 ```
 
-That is four steps, and knowing them tells you which one broke:
+`npm run build` is five steps, and knowing them tells you which one broke:
 
 ```text
 1  design-tokens --check    are the generated theme files current?
 2  prepare-publication      stage vault -> generated/quartz-content, clear generated/quarto
-3  quarto render            render the generated allowlist of published .qmd files
+3  quarto render            render the generated allowlist of published .qmd
 4  prepare-publication      re-check, now requiring a rendered artifact per published .qmd
 5  quartz build             generated/quartz-content -> site/public
 ```
 
-To build and serve the result:
+To re-render one document anywhere in the vault, including a private draft:
 
 ```bash
-npm run build-serve # the whole pipeline + serve
+cd vault && uv run quarto render path/to/one-note.qmd
 ```
 
-Faster loops while you work:
+Then `npm run site-fast`. Plain `npm run site` only rebuilds the site from whatever is already
+staged — it will not pick up a vault edit.
+
+### Checking it
 
 ```bash
-npm run site               # prose-only change to a .md — skips Quarto entirely
-cd vault && uv run quarto render path/to/one-note.qmd   # one document, anywhere in the vault
-```
-
-After either, rerun `npm run site` before reloading the browser.
-
-### Checking it did what you meant
-
-```bash
-npm test                                    # publication prep, stubs, design tokens
+npm test                                      # prep, stubs, design tokens
 (cd site && npx tsx --test bridge/*.test.ts)  # the Quarto bridge
 for f in scripts/validate-*.sh; do sh "$f" || echo "FAILED $f"; done
 ```
@@ -90,38 +130,29 @@ for f in scripts/validate-*.sh; do sh "$f" || echo "FAILED $f"; done
 
 ## Things that will bite you
 
-**Freeze can serve you a stale page.** `execute: freeze: true` means Quarto reuses the frozen result
-in `vault/_freeze/` instead of re-executing. It keys on the source file, so an ordinary edit
-invalidates it — but a change that only affects the *environment* (a new package, an edited
-`.mplstyle`, a changed token) does not. If a rendered page disagrees with the source you are looking
-at, force it:
+**Freeze can serve you a stale page.** `execute: freeze: true` reuses the frozen result in
+`vault/_freeze/`. It keys on the source file, so an ordinary edit invalidates it — but a change to
+the *environment* (a new package, an edited `.mplstyle`, a changed token) does not. If a rendered
+page disagrees with its source, re-render that document explicitly. `vault/_freeze/` is committed on
+purpose; commit the freeze churn with the change that caused it.
 
-```bash
-cd vault && uv run quarto render research/one-note.qmd
-```
-
-`vault/_freeze/` is committed on purpose, so CI need not execute anything. Commit the freeze churn
-along with the source change that caused it.
-
-**Observable JS cells share one namespace.** Every `{ojs}` cell in a document, plus every name
-handed over by `ojs_define`, lives in the same scope. Defining a name twice is a runtime error that
-appears only in the browser console — the build stays green. If an OJS chart renders blank, open the
-console first.
+**Observable JS cells share one namespace.** Every `{ojs}` cell in a document, plus every name from
+`ojs_define`, lives in one scope. Defining a name twice is a runtime error visible only in the
+browser console — the build stays green. If an OJS chart renders blank, open the console first.
 
 **Quarto pages are a full page load.** Navigating into or out of a `.qmd`-backed page leaves the SPA
-deliberately: Quarto's scripts initialise on document load and have no Quartz lifecycle hooks. A
-visible reload there is correct behaviour.
+deliberately. A visible reload there is correct.
 
-**Attachments live under `vault/attachments/`.** Only attachments a published page references get
-copied. An unreferenced image simply will not appear on the site.
+**Obsidian's search cannot see `.qmd`.** The `qmd as md` plugin registers the extension but does not
+patch Obsidian's index. Use Omnisearch (`Cmd+Shift+O`), which is configured to index `.qmd`. The
+quick switcher sees them; core search does not.
 
-**Wikilinks work everywhere, including inside `.qmd`.** They are resolved by title, alias, filename,
-or path. An ambiguous target — two pages claiming the same title — fails the build rather than
-guessing.
+**Bookmarks track publication state.** The bookmarks pane carries saved searches for Published, Not
+published, Missing description, and Private.
 
 ## Changing how it looks
 
-Every colour, font, and chart value comes from **`vault/_theme/tokens.yaml`**. Edit that file, then:
+Every colour, font, and chart value comes from **`vault/_theme/tokens.yaml`**. Edit it, then:
 
 ```bash
 npm run design-tokens
@@ -129,22 +160,19 @@ npm run design-tokens
 
 which rewrites the four generated files it feeds — the Quartz theme block, the Quarto stylesheet's
 custom properties, and the two files the vault's Python environment reads. Never edit those four by
-hand; `npm run build` checks them and fails on a stale one.
+hand; `npm run build` fails on a stale one.
 
-Two caveats worth carrying:
+Two caveats:
 
-- **The `colors` block in `tokens.yaml` is currently inert.** The site loads `@quartz-themes/core`,
-  whose CSS is injected unlayered and outranks the palette Quartz generates. The live values are
-  `#ffffff` and `#1C1C1C`, recorded separately as `chart.grounds`. Changing `colors` will not change
-  what you see; changing the theme plugin will. Resolving which one should own the palette is an
-  open decision.
+- **The `colors` block in `tokens.yaml` is inert.** The site loads `@quartz-themes/core`, whose CSS
+  is injected unlayered and outranks the palette Quartz generates. The live values are `#ffffff` and
+  `#1C1C1C`, recorded separately as `chart.grounds`. Which one should own the palette is open.
 - **Figures are drawn once for both themes.** A matplotlib PNG cannot follow the light/dark toggle,
-  so `chart.ink` and `chart.series` are picked to stay legible against both backgrounds. The
-  generator refuses colours that fall below 3:1 on either. Live output — Plotly, Observable Plot —
-  is rethemed in the browser and uses the theme's real colours.
+  so `chart.ink` and `chart.series` stay legible against both; the generator refuses colours below
+  3:1 on either. Live output — Plotly, Observable Plot — is rethemed in the browser.
 
-Writing Quarto-specific CSS goes in `site/bridge/styles/quartoPage.scss`, scoped beneath
-`.quarto-page`, using `var(--…)` only. A literal hex there fails validation.
+Quarto-specific CSS goes in `site/bridge/styles/quartoPage.scss`, scoped beneath `.quarto-page`,
+using `var(--…)` only. A literal hex there fails validation.
 
 For a Python figure, one hidden setup cell picks up the shared styling:
 
@@ -166,11 +194,11 @@ seriesColor = (n) => getComputedStyle(document.documentElement)
 ```
 ````
 
-## What is not built yet
+## Not built yet
 
-- **Reproducibility (Phase 12).** `vault/uv.lock` pins the Python environment and `_freeze/` is
-  committed, so today's documents already rebuild deterministically. The gap is that nothing
-  *enforces* it — no CI, no check that the lockfile and the freeze agree.
-- **Deployment (Phase 13).** Local only. `baseUrl` is `localhost:8080`.
-- Two CDN references are unpinned (`katex@latest`, `@jupyter-widgets/html-manager@*`). Harmless
-  locally, must be pinned before publishing.
+- **Reproducibility (Phase 12).** `vault/uv.lock` and a committed `_freeze/` make today's documents
+  rebuild deterministically, but nothing *enforces* it — no CI, no lockfile/freeze agreement check.
+- **Deployment (Phase 13).** Local only; `baseUrl` is `localhost:8080`. Before deploying: set an
+  analytics provider, fill in the footer links, and pin the two unpinned CDN references
+  (`katex@latest`, `@jupyter-widgets/html-manager@*`). Note that `.qmd` pages currently load KaTeX
+  twice, at `0.16.11` from Quartz and `latest` from Quarto.

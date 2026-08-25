@@ -1,0 +1,12 @@
+{
+  "doLoadTxt": true,
+  "doCreateTxt": false,
+  "doLoadXml": true,
+  "doCreateXml": false,
+  "doLoadJson": true,
+  "doCreateJson": false,
+  "doLoadYaml": true,
+  "doCreateYaml": false,
+  "doAutosaveFiles": true,
+  "lineWrapping": true
+}

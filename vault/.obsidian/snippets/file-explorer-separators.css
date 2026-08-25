@@ -1,0 +1,36 @@
+/* Scoped to the explorer: the same data-path values also appear in search
+   results, bookmarks, and backlinks, where these rows should stay visible. */
+
+/* Build and config files that are never edited from Obsidian. Matching the
+   wrapper rather than the title row matters for folders, whose children are
+   siblings of the title and would otherwise survive. */
+.nav-files-container
+  :is(.nav-file, .nav-folder):has(
+    > :is(
+      [data-path="sortspec.md"],
+      [data-path="references.bib"],
+      [data-path="pyproject.toml"],
+      [data-path="uv.lock"],
+      [data-path="_quarto.yml"],
+      [data-path="_quarto-publish.yml"],
+      [data-path="_freeze"],
+      [data-path="_theme"]
+    )
+  ) {
+  display: none;
+}
+
+/* A rule under the last entry of each group. Matching the item by its own
+   title (a direct child) keeps an ancestor folder from matching on something
+   deeper in the tree, without depending on how the root is nested. */
+.nav-files-container
+  :is(.nav-file, .nav-folder):has(
+    > :is([data-path="_private"], [data-path="attachments"])
+  )::after {
+  content: "";
+  display: block;
+  border-bottom: 1px solid var(--text-normal);
+  width: 95%;
+  margin: 4px 0;
+  margin-left: auto;
+}

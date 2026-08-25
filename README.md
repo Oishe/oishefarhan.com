@@ -1,6 +1,8 @@
 # Knowledge Publishing System
 
 This repository is implementing the architecture in [Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md](./Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md).
+[AUTHORING.md](./AUTHORING.md) is the day-to-day writing reference: frontmatter, the `.md`/`.qmd`
+syntax differences, links and attachments, and the build commands.
 
 Phases 9 and 10 are in place: the public site is fully derived from the vault, and the Quarto bridge
 is packaged in `site/bridge/` rather than scattered through the vendored Quartz tree.

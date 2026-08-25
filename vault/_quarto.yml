@@ -3,10 +3,26 @@ project:
   output-dir: ../generated/quarto
   # Deliberately contains no positive targets. Publication prep generates the
   # publish:true allowlist in _quarto-publish.yml; `npm run render` activates it.
-  # Individual documents, including private experiments, remain explicitly
-  # renderable with `quarto preview path/to/document.qmd`.
+  # NOTE: keep it that way. Profile config is merged by concatenating arrays,
+  # so a positive glob here would join the generated publish allowlist and push
+  # unpublished drafts to the public site.
+  # A render list of pure negations resolves to zero inputs, and `quarto
+  # preview <file>` honours that list rather than bypassing it, so single-file
+  # preview fails with "No output created". `quarto render <file>` takes an
+  # explicit CLI target and works; for live reload use `quarto preview
+  # --profile publish` with no file argument.
   render:
     - "!**/_private/**"
+    # Templater templates are unrendered source: they carry `<% %>` expressions
+    # and an executable cell that must never run as part of a project render.
+    - "!templates/**"
+
+# Pin the kernel by name. Without this, Quarto falls back to discovering a
+# python-language kernelspec, and ~/Library/Jupyter/kernels holds stale VS Code
+# specs pointing at long-deleted virtualenvs -- those hardcode their own env
+# block (PATH, VIRTUAL_ENV), so they override QUARTO_PYTHON and fail with
+# "No such file or directory". "python3" resolves to .venv/share/jupyter.
+jupyter: python3
 
 execute:
   freeze: true

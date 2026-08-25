@@ -1,0 +1,243 @@
+{
+  "app:go-back": [
+    {
+      "key": "[",
+      "modifiers": [
+        "Mod"
+      ]
+    }
+  ],
+  "app:go-forward": [
+    {
+      "key": "]",
+      "modifiers": [
+        "Mod"
+      ]
+    }
+  ],
+  "app:toggle-left-sidebar": [
+    {
+      "key": "B",
+      "modifiers": [
+        "Mod"
+      ]
+    }
+  ],
+  "app:toggle-right-sidebar": [
+    {
+      "key": "B",
+      "modifiers": [
+        "Alt",
+        "Mod"
+      ]
+    }
+  ],
+  "editor:add-cursor-above": [
+    {
+      "key": "ArrowUp",
+      "modifiers": [
+        "Alt",
+        "Mod"
+      ]
+    }
+  ],
+  "editor:add-cursor-below": [
+    {
+      "key": "ArrowDown",
+      "modifiers": [
+        "Alt",
+        "Mod"
+      ]
+    }
+  ],
+  "editor:cycle-list-checklist": [
+    {
+      "key": ".",
+      "modifiers": [
+        "Mod"
+      ]
+    }
+  ],
+  "editor:delete-paragraph": [],
+  "editor:toggle-fold": [
+    {
+      "key": "Tab",
+      "modifiers": []
+    }
+  ],
+  "editor:fold-all": [],
+  "editor:unfold-all": [],
+  "editor:fold-more": [],
+  "editor:fold-less": [],
+  "editor:insert-link": [],
+  "editor:open-link-in-new-leaf": [
+    {
+      "key": "Enter",
+      "modifiers": [
+        "Alt",
+        "Shift"
+      ]
+    }
+  ],
+  "editor:toggle-bold": [],
+  "editor:toggle-checklist-status": [],
+  "editor:toggle-source": [
+    {
+      "key": "P",
+      "modifiers": [
+        "Mod",
+        "Shift"
+      ]
+    }
+  ],
+  "obsidian-editor-shortcuts:insertLineBelow": [],
+  "obsidian-editor-shortcuts:joinLines": [],
+  "obsidian-editor-shortcuts:selectAllOccurrences": [],
+  "obsidian-editor-shortcuts:selectLine": [],
+  "obsidian-editor-shortcuts:selectWordOrNextOccurrence": [],
+  "obsidian-outliner:fold": [],
+  "obsidian-outliner:unfold": [],
+  "obsidian-outliner:indent-list": [
+    {
+      "key": "ArrowRight",
+      "modifiers": [
+        "Alt"
+      ]
+    },
+    {
+      "key": "L",
+      "modifiers": [
+        "Alt"
+      ]
+    }
+  ],
+  "obsidian-outliner:move-list-item-down": [
+    {
+      "key": "ArrowDown",
+      "modifiers": [
+        "Alt"
+      ]
+    },
+    {
+      "key": "J",
+      "modifiers": [
+        "Alt"
+      ]
+    }
+  ],
+  "obsidian-outliner:move-list-item-up": [
+    {
+      "key": "ArrowUp",
+      "modifiers": [
+        "Alt"
+      ]
+    },
+    {
+      "key": "K",
+      "modifiers": [
+        "Alt"
+      ]
+    }
+  ],
+  "obsidian-outliner:outdent-list": [
+    {
+      "key": "ArrowLeft",
+      "modifiers": [
+        "Alt"
+      ]
+    },
+    {
+      "key": "H",
+      "modifiers": [
+        "Alt"
+      ]
+    }
+  ],
+  "omnisearch:show-modal": [
+    {
+      "key": "O",
+      "modifiers": [
+        "Mod",
+        "Shift"
+      ]
+    }
+  ],
+  "obsidian-editor-shortcuts:deleteLine": [],
+  "obsidian-editor-shortcuts:insertLineAbove": [],
+  "file-explorer:open": [
+    {
+      "modifiers": [
+        "Mod",
+        "Shift"
+      ],
+      "key": "E"
+    }
+  ],
+  "editor:toggle-italics": [],
+  "workspace:toggle-pin": [
+    {
+      "modifiers": [
+        "Mod"
+      ],
+      "key": "D"
+    }
+  ],
+  "app:toggle-ribbon": [
+    {
+      "modifiers": [
+        "Mod"
+      ],
+      "key": "R"
+    }
+  ],
+  "editor:toggle-blockquote": [
+    {
+      "modifiers": [
+        "Mod",
+        "Shift"
+      ],
+      "key": "."
+    }
+  ],
+  "editor:focus-top": [
+    {
+      "modifiers": [
+        "Ctrl"
+      ],
+      "key": "J"
+    }
+  ],
+  "editor:focus-bottom": [
+    {
+      "modifiers": [
+        "Ctrl"
+      ],
+      "key": "K"
+    }
+  ],
+  "editor:focus-left": [
+    {
+      "modifiers": [
+        "Ctrl"
+      ],
+      "key": "H"
+    }
+  ],
+  "editor:focus-right": [
+    {
+      "modifiers": [
+        "Ctrl"
+      ],
+      "key": "L"
+    }
+  ],
+  "obsidian-quiet-outline:quiet-outline": [
+    {
+      "modifiers": [
+        "Alt",
+        "Mod"
+      ],
+      "key": "O"
+    }
+  ]
+}

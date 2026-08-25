@@ -1,0 +1,17 @@
+---
+title: <% tp.file.title %>
+description:
+tags: []
+publish: false
+---
+
+# <% tp.file.title %>
+
+```{python}
+#| label: theme-setup
+#| include: false
+import knowledge_theme
+knowledge_theme.apply()
+```
+
+<% tp.file.cursor() %>
