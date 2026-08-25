@@ -17,4 +17,4 @@ The garden will grow iteratively around three kinds of evidence:
 - professional practices that show how I approach engineering work;
 - course and knowledge notes that show the foundations behind that work.
 
-Return to [[Home]].
+Return to [Home](index.md).

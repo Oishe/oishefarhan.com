@@ -18,7 +18,7 @@ Nothing in `generated/` or `site/public/` survives a rebuild. Fix problems in `v
 ---
 title: Convergence Diagnostics       # falls back to the filename
 description: One line.               # used for search and previews
-aliases: [MC Diagnostics]            # extra URLs and wikilink targets
+aliases: [MC Diagnostics]            # extra URLs the page also answers on
 tags: [research/computation]
 publish: true                        # WITHOUT THIS THE PAGE IS NOT PUBLISHED
 ---
@@ -53,7 +53,7 @@ knowledge/   evergreen, topic-oriented reference notes
 writing/     essays and longer-form synthesis
 ```
 
-Create a section when content needs it. Folders express a note's primary identity; wikilinks, tags,
+Create a section when content needs it. Folders express a note's primary identity; links, tags,
 and metadata express everything cross-cutting. Every substantial folder eventually gets an
 `index.md`. Ordered material uses numbered files or an `order` property; evergreen notes use stable
 descriptive names. Course labs stay with the course — work that becomes independently valuable gets
@@ -69,9 +69,9 @@ They are rendered by different engines, so Obsidian syntax does not survive equa
 
 | You write | `.md` (Quartz) | `.qmd` (Quarto) |
 |---|---|---|
-| `[[Note]]` | link | link |
-| `![[figure.svg]]` | rewritten to an image while staging | **build fails** — use `![](../attachments/figure.svg)` |
-| `![[figure.png]]`, `![[Note]]` | image / transclusion | **build fails** — use Markdown image syntax |
+| `[Note](note.md)` | link | link |
+| `![alt](../attachments/figure.svg)` | image | image |
+| `[[Note]]`, `![[figure.png]]` | **build fails** — use a Markdown link or image | **build fails** — same |
 | `%%comment%%` | stripped | **build fails** — would publish as visible text; use `<!-- -->` |
 | `> [!note]` | callout | **build fails** — use `::: {.callout-note}` |
 | `==highlight==` | highlight | **build fails** — use `<mark>` |
@@ -79,17 +79,37 @@ They are rendered by different engines, so Obsidian syntax does not survive equa
 | single newline | line break | joined into one paragraph |
 | `$math$` | KaTeX at build time | KaTeX in the browser |
 
-The five build failures are deliberate guardrails: publication prep rejects Obsidian-only syntax in
-a `.qmd` rather than letting Quarto publish it verbatim. Prose, wikilinks, footnotes, tables, and
-maths work in both.
+The build failures are deliberate guardrails: publication prep rejects Obsidian-only syntax in a
+`.qmd` rather than letting Quarto publish it verbatim, and rejects wikilink syntax anywhere, since
+nothing resolves it any more. Prose, links, footnotes, tables, and maths work in both.
 
 ## Links and attachments
 
-Wikilinks work everywhere, including inside `.qmd`. They resolve by title, alias, filename, or path.
-An ambiguous target — two pages claiming one title — fails the build rather than guessing.
+Link with Markdown syntax only, in both `.md` and `.qmd`, and always write **the path from the
+vault folder** with the real source extension:
 
-Attachments live in `vault/attachments/`, and only those a published page references get copied. Use
-`![[figure.png]]` and `![[figure.svg]]` freely in `.md`. In `.qmd`, always use Markdown image syntax.
+```markdown
+[Convergence](research/convergence.md)
+[Computational Features](examples/computational-features.qmd)
+![Convergence](attachments/convergence.svg)
+```
+
+Obsidian is set to `newLinkFormat: absolute`, so it writes this form for you, resolves it, follows
+it, and rewrites it when a note moves or is renamed. Publication prep rewrites `.qmd` targets to
+`.md` while staging, because every page reaches the site as `.md`.
+
+There is exactly one reading of a target and no fallbacks. That is the point of the vault-folder
+form: a relative or shortest path has two plausible readings, and a bare `index.md` inside a section
+means that section's index to Obsidian but the site root to Quartz. A target that only resolves
+relative to the document fails the build rather than being guessed at. Linking to an unpublished
+note also fails the build.
+
+Wikilinks (`[[Note]]`, `![[figure.png]]`) are not supported and fail the build. There is no
+transclusion; link to the source note instead.
+
+Attachments live in `vault/attachments/`, and only those a published page references get copied.
+Reference them with Markdown image syntax and the same vault-folder path:
+`![alt](attachments/figure.svg)`.
 
 ## Building
 

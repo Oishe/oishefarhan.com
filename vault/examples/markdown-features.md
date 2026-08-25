@@ -12,7 +12,7 @@ publish: true
 # Markdown and Obsidian Features
 
 This temporary page checks the Markdown side of the publishing boundary. Its aliases exercise
-alternate wikilink targets, while [[Computational Features]] supplies a backlink across renderers.
+alternate URLs, while [Computational Features](examples/computational-features.qmd) supplies a backlink across renderers.
 
 ## Callouts, tasks, and highlighting
 
@@ -40,20 +40,17 @@ also renders here.[^note]
 
 [^note]: This footnote exists only to exercise the Markdown renderer.
 
-## Transclusion
+## Cross-note reference
 
-The following content is embedded from another note:
-
-![[shared-definition]]
-
-The source remains available as [[Shared Definition]].
+Definitions live in their own note and are linked rather than embedded:
+[Shared Definition](examples/shared-definition.md).
 
 ## Attachment
 
 Publication prep copies an attachment only when published content references it.
 
-![Monte Carlo estimate converging](../attachments/convergence.svg)
+![Monte Carlo estimate converging](attachments/convergence.svg)
 
-The same file is available as an [ordinary Markdown link](../attachments/convergence.svg).
+The same file is available as an [ordinary Markdown link](attachments/convergence.svg).
 
-Return to [[Publishing Examples]].
+Return to [Publishing Examples](examples/index.md).

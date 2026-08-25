@@ -7,8 +7,8 @@
   "alwaysUpdateLinks": true,
   "showUnsupportedFiles": true,
   "attachmentFolderPath": "attachments",
-  "newLinkFormat": "shortest",
-  "useMarkdownLinks": false,
+  "newLinkFormat": "absolute",
+  "useMarkdownLinks": true,
   "userIgnoreFilters": [
     ".venv/",
     ".quarto/",

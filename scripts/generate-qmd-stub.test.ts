@@ -19,8 +19,8 @@ publish: true
   assert.match(stub, /# Example/)
 })
 
-test("removes executable cells but keeps prose, wikilinks, and ordinary code", () => {
-  const source = `Before [[Target]].
+test("removes executable cells but keeps prose, links, and ordinary code", () => {
+  const source = `Before [Target](target.md).
 
 \`\`\`{python}
 value = 42
@@ -34,7 +34,7 @@ ordinary code
 `
   const stub = stripExecutableCells(source)
 
-  assert.match(stub, /Before \[\[Target\]\]\./)
+  assert.match(stub, /Before \[Target\]\(target\.md\)\./)
   assert.doesNotMatch(stub, /value = 42/)
   assert.match(stub, /ordinary code/)
   assert.match(stub, /## After/)

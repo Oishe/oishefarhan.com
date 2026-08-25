@@ -16,4 +16,4 @@
 export { QuartoPage } from "./quartoPage"
 export { QuartoArtifacts } from "./quartoArtifacts"
 export { extractQuartoPage } from "./quartoPageHtml"
-export type { QuartoWikilinkResolution, QuartoWikilinkResolver } from "./quartoPageHtml"
+export type { QuartoLinkResolution, QuartoLinkResolver } from "./quartoPageHtml"

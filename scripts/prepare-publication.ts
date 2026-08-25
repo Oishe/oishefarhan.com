@@ -218,7 +218,6 @@ export type Reference = {
   raw: string
   target: string
   embed: boolean
-  kind: "wikilink" | "markdown"
 }
 
 /** Blanks out code so that link syntax inside examples is never validated. */
@@ -254,23 +253,74 @@ export function extractReferences(body: string): Reference[] {
   const source = stripCode(body)
   const references: Reference[] = []
 
-  for (const match of source.matchAll(/(!?)\[\[([^\[\]]+?)\]\]/g)) {
-    const target = match[2].split("|")[0].split("#")[0].split("^")[0].trim()
-    if (target) {
-      references.push({ raw: match[0], target, embed: match[1] === "!", kind: "wikilink" })
-    }
-  }
-
   for (const match of source.matchAll(
     /(!?)\[[^\]\n]*\]\(\s*<?([^)>\s]+)>?(?:\s+"[^"\n]*")?\s*\)/g,
   )) {
     const target = decodeURI(match[2].split("#")[0])
     if (target && !externalLink.test(target)) {
-      references.push({ raw: match[0], target, embed: match[1] === "!", kind: "markdown" })
+      references.push({ raw: match[0], target, embed: match[1] === "!" })
     }
   }
 
   return references
+}
+
+// ---------------------------------------------------------------------------
+// Obsidian syntax that Quarto does not understand
+// ---------------------------------------------------------------------------
+
+/**
+ * Quarto renders Pandoc Markdown, not Obsidian Markdown, so a handful of
+ * Obsidian constructs reach the page verbatim instead of being interpreted.
+ * The comment case is the dangerous one: `%%...%%` is a note-to-self in
+ * Obsidian and publishes as visible body text from a .qmd.
+ */
+const quartoUnsupported: { pattern: RegExp; message: string }[] = [
+  {
+    pattern: /%%[\s\S]*?%%/,
+    message:
+      "Obsidian comment syntax (%%...%%) publishes as visible text from a .qmd; use an HTML comment instead",
+  },
+  {
+    pattern: /^\s*>\s*\[!\w+\]/m,
+    message:
+      "Obsidian callout syntax renders as a plain blockquote from a .qmd; use a Quarto callout, e.g. ::: {.callout-note}",
+  },
+  {
+    pattern: /==(?![\s=])[^=\n]+(?<![\s=])==/,
+    message: "Obsidian highlights (==text==) render literally from a .qmd; use <mark>text</mark>",
+  },
+]
+
+/** Reports Obsidian-only syntax in a published Quarto document. */
+export function checkQuartoSyntax(document: SourceDocument): Problem[] {
+  if (document.sourceType !== "quarto") return []
+  const body = stripCode(document.body)
+  return quartoUnsupported
+    .filter(({ pattern }) => pattern.test(body))
+    .map(({ message }) => ({ file: document.repoPath, message }))
+}
+
+/**
+ * Reports leftover wikilinks anywhere in the vault.
+ *
+ * This system links with Markdown syntax only. Nothing resolves `[[...]]` any
+ * more -- not Quarto, not Quartz -- so a surviving one publishes as literal
+ * text (or, for `![[...]]`, as a silently missing embed) rather than failing
+ * loudly on its own.
+ */
+export function checkWikilinks(document: SourceDocument): Problem[] {
+  const body = stripCode(document.body)
+  const match = body.match(/!?\[\[[^\[\]]+?\]\]/)
+  if (!match) return []
+  return [
+    {
+      file: document.repoPath,
+      message:
+        `wikilink syntax is no longer supported (${match[0]}); ` +
+        "use a Markdown link, e.g. [Title](../section/note.md)",
+    },
+  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -279,42 +329,17 @@ export function extractReferences(body: string): Reference[] {
 
 type DocumentIndex = {
   bySlug: Map<string, SourceDocument>
-  byName: Map<string, SourceDocument[]>
-  byBasename: Map<string, SourceDocument[]>
   attachments: Set<string>
-  attachmentsByBasename: Map<string, string[]>
-}
-
-function pushInto<T>(map: Map<string, T[]>, key: string, value: T): void {
-  const existing = map.get(key)
-  if (!existing) {
-    map.set(key, [value])
-  } else if (!existing.includes(value)) {
-    // A title repeated in the same note's aliases is not an ambiguity.
-    existing.push(value)
-  }
 }
 
 function buildIndex(documents: SourceDocument[], attachments: string[]): DocumentIndex {
   const index: DocumentIndex = {
     bySlug: new Map(),
-    byName: new Map(),
-    byBasename: new Map(),
     attachments: new Set(attachments),
-    attachmentsByBasename: new Map(),
   }
 
   for (const document of documents) {
     index.bySlug.set(document.slug.toLowerCase(), document)
-    pushInto(index.byName, document.title.toLowerCase(), document)
-    for (const alias of document.aliases) {
-      pushInto(index.byName, alias.toLowerCase(), document)
-    }
-    pushInto(index.byBasename, path.posix.basename(document.slug).toLowerCase(), document)
-  }
-
-  for (const attachment of attachments) {
-    pushInto(index.attachmentsByBasename, path.posix.basename(attachment).toLowerCase(), attachment)
   }
 
   return index
@@ -329,86 +354,84 @@ function normalizeTarget(target: string): string {
   return target.replace(/^\.\//, "").replace(/^\//, "")
 }
 
-function resolveAttachment(
-  candidate: string,
-  fromDirectory: string,
-  index: DocumentIndex,
-): Resolution | undefined {
-  const candidates = [
-    candidate,
-    path.posix.normalize(path.posix.join(fromDirectory, candidate)),
-  ]
-  for (const option of candidates) {
-    if (index.attachments.has(option)) {
-      return { kind: "attachment", path: option }
-    }
-  }
-
-  const byBasename = index.attachmentsByBasename.get(path.posix.basename(candidate).toLowerCase())
-  if (byBasename?.length === 1) {
-    return { kind: "attachment", path: byBasename[0] }
-  }
-  if (byBasename && byBasename.length > 1) {
-    return { kind: "unresolved", reason: `ambiguous attachment name (${byBasename.join(", ")})` }
-  }
-  return undefined
+function resolveAttachment(candidate: string, index: DocumentIndex): Resolution | undefined {
+  return index.attachments.has(candidate) ? { kind: "attachment", path: candidate } : undefined
 }
 
 /**
- * Resolution precedence matches the Quartz `QuartoPage` wikilink adapter:
- * canonical path, then title/alias, then basename.
+ * Resolves a link target, which is always a path from the vault folder.
+ *
+ * There is deliberately one interpretation and no fallbacks. Obsidian is set to
+ * `newLinkFormat: absolute` and Quartz to `markdownLinkResolution: absolute`,
+ * so author, validator, and renderer all read a target the same way. The
+ * alternatives are what make link resolution subtle: a relative or shortest
+ * target has two plausible readings, and a bare `index.md` in a section means
+ * that section's index to Obsidian but the site root to Quartz. Requiring the
+ * unambiguous form removes the question instead of answering it three times.
  */
-export function resolveReference(
-  reference: Reference,
-  from: SourceDocument,
-  index: DocumentIndex,
-): Resolution {
-  const fromDirectory = path.posix.dirname(from.sourcePath)
+export function resolveReference(reference: Reference, index: DocumentIndex): Resolution {
   const target = normalizeTarget(reference.target)
   const withoutExtension = target.replace(/\.(md|qmd)$/, "")
   const looksLikeFile = /\.[a-z0-9]+$/i.test(target) && !/\.(md|qmd)$/.test(target)
 
   if (looksLikeFile) {
     return (
-      resolveAttachment(target, fromDirectory, index) ?? {
+      resolveAttachment(target, index) ?? {
         kind: "unresolved",
-        reason: "no such attachment in the vault",
+        reason: "no such attachment in the vault (link paths are from the vault folder)",
       }
     )
   }
 
-  const bySlug =
-    index.bySlug.get(withoutExtension.toLowerCase()) ??
-    index.bySlug.get(path.posix.normalize(path.posix.join(fromDirectory, withoutExtension)).toLowerCase())
-  if (bySlug) {
-    return { kind: "document", document: bySlug }
+  const document = index.bySlug.get(withoutExtension.toLowerCase())
+  if (document) {
+    return { kind: "document", document }
   }
 
-  if (reference.kind === "wikilink") {
-    const byName = index.byName.get(target.toLowerCase())
-    if (byName?.length === 1) {
-      return { kind: "document", document: byName[0] }
-    }
-    if (byName && byName.length > 1) {
-      return {
-        kind: "unresolved",
-        reason: `ambiguous title or alias (${byName.map((entry) => entry.sourcePath).join(", ")})`,
-      }
-    }
-
-    const byBasename = index.byBasename.get(path.posix.basename(withoutExtension).toLowerCase())
-    if (byBasename?.length === 1) {
-      return { kind: "document", document: byBasename[0] }
-    }
-    if (byBasename && byBasename.length > 1) {
-      return {
-        kind: "unresolved",
-        reason: `ambiguous note name (${byBasename.map((entry) => entry.sourcePath).join(", ")})`,
-      }
-    }
+  return {
+    kind: "unresolved",
+    reason: "no published note or attachment matches (link paths are from the vault folder)",
   }
+}
 
-  return { kind: "unresolved", reason: "no published note, alias, or attachment matches" }
+/**
+ * Rewrites every internal link target to its resolved, vault-root-relative path.
+ *
+ * Prep already decides where each link goes in order to validate it. Writing
+ * that decision into the staged file is what keeps prep and the renderer from
+ * disagreeing, and it closes two real traps:
+ *
+ *   - Quartz slugification strips `.md` and `.html` but no other extension, so
+ *     a surviving `.qmd` target would publish as a broken link.
+ *   - Quartz collapses a bare `index.md` to the site root regardless of the
+ *     directory it was written in, so a link to a sibling section index would
+ *     silently leave the section. The explicit `section/index.md` form that
+ *     resolution produces has no such ambiguity.
+ *
+ * Authors keep writing whatever Obsidian writes; this normalises it.
+ */
+export function rewriteLinkTargets(raw: string, index: DocumentIndex): string {
+  return raw.replace(
+    /(!?\[[^\]\n]*\]\(\s*<?)([^)>\s]+)(>?(?:\s+"[^"\n]*")?\s*\))/g,
+    (match, prefix: string, target: string, suffix: string) => {
+      const separator = target.indexOf("#")
+      const pathPart = separator === -1 ? target : target.slice(0, separator)
+      const anchor = separator === -1 ? "" : target.slice(separator)
+      if (!pathPart || externalLink.test(pathPart)) return match
+
+      const resolution = resolveReference(
+        { raw: match, target: decodeURI(pathPart), embed: match.startsWith("!") },
+        index,
+      )
+      if (resolution.kind === "document") {
+        return `${prefix}${resolution.document.slug}.md${anchor}${suffix}`
+      }
+      if (resolution.kind === "attachment") {
+        return `${prefix}${resolution.path}${anchor}${suffix}`
+      }
+      return match
+    },
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -625,8 +648,10 @@ export async function preparePublication(
   const referencedAttachments = new Set<string>()
 
   for (const document of published) {
+    problems.push(...checkQuartoSyntax(document))
+    problems.push(...checkWikilinks(document))
     for (const reference of extractReferences(document.body)) {
-      const resolution = resolveReference(reference, document, publishedIndex)
+      const resolution = resolveReference(reference, publishedIndex)
       if (resolution.kind === "attachment") {
         referencedAttachments.add(resolution.path)
         continue
@@ -637,7 +662,7 @@ export async function preparePublication(
 
       // Distinguish "broken" from "private": the second is a leak in the
       // making, and the message has to say so.
-      const private_ = resolveReference(reference, document, allIndex)
+      const private_ = resolveReference(reference, allIndex)
       if (private_.kind === "document" && !private_.document.publish) {
         problems.push({
           file: document.repoPath,
@@ -678,8 +703,12 @@ export async function preparePublication(
     const source = path.join(options.vaultDir, document.sourcePath)
     const target = path.join(options.contentDir, `${document.slug}.md`)
     await mkdir(path.dirname(target), { recursive: true })
-    const contents =
-      document.sourceType === "quarto" ? generateQmdStub(document.raw, document.repoPath) : document.raw
+    const contents = rewriteLinkTargets(
+      document.sourceType === "quarto"
+        ? generateQmdStub(document.raw, document.repoPath)
+        : document.raw,
+      publishedIndex,
+    )
     await writeFile(target, contents, "utf8")
     await carryTimestamps(source, target)
   }
@@ -735,8 +764,15 @@ async function main(): Promise<void> {
   // before Quarto and clears its output tree; --require-quarto runs after and
   // only verifies, so it must leave that tree alone.
   const requireQuarto = process.argv.includes("--require-quarto")
+  // --keep-quarto stages without clearing the rendered tree, so a prose-only
+  // edit can reach the site with `prepare-publication --keep-quarto && site`
+  // instead of a full Quarto re-render.
+  const keepQuarto = process.argv.includes("--keep-quarto")
   try {
-    const result = await preparePublication({ requireQuarto, clearQuartoOutput: !requireQuarto })
+    const result = await preparePublication({
+      requireQuarto,
+      clearQuartoOutput: !requireQuarto && !keepQuarto,
+    })
     const stubs = result.published.filter((document) => document.sourceType === "quarto").length
     console.log(
       `Staged ${result.published.length} of ${result.documents.length} documents ` +

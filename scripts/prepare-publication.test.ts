@@ -67,7 +67,7 @@ async function messagesFrom(run: () => Promise<unknown>): Promise<string[]> {
 
 test("stages published Markdown, stubs published Quarto, and skips the rest", async () => {
   const vault = await withVault({
-    "notes/public.md": note("Public", "publish: true\n", "Links to [[Research Note]]."),
+    "notes/public.md": note("Public", "publish: true\n", "Links to [Research Note](research/study.qmd)."),
     "notes/private.md": note("Private", "publish: false\n", "Secret."),
     "notes/implicit.md": note("Implicit", "", "No publish key at all."),
     "research/study.qmd": note(
@@ -116,8 +116,12 @@ test("ignores nested _private trees regardless of frontmatter", async () => {
 
 test("copies only attachments that published content references", async () => {
   const vault = await withVault({
-    "index.md": note("Index", "publish: true\n", "![[diagram.svg]] and [pdf](attachments/paper.pdf)"),
-    "draft.md": note("Draft", "publish: false\n", "![[unused.svg]]"),
+    "index.md": note(
+      "Index",
+      "publish: true\n",
+      "![diagram](attachments/diagram.svg) and [pdf](attachments/paper.pdf)",
+    ),
+    "draft.md": note("Draft", "publish: false\n", "![unused](attachments/unused.svg)"),
     "attachments/diagram.svg": "<svg/>",
     "attachments/paper.pdf": "%PDF",
     "attachments/unused.svg": "<svg/>",
@@ -148,24 +152,30 @@ test("rebuilds the staged tree instead of patching it", async () => {
 
 test("fails when published content links to an unpublished note", async () => {
   const vault = await withVault({
-    "index.md": note("Index", "publish: true\n", "See [[Hidden]]."),
+    "index.md": note("Index", "publish: true\n", "See [Hidden](hidden.md)."),
     "hidden.md": note("Hidden", "publish: false\n", "Not public."),
   })
 
   const messages = await messagesFrom(vault.run)
 
-  assert.deepEqual(messages, [`[[Hidden]] points at unpublished ${vault.vaultDir}/hidden.md`])
+  assert.deepEqual(messages, [
+    `[Hidden](hidden.md) points at unpublished ${vault.vaultDir}/hidden.md`,
+  ])
 })
 
 test("fails on links and embeds that resolve to nothing", async () => {
   const vault = await withVault({
-    "index.md": note("Index", "publish: true\n", "[[Nowhere]] and ![[missing.png]]"),
+    "index.md": note(
+      "Index",
+      "publish: true\n",
+      "[Nowhere](nowhere.md) and ![gone](missing.png)",
+    ),
   })
 
   const messages = await messagesFrom(vault.run)
 
   assert.equal(messages.length, 2)
-  assert.match(messages[0], /\[\[Nowhere\]\]/)
+  assert.match(messages[0], /no published note or attachment matches/)
   assert.match(messages[1], /no such attachment/)
 })
 
@@ -274,22 +284,22 @@ test("rejects frozen output belonging to an unpublished document", async () => {
 })
 
 test("ignores link syntax inside code", () => {
-  const body = "Real [[Target]].\n\n```text\n[[Not A Link]]\n```\n\nInline `[[Also Not]]`.\n"
+  const body =
+    "Real [t](target.md).\n\n```text\n[n](not-a-link.md)\n```\n\nInline `[a](also-not.md)`.\n"
 
   assert.deepEqual(
     extractReferences(body).map((reference) => reference.target),
-    ["Target"],
+    ["target.md"],
   )
-  assert.doesNotMatch(stripCode(body), /Not A Link/)
+  assert.doesNotMatch(stripCode(body), /not-a-link/)
 })
 
-test("reads aliases, headings, and embeds out of wikilink syntax", () => {
-  const references = extractReferences("[[Note#Heading|shown]] ![[diagram.svg]] [[a^block]]")
+test("reads anchors and embeds out of Markdown link syntax", () => {
+  const references = extractReferences("[shown](note.md#heading) ![alt](diagram.svg)")
 
   assert.deepEqual(references, [
-    { raw: "[[Note#Heading|shown]]", target: "Note", embed: false, kind: "wikilink" },
-    { raw: "![[diagram.svg]]", target: "diagram.svg", embed: true, kind: "wikilink" },
-    { raw: "[[a^block]]", target: "a", embed: false, kind: "wikilink" },
+    { raw: "[shown](note.md#heading)", target: "note.md", embed: false },
+    { raw: "![alt](diagram.svg)", target: "diagram.svg", embed: true },
   ])
 })
 
@@ -300,4 +310,168 @@ test("leaves external and anchor-only links alone", () => {
     references.map((reference) => reference.target),
     ["notes/a.md"],
   )
+})
+
+test("rewrites .qmd link targets to .md while staging", async () => {
+  const vault = await withVault({
+    "notes/prose.md": note(
+      "Prose",
+      "publish: true\n",
+      "See [Computed](notes/computed.qmd) and [#h](notes/computed.qmd#h).",
+    ),
+    "notes/computed.qmd": note("Computed", "publish: true\n", "Body."),
+  })
+
+  await vault.run()
+
+  // Quartz slugification strips .md and .html but leaves .qmd in place, so an
+  // unrewritten target would publish as a broken link.
+  const staged = await readFile(path.join(vault.contentDir, "notes/prose.md"), "utf8")
+  assert.match(staged, /\[Computed\]\(notes\/computed\.md\)/)
+  assert.match(staged, /\(notes\/computed\.md#h\)/)
+  assert.doesNotMatch(staged, /\.qmd/)
+})
+
+test("rewrites .qmd targets inside a staged Quarto stub too", async () => {
+  const vault = await withVault({
+    "notes/computed.qmd": note("Computed", "publish: true\n", "See [Other](notes/other.qmd)."),
+    "notes/other.qmd": note("Other", "publish: true\n", "Body."),
+  })
+
+  await vault.run()
+
+  const staged = await readFile(path.join(vault.contentDir, "notes/computed.md"), "utf8")
+  assert.match(staged, /\[Other\]\(notes\/other\.md\)/)
+})
+
+test("keeps a vault-folder index link pointing at that section", async () => {
+  const vault = await withVault({
+    // A root index.md must exist, or the ambiguity this guards against cannot arise.
+    "index.md": note("Home", "publish: true\n", "Root."),
+    "examples/index.md": note("Examples", "publish: true\n", "Section index."),
+    "examples/one.md": note("One", "publish: true\n", "Back to [Examples](examples/index.md)."),
+  })
+
+  await vault.run()
+
+  const staged = await readFile(path.join(vault.contentDir, "examples/one.md"), "utf8")
+  assert.match(staged, /\[Examples\]\(examples\/index\.md\)/)
+})
+
+test("reads a bare index.md as the vault root, from any directory", async () => {
+  const vault = await withVault({
+    "index.md": note("Home", "publish: true\n", "Root."),
+    "examples/index.md": note("Examples", "publish: true\n", "Section index."),
+    "examples/one.md": note("One", "publish: true\n", "Up to [Home](index.md)."),
+  })
+
+  await vault.run()
+
+  // Under vault-folder paths this has one reading, and Obsidian, prep, and
+  // Quartz all share it. Under relative or shortest paths it had two.
+  const staged = await readFile(path.join(vault.contentDir, "examples/one.md"), "utf8")
+  assert.match(staged, /\[Home\]\(index\.md\)/)
+})
+
+test("rejects a link target that only resolves relative to the document", async () => {
+  const vault = await withVault({
+    "examples/index.md": note("Examples", "publish: true\n", "Section index."),
+    // Vault-folder paths are the contract; "beside me" is not a reading.
+    "examples/one.md": note("One", "publish: true\n", "See [Two](two.md)."),
+    "examples/two.md": note("Two", "publish: true\n", "Body."),
+  })
+
+  const messages = await messagesFrom(vault.run)
+
+  assert.equal(messages.length, 1)
+  assert.match(messages[0], /link paths are from the vault folder/)
+})
+
+test("keeps an attachment link at its vault-folder path", async () => {
+  const vault = await withVault({
+    "notes/figure.md": note("Figure", "publish: true\n", "![d](attachments/diagram.svg)"),
+    "attachments/diagram.svg": "<svg/>",
+  })
+
+  await vault.run()
+
+  const staged = await readFile(path.join(vault.contentDir, "notes/figure.md"), "utf8")
+  assert.match(staged, /!\[d\]\(attachments\/diagram\.svg\)/)
+})
+
+test("rejects a leftover wikilink anywhere in the vault", async () => {
+  const vault = await withVault({
+    "notes/prose.md": note("Prose", "publish: true\n", "See [[Other Note]]."),
+    "notes/other.md": note("Other Note", "publish: true\n", "Body."),
+  })
+
+  await assert.rejects(vault.run(), (error: unknown) => {
+    assert.ok(error instanceof ValidationFailure)
+    assert.match(String(error.message), /wikilink syntax is no longer supported/)
+    return true
+  })
+})
+
+test("rejects Obsidian syntax that Quarto would publish verbatim", async () => {
+  const vault = await withVault({
+    "notes/computed.qmd": note(
+      "Computed",
+      "publish: true\n",
+      [
+        "%%a note to self%%",
+        "> [!note] Callout",
+        "> Body.",
+        "Some ==highlighted== text.",
+      ].join("\n\n"),
+    ),
+  })
+
+  const messages = await messagesFrom(() => vault.run())
+
+  assert.equal(messages.length, 3)
+  assert.match(messages.join("\n"), /comment syntax/)
+  assert.match(messages.join("\n"), /callout/)
+  assert.match(messages.join("\n"), /highlights/)
+})
+
+test("allows that same Obsidian syntax in Markdown, where Quartz understands it", async () => {
+  const vault = await withVault({
+    "notes/prose.md": note(
+      "Prose",
+      "publish: true\n",
+      "%%hidden%%\n\n> [!note] Callout\n> Body.\n\nSome ==highlighted== text.",
+    ),
+  })
+
+  const result = await vault.run()
+
+  assert.equal(result.published.length, 1)
+})
+
+test("does not mistake code fences or comparisons for Obsidian syntax", async () => {
+  const vault = await withVault({
+    "notes/computed.qmd": note(
+      "Computed",
+      "publish: true\n",
+      "Prose with a == b comparison.\n\n```python\n# %%cell%% and ==x== stay put\n```",
+    ),
+  })
+
+  const result = await vault.run()
+
+  assert.equal(result.published.length, 1)
+})
+
+test("--keep-quarto stages without discarding rendered artifacts", async () => {
+  const vault = await withVault({
+    "notes/computed.qmd": note("Computed", "publish: true\n", "Body."),
+  })
+  await vault.run({ requireQuarto: false, clearQuartoOutput: false })
+  const quartoDir = path.join(vault.vaultDir, "..", "generated/quarto/notes")
+  await mkdir(quartoDir, { recursive: true })
+  await writeFile(path.join(quartoDir, "computed.html"), "<html></html>", "utf8")
+
+  await vault.run({ clearQuartoOutput: false })
+
+  assert.deepEqual(await readdir(quartoDir), ["computed.html"])
 })

@@ -13,7 +13,7 @@ execute:
 ---
 
 This temporary page checks the computational side of the publishing boundary. It combines the
-distinct behaviours previously spread across several research fixtures. See [[Markdown Features]]
+distinct behaviours previously spread across several research fixtures. See [Markdown Features](examples/markdown-features.md)
 for the Quartz-rendered half of the system.
 
 ```{python}
@@ -75,6 +75,6 @@ figure = px.line(
 figure
 ```
 
-Browser-side reactive components continue in [[Interactive Features]].
+Browser-side reactive components continue in [Interactive Features](examples/interactive-features.qmd).
 
-Return to [[Publishing Examples]].
+Return to [Publishing Examples](examples/index.md).

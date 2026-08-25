@@ -1,6 +1,6 @@
 ---
 title: Shared Definition
-description: Transclusion source for the temporary Markdown feature page.
+description: A shared definition linked from the temporary Markdown feature page.
 tags:
   - examples/markdown
 publish: true
@@ -10,4 +10,4 @@ publish: true
 
 > A knowledge graph represents entities as nodes and relationships as edges.
 
-This paragraph should appear both here and inside [[Markdown Features]].
+This definition is referenced from [Markdown Features](examples/markdown-features.md).

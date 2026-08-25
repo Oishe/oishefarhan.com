@@ -3,16 +3,21 @@ import path from "node:path"
 import { Root } from "hast"
 import { QuartzComponent, QuartzComponentConstructor } from "../quartz/components/types"
 import { QuartzPageTypePlugin } from "../quartz/plugins/types"
-import { FilePath, FullSlug, resolveRelative } from "../quartz/util/path"
+import { FilePath, FullSlug } from "../quartz/util/path"
 import { htmlToJsx } from "../quartz/util/jsx"
 import style from "./styles/quartoPage.scss"
 // @ts-ignore -- resolved to a string by the inline-script loader at build time
 import themeScript from "./scripts/quartoTheme.inline"
-import { slugifyPath } from "@quartz-community/utils"
+import {
+  simplifySlug,
+  slugifyPath,
+  stripSlashes,
+  transformLink,
+} from "@quartz-community/utils"
 import {
   elementAttribute,
   extractQuartoPage,
-  QuartoWikilinkResolver,
+  QuartoLinkResolver,
   visitElements,
 } from "./quartoPageHtml"
 
@@ -50,42 +55,29 @@ export const QuartoPage: QuartzPageTypePlugin<QuartoPageOptions> = (options) => 
       if (!fs.existsSync(source)) {
         throw new Error(`Quarto artifact does not exist for ${slug}: ${source}`)
       }
-      const targets = new Map<string, { slug: FullSlug | null; priority: number }>()
-      const normalize = (value: string) => slugifyPath(value.trim().replace(/\.md$/i, ""))
-      const register = (value: unknown, target: FullSlug, priority: number) => {
-        if (typeof value !== "string" || value.trim() === "") return
-        const key = normalize(value)
-        const previous = targets.get(key)
-        if (!previous || priority > previous.priority) {
-          targets.set(key, { slug: target, priority })
-        } else if (priority === previous.priority && previous.slug !== target) {
-          targets.set(key, { slug: null, priority })
-        }
-      }
-
-      for (const file of allFiles) {
-        if (!file.slug) continue
-        register(file.slug, file.slug, 3)
-        register(file.slug.split("/").at(-1), file.slug, 1)
-        register(file.frontmatter?.title, file.slug, 2)
-        const aliases = file.frontmatter?.aliases
-        if (Array.isArray(aliases)) aliases.forEach((alias) => register(alias, file.slug!, 2))
-      }
-
-      const resolveWikilink: QuartoWikilinkResolver = (target) => {
-        const key = normalize(target)
-        const resolution = targets.get(key)
-        if (resolution?.slug === null) return undefined
-        const targetSlug = resolution?.slug ?? (key as FullSlug)
-        return {
-          href: resolveRelative(slug, targetSlug),
-          slug: targetSlug,
-          broken: resolution === undefined,
-        }
+      // Link targets are paths from the vault folder, which is also how Quartz
+      // is configured to read them (markdownLinkResolution: absolute), so the
+      // bridge resolves them with Quartz's own transformLink and nothing else.
+      // The Quartz link crawler never sees this fragment -- it runs over the
+      // .qmd stub, not the rendered artifact -- which is why resolution has to
+      // happen here at all. Quartz slugification strips `.md` but not `.qmd`,
+      // so a Quarto target is normalised to the extension its staged
+      // counterpart already has.
+      const allSlugs = allFiles
+        .map((file) => file.slug)
+        .filter((value): value is FullSlug => Boolean(value))
+      const resolveLink: QuartoLinkResolver = (target) => {
+        const normalized = target.replace(/\.qmd$/i, ".md")
+        const href = transformLink(slug, normalized, { strategy: "absolute", allSlugs })
+        const base = `https://quarto.invalid/${stripSlashes(simplifySlug(slug), true)}`
+        let canonical = new URL(href, base).pathname
+        if (canonical.endsWith("/")) canonical += "index"
+        const full = decodeURIComponent(stripSlashes(canonical, true)) as FullSlug
+        return { href, slug: full, broken: !allSlugs.includes(full) }
       }
       tree = extractQuartoPage(
         fs.readFileSync(source, "utf8"),
-        resolveWikilink,
+        resolveLink,
         options.preloadScripts ?? [],
       )
       cache.set(slug, tree)

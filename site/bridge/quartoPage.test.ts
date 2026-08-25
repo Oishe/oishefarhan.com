@@ -69,21 +69,49 @@ test("rejects Bootstrap resources that could restyle the Quartz shell", () => {
   )
 })
 
-test("turns Quarto's literal wikilinks into resolved Quartz links", () => {
+test("resolves source-file link hrefs Quarto emitted verbatim", () => {
   const result = extractQuartoPage(
     `<!doctype html><html><head></head><body>
-      <p>See [[Probability]], [[Statistics#Mean|the mean]], and <code>[[Example]]</code>.</p>
+      <p>
+        <a href="probability.md">Probability</a>,
+        <a href="statistics.qmd#mean">the mean</a>,
+        <a href="../attachments/figure.svg">figure</a>,
+        <a href="https://example.com/a.md">external</a>,
+        <a href="#section">anchor</a>.
+      </p>
     </body></html>`,
-    (target) => ({ href: `../concepts/${target.toLowerCase()}`, slug: `concepts/${target}` }),
+    (target) => ({
+      href: `../concepts/${target.replace(/\.(md|qmd)$/, "").toLowerCase()}`,
+      slug: `concepts/${target}`,
+    }),
   )
 
   const links = elements(result).filter((element) => element.tagName === "a")
-  assert.equal(links.length, 2)
-  assert.equal(links[0].properties?.href, "../concepts/probability")
+  const href = (index: number) => links[index].properties?.href
+
+  // Source-file links are resolved to site URLs...
+  assert.equal(href(0), "../concepts/probability")
   assert.deepEqual(links[0].properties?.className, ["internal", "internal-link"])
   assert.equal(links[0].properties?.dataRouterIgnore, "")
-  assert.equal(links[1].properties?.href, "../concepts/statistics#mean")
-  assert.deepEqual(links[1].children, [{ type: "text", value: "the mean" }])
+  assert.equal(href(1), "../concepts/statistics#mean")
+
+  // ...while attachments, external URLs, and bare anchors are left alone.
+  assert.equal(href(2), "../attachments/figure.svg")
+  assert.equal(href(3), "https://example.com/a.md")
+  assert.equal(href(4), "#section")
+})
+
+test("leaves link text alone, unlike the wikilink adapter it replaced", () => {
+  const result = extractQuartoPage(
+    `<!doctype html><html><head></head><body>
+      <p><a href="statistics.qmd#mean">the mean</a></p>
+    </body></html>`,
+    (target) => ({ href: `../${target}`, slug: target }),
+  )
+
+  const link = elements(result).find((element) => element.tagName === "a")!
+  assert.equal(link.children.length, 1)
+  assert.equal(link.children[0].type === "text" && link.children[0].value, "the mean")
 })
 
 test("drops the RequireJS/AMD shim that breaks Quartz library loading", () => {

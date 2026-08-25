@@ -13,8 +13,10 @@ grep -Fq 'quartoStub: true' "$stub_md"
 grep -Fq 'sourcePath: "vault/examples/computational-features.qmd"' "$stub_md"
 grep -Fq '## Python output' "$stub_md"
 grep -Fq '## Static Matplotlib figure' "$stub_md"
-grep -Fq '[[Markdown Features]]' "$stub_md"
-grep -Fq '[[Interactive Features]]' "$stub_md"
+# Prose links survive stub generation, rewritten to the resolved target that
+# Quartz slugification understands.
+grep -Fq '[Markdown Features](examples/markdown-features.md)' "$stub_md"
+grep -Fq '[Interactive Features](examples/interactive-features.md)' "$stub_md"
 
 if grep -Fq 'import pandas' "$stub_md" || grep -Fq 'sample_sizes = ' "$stub_md"; then
   printf '%s\n' 'Executable code leaked into the generated stub.' >&2

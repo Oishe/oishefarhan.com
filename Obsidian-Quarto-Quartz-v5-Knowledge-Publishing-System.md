@@ -16,7 +16,7 @@
 
 The goal is to create a durable personal knowledge and publishing system that combines:
 
-- **Obsidian** for writing, knowledge management, wikilinks, and LaTeX.
+- **Obsidian** for writing, knowledge management, linking, and LaTeX.
 - **Quarto** for computational documents, executable code, visualizations, citations, and interactive HTML.
 - **Neovim / VS Code** for code-heavy editing and debugging.
 - **Quartz v5** for the public knowledge site: Obsidian-flavoured Markdown, navigation, backlinks, graph, search, page layouts, and static publishing.
@@ -133,7 +133,7 @@ Quarto should not need to recreate Quartz's graph or search implementation.
 
 Both source types should participate in:
 
-- wikilinks
+- links
 - backlinks
 - tags
 - aliases
@@ -149,7 +149,7 @@ Only their final page renderer differs.
 Quartz v5 already supplies the majority of the knowledge-site layer. The project should not rebuild these unless a demonstrated limitation requires it:
 
 ```text
-wikilink resolution
+link resolution
 Obsidian-flavoured Markdown
 backlinks
 graph
@@ -888,66 +888,93 @@ Quarto owns the **rendered computational page**.
 
 ---
 
-# 18. Linking Strategy  **[DECIDED]**
+# 18. Linking Strategy  **[DECIDED — reversed 2026-08-24, refined 2026-08-25]**
 
-Use **Obsidian wikilinks as the authoring syntax**.
+Use **Markdown links as the authoring syntax**, everywhere, in both `.md` and `.qmd`, and always
+write **the path from the vault folder** with the real source extension.
 
 ```markdown
-[[Bayesian Statistics]]
-[[Monte Carlo Simulation]]
-[[Monte Carlo Simulation|simulation notes]]
+[Bayesian Statistics](knowledge/bayesian-statistics.md)
+[simulation notes](research/monte-carlo-simulation.md)
+[Computational Features](examples/computational-features.qmd)
+![Convergence](attachments/convergence.svg)
 ```
 
-This decision now follows naturally from choosing Quartz.
+Obsidian is configured with `useMarkdownLinks: true` and `newLinkFormat: absolute`, so it writes
+this form, resolves it, follows it, and rewrites it on rename exactly as it did wikilinks.
 
-Quartz v5 has native Obsidian-flavoured Markdown support, including wikilinks and transclusions, so ordinary notes do not need a custom resolver.
+## 18.1 Why This Reverses The Original Decision
 
-The only custom resolution path is Quarto.
+The original decision was wikilinks, on the reasoning that Quartz supports them natively and only
+Quarto needs an adapter. That adapter turned out to be the whole cost.
 
-## 18.1 QMD Wikilinks
+Pandoc does not understand `[[...]]`, so wikilinks survive Quarto rendering as literal text. Making
+them work meant walking text nodes in already-rendered HTML and rebuilding anchors by hand, against
+a bespoke title/alias/basename index with priority tiers and ambiguity sentinels — a second
+resolver that had to agree with Quartz's by hand, with the coupling maintained only by a comment.
 
-A `.qmd` document may also contain author-friendly wikilinks.
+Markdown links need none of it. Quarto passes hrefs through verbatim under `project: type: default`
+(it performs no extension rewriting), so a link written in a `.qmd` arrives in the artifact intact
+and is resolved with Quartz's own `transformLink` against its own slug list. The bespoke index is
+gone; the two link paths now share one resolution rule.
 
-The Quarto render path needs a small adapter:
+What this costs: linking by title. `[[Markdown Features]]` had to become
+`[Markdown Features](markdown-features.md)`, so a title appears twice and renaming a note's
+frontmatter title no longer updates link text. Path rename-tracking is unaffected. There is also no
+transclusion — link to the source note instead.
+
+## 18.2 Why The Path Is From The Vault Folder
+
+Obsidian offers three link formats. The choice is not cosmetic — two of them are ambiguous against
+Quartz, and that ambiguity is the only remaining source of subtlety in link handling.
+
+| Obsidian format | Sibling section index is written as | Quartz resolves it to |
+|---|---|---|
+| Shortest path when possible | `index.md` | the **site root** |
+| Path from current file | `index.md` | the **site root** |
+| Path from vault folder | `examples/index.md` | `/examples/` |
+
+Under either of the first two, a link to a section's own index silently leaves the section, because
+Quartz collapses a bare `index.md` to the root regardless of the directory it was written in. This
+is not bridge-specific: the Quartz link crawler does it on ordinary Markdown pages too.
+
+Making those formats work meant a "document-relative first, then vault-root" precedence rule in
+publication prep *and* a matching one in the bridge — the same class of hand-synchronised agreement
+that made wikilinks expensive. The vault-folder form removes the question rather than answering it
+in three places, so prep resolves a target with a single lookup and no fallbacks, and the bridge
+calls `transformLink` with no preamble.
+
+Quartz is set to the matching `markdownLinkResolution: absolute`. A target that only resolves
+relative to the document now fails the build instead of being guessed at.
+
+## 18.3 The One Remaining Transform
+
+Quartz slugification strips `.md` and `.html` but leaves every other extension in place, so a
+`.qmd` href would publish broken. Publication prep rewrites `.qmd` link targets to `.md` while
+staging, which is correct because every published document reaches the content tree as `.md`:
 
 ```text
-.qmd wikilink
-     │
-     ▼
-Pandoc wikilink parsing / render-copy preprocessing
-     │
-     ▼
-generated/link-map.json
-     │
-     ▼
-canonical site URL
+[x](section/note.qmd)  --staging-->  [x](section/note.md)  --Quartz slugify-->  /section/note
 ```
 
-Preferred implementation to test first:
+That single mechanical substitution replaces the entire wikilink resolver stack.
 
-1. enable Pandoc's wikilink syntax for the Quarto reader;
-2. use a small Lua filter to resolve each target using `generated/link-map.json`;
-3. emit an ordinary HTML link to the canonical site URL.
-
-If enabling the Pandoc wikilink extension conflicts with Quarto-specific Markdown behaviour, the fallback is a **temporary render copy** in which wikilinks are rewritten before Quarto runs. The source vault still keeps wikilinks.
-
-## 18.2 One Resolver, Narrow Scope
+## 18.4 One Resolver, Narrow Scope
 
 The project still needs canonical link resolution, but only for the bridge:
 
 ```text
-title / alias / source path
+relative source-file href
             │
             ▼
-      canonical slug
+   Quartz transformLink
             │
             ▼
        public URL
 ```
 
-Quartz handles this for Quartz content.
-
-`link-map.json` exposes the same decisions to Quarto.
+Quartz handles this for Quartz content, and the bridge now calls the same function for Quarto
+content rather than reimplementing it.
 
 ---
 
@@ -964,7 +991,7 @@ The system must support:
 
 ## 19.1 `.md -> .md`
 
-Handled natively by Quartz wikilink processing.
+Handled natively by the Quartz link crawler (`markdownLinkResolution: absolute`).
 
 ## 19.2 `.md -> .qmd`
 
@@ -974,7 +1001,10 @@ Quartz resolves the link to the stub's slug; the Quarto emitter places the real 
 
 ## 19.3 `.qmd -> .md` and `.qmd -> .qmd`
 
-The Quarto wikilink adapter resolves the target through `link-map.json` and emits the canonical site URL.
+Quarto emits the href verbatim; the bridge resolves it with Quartz's `transformLink` against the
+full slug list, applying the same `.qmd -> .md` normalisation publication prep applies to staged
+source. The Quartz link crawler never sees the Quarto artifact — it runs over the `.qmd` stub — so
+this resolution has to happen in the bridge.
 
 ## 19.4 Heading Links Need a Separate Test
 
@@ -998,7 +1028,8 @@ Obsidian block references and full transclusions into Quarto documents are not p
 
 A Quartz transclusion of a Quarto stub can at most embed the **textual stub representation**, not the interactive Quarto application.
 
-Treat interactive document embedding as a separate feature, not as ordinary wikilink resolution.
+Treat interactive document embedding as a separate feature, not as ordinary link resolution.
+Transclusion is not supported at all now that wikilink syntax is gone.
 
 ---
 
@@ -1310,7 +1341,7 @@ For published computational documents, commit the corresponding `_freeze/` state
 
 # 28. Build Pipeline  **[DECIDED]**
 
-Because `.qmd` source uses wikilinks and Quarto needs the canonical target map, publication prep happens before Quarto rendering.
+Publication prep happens before Quarto rendering so the staged tree and the render allowlist are both current.
 
 ```text
                            VAULT
@@ -1611,7 +1642,7 @@ The major architecture question is resolved. Remaining decisions are implementat
 | # | Decision | Default | Gate |
 |---|---|---|---|
 | 1 | Quartz vs Astro | **Quartz v5** | Decided |
-| 2 | Link syntax | **Wikilinks** | Decided |
+| 2 | Link syntax | **Markdown links, path from vault folder** | Decided; reversed from wikilinks 2026-08-24, format fixed 2026-08-25, see §18.1–18.2 |
 | 3 | `.qmd` vs all-`.md` | **Keep `.qmd`** | Verified by Quarto engine rules |
 | 4 | QMD knowledge representation | **Generated `.md` stub** | Confirm in Quartz spike |
 | 5 | Stub suppression | **Page Type matcher, not Filter** | Confirm with prototype |
@@ -1672,9 +1703,10 @@ Useful references:
 - <https://quarto.org/docs/projects/code-execution.html>
 - <https://quarto.org/docs/cli/render.html>
 
-## Pandoc / Wikilinks
+## Pandoc / Wikilinks  **[NOT USED]**
 
-Pandoc supports a wikilink syntax extension. Use it only as part of a tested Quarto adapter; Quartz remains the canonical wikilink implementation for normal Markdown pages.
+Pandoc supports a wikilink syntax extension. It was never enabled, and is moot since link syntax
+reversed to Markdown links (§18.1), which Pandoc handles natively.
 
 Reference:
 
@@ -1803,7 +1835,7 @@ The file-extension decision is **not** gated by this experiment anymore: executa
 Implemented in a disposable fixture that was removed after the behaviour was integrated:
 
 - a disposable vault containing two Markdown files and two QMD files with all four link directions;
-- `showUnsupportedFiles: true`, automatic link updates, shortest-path wikilinks, and the `qmd-as-md-obsidian` community plugin ID;
+- `showUnsupportedFiles: true`, automatic link updates, vault-folder-path Markdown links (`useMarkdownLinks: true`, `newLinkFormat: absolute`), and the `qmd-as-md-obsidian` community plugin ID;
 - an explicit Quarto render allowlist for `research/**/*.qmd`;
 - an isolated `uv` project with a locked Jupyter environment;
 - repeatable source and rendered-output validation scripts.
@@ -1813,7 +1845,7 @@ Verified with Quarto 1.10.18:
 - the allowlist renders only the two QMD files;
 - both Python cells execute through the `uv` environment;
 - output is written under `_site/research/`;
-- plain Quarto leaves Obsidian wikilinks as literal `[[...]]` text, confirming that the Quarto-side wikilink adapter in Experiment 6 is required rather than optional.
+- plain Quarto leaves Obsidian wikilinks as literal `[[...]]` text. This forced the Quarto-side adapter in Experiment 6, and is ultimately why link syntax reversed to Markdown links (§18.1), which Pandoc renders natively.
 
 Still manual:
 
@@ -2009,7 +2041,7 @@ Verified:
 - a direct HTTP request to `/research/monte-carlo` succeeds with status 200 through the Quartz preview server;
 - the Quartz TypeScript and formatting check passes.
 
-The `QuartoPage` boundary now converts literal Quarto wikilinks into canonical Quartz links using path, title, and alias resolution. Quartz detects navigation into or out of `.quarto-page` and falls back to a full document load; interactive behaviour and browser back/forward remain part of the browser pass.
+The `QuartoPage` boundary now resolves relative source-file hrefs in the Quarto artifact into canonical Quartz links using Quartz's own `transformLink`. (Originally this converted literal wikilinks via a bespoke path/title/alias index; see §18.1 for why that was removed.) Quartz detects navigation into or out of `.quarto-page` and falls back to a full document load; interactive behaviour and browser back/forward remain part of the browser pass.
 
 ---
 
@@ -2098,7 +2130,11 @@ Publication prep now clears `generated/quarto/` before rendering, which closes t
 
 ---
 
-## Experiment 6 — QMD Wikilinks
+## Experiment 6 — QMD Wikilinks  **[SUPERSEDED 2026-08-24]**
+
+> Retained as the record of what was built and observed. The wikilink adapter described here was
+> removed when link syntax reversed to Markdown links; see §18.1. The four link directions below
+> are still the contract — they are now exercised with Markdown links instead.
 
 Create all four link directions:
 
@@ -2341,15 +2377,16 @@ What prep enforces, all as build-stopping failures:
 frontmatter        title present; publish boolean; aliases/tags lists of strings
 slugs              published paths must already be slug-safe; no .md/.qmd URL collision
 identity           no two published notes claim the same title or alias
-links              every wikilink and relative Markdown link resolves
+links              every relative Markdown link resolves
 privacy            a link to an unpublished note is reported as such, not as "broken"
 attachments        only files under vault/attachments/ referenced by published content
 artifacts          generated/quarto/ contains output for published .qmd and nothing else
 freeze             vault/_freeze/ holds frozen output only for published documents
 ```
 
-Resolution precedence matches the `QuartoPage` wikilink adapter — canonical path, then title/alias,
-then basename — so prep and the renderer cannot disagree about where a link goes.
+There is one resolution rule and no precedence: a target is a path from the vault folder. Obsidian
+(`newLinkFormat: absolute`), prep, and Quartz (`markdownLinkResolution: absolute`) all read it that
+way, so they cannot disagree about where a link goes.
 
 `ExplicitPublish` is now enabled as layer 2 (section 22.1). It filters out zero files, which is the
 expected result: prep already guarantees the invariant it checks.
@@ -2417,7 +2454,7 @@ The bridge moved out of the vendored tree into `site/bridge/`:
 ```text
 bridge/index.ts                the bridge's public surface, and the only thing quartz.ts imports
 bridge/quartoPage.tsx          the Page Type for quartoStub: true Markdown
-bridge/quartoPageHtml.ts       minimal-body extraction and wikilink resolution
+bridge/quartoPageHtml.ts       minimal-body extraction and source-link resolution
 bridge/quartoArtifacts.ts      the dependency-artifact Emitter
 bridge/styles/quartoPage.scss  styling scoped beneath .quarto-page
 ```

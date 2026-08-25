@@ -1,14 +1,14 @@
-import { Element, ElementContent, Node, Root, RootContent, Text } from "hast"
+import { Element, ElementContent, Node, Root } from "hast"
 import { fromHtml } from "hast-util-from-html"
 import { slugifyPath } from "@quartz-community/utils"
 
-export interface QuartoWikilinkResolution {
+export interface QuartoLinkResolution {
   href: string
   slug: string
   broken?: boolean
 }
 
-export type QuartoWikilinkResolver = (target: string) => QuartoWikilinkResolution | undefined
+export type QuartoLinkResolver = (target: string) => QuartoLinkResolution | undefined
 
 const isElement = (node: Node): node is Element => node.type === "element"
 
@@ -124,71 +124,41 @@ function markLinksForFullPageNavigation(root: Root): void {
   })
 }
 
-const excludedWikilinkParents = new Set(["code", "pre", "script", "style", "textarea"])
-const wikilinkPattern = /\[\[([^\]]+)\]\]/g
+// Quarto emits link hrefs verbatim -- it performs no extension rewriting under
+// `project: type: default` -- and the Quartz link crawler never sees this
+// fragment, because it runs over the .qmd stub rather than the rendered
+// artifact. Source-file links therefore arrive here still pointing at
+// `something.md` / `something.qmd` relative to the source file, and would 404
+// against the page URL. Resolving them to site URLs is the whole job; Quartz
+// slugification drops `.md` but not `.qmd`, so both extensions are handled.
+const sourceFileLink = /\.(md|qmd)$/i
+const absoluteUrl = /^[a-zA-Z][a-zA-Z\d+\-.]*:/
 
-function wikilinkDisplay(target: string, heading: string, alias?: string): string {
-  if (alias) return alias
-  const basename = target.split("/").at(-1)?.replace(/\.md$/i, "") ?? target
-  return heading ? `${basename} > ${heading}` : basename
-}
+function resolveSourceLinks(root: Root, resolve: QuartoLinkResolver): void {
+  visitElements(root, (element) => {
+    if (element.tagName !== "a") return
+    const href = elementAttribute(element, "href")
+    if (!href || href.startsWith("#") || absoluteUrl.test(href)) return
 
-function replaceWikilinks(textNode: Text, resolve: QuartoWikilinkResolver): RootContent[] {
-  const source = textNode.value
-  const replacement: RootContent[] = []
-  let cursor = 0
+    const separator = href.indexOf("#")
+    const target = separator === -1 ? href : href.slice(0, separator)
+    const anchor = separator === -1 ? "" : href.slice(separator + 1)
+    if (!sourceFileLink.test(target)) return
 
-  for (const match of source.matchAll(wikilinkPattern)) {
-    const index = match.index ?? 0
-    if (index > cursor) replacement.push({ type: "text", value: source.slice(cursor, index) })
+    const resolution = resolve(target)
+    if (!resolution) return
 
-    const raw = match[1]
-    const separator = raw.indexOf("|")
-    const destination = (separator === -1 ? raw : raw.slice(0, separator)).trim()
-    const alias = separator === -1 ? undefined : raw.slice(separator + 1).trim()
-    const headingSeparator = destination.indexOf("#")
-    const target = (
-      headingSeparator === -1 ? destination : destination.slice(0, headingSeparator)
-    ).trim()
-    const heading = headingSeparator === -1 ? "" : destination.slice(headingSeparator + 1).trim()
-    const resolution = target ? resolve(target) : undefined
-
-    if (!resolution) {
-      replacement.push({ type: "text", value: match[0] })
-    } else {
-      const href = heading ? `${resolution.href}#${slugifyPath(heading)}` : resolution.href
-      replacement.push({
-        type: "element",
-        tagName: "a",
-        properties: {
-          href,
-          className: ["internal", "internal-link", ...(resolution.broken ? ["broken"] : [])],
-          dataSlug: resolution.slug,
-        },
-        children: [{ type: "text", value: wikilinkDisplay(target, heading, alias) }],
-      })
-    }
-    cursor = index + match[0].length
-  }
-
-  if (cursor === 0) return [textNode]
-  if (cursor < source.length) replacement.push({ type: "text", value: source.slice(cursor) })
-  return replacement
-}
-
-function transformWikilinks(node: Root | Element, resolve: QuartoWikilinkResolver): void {
-  if (node.type === "element" && excludedWikilinkParents.has(node.tagName)) return
-
-  const children: RootContent[] = []
-  for (const child of node.children) {
-    if (child.type === "text") {
-      children.push(...replaceWikilinks(child, resolve))
-    } else {
-      if (child.type === "element") transformWikilinks(child, resolve)
-      children.push(child)
-    }
-  }
-  node.children = children as typeof node.children
+    element.properties ??= {}
+    element.properties.href = anchor
+      ? `${resolution.href}#${slugifyPath(anchor)}`
+      : resolution.href
+    element.properties.className = [
+      "internal",
+      "internal-link",
+      ...(resolution.broken ? ["broken"] : []),
+    ]
+    element.properties.dataSlug = resolution.slug
+  })
 }
 
 // Quartz loads its graph libraries (d3, PIXI) lazily at runtime, well after the
@@ -201,7 +171,7 @@ function transformWikilinks(node: Root | Element, resolve: QuartoWikilinkResolve
 // any loader exists, so both sides get what they need.
 export function extractQuartoPage(
   html: string,
-  resolveWikilink?: QuartoWikilinkResolver,
+  resolveLink?: QuartoLinkResolver,
   preloadScripts: string[] = [],
 ): Root {
   const document = fromHtml(html) as Root
@@ -258,7 +228,7 @@ export function extractQuartoPage(
       },
     ],
   }
-  if (resolveWikilink) transformWikilinks(root, resolveWikilink)
+  if (resolveLink) resolveSourceLinks(root, resolveLink)
   markLinksForFullPageNavigation(root)
   return root
 }

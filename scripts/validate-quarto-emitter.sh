@@ -25,8 +25,15 @@ grep -Fq '<table' "$quarto_page"
 grep -Fq 'plotly-graph-div' "$quarto_page"
 grep -Fq 'Plotly.newPlot' "$quarto_page"
 
-if grep -Fq '[[Markdown Features]]' "$quarto_page" || grep -Fq '[[Interactive Features]]' "$quarto_page"; then
-  printf '%s\n' 'Literal QMD wikilinks leaked into the unified page.' >&2
+# Links in a Quarto artifact are resolved by the bridge, not the Quartz link
+# crawler, so an unresolved source-file href is the failure mode to catch.
+if grep -Eq 'href="[^"]*\.(md|qmd)"' "$quarto_page"; then
+  printf '%s\n' 'Unresolved source-file link hrefs leaked into the unified page.' >&2
+  exit 1
+fi
+
+if grep -Fq '[[' "$quarto_page"; then
+  printf '%s\n' 'Literal wikilink syntax leaked into the unified page.' >&2
   exit 1
 fi
 
