@@ -57,8 +57,13 @@ cd vault && uv run quarto render examples/note.qmd
 
 An explicit file argument bypasses the project render list, so this needs no profile; output lands
 in `generated/quarto/`. `quarto preview <file>` does *not* bypass that list and fails with "No
-output created" — for live reload, run `npm run prepare-publication`, then `quarto preview
---profile publish` with no file argument.
+output created", so live reload goes through the preview profile instead:
+
+```bash
+npm run preview examples/note.qmd
+```
+
+See "Drafting one `.qmd` on its own" in `AUTHORING.md`.
 
 ## Obsidian Git caution
 

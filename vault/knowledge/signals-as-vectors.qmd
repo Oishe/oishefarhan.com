@@ -4,7 +4,7 @@ description: See how sampling turns a signal into a vector, and how the right ba
 tags:
   - ml/signal-processing
   - ml/linear-algebra
-publish: false
+publish: true
 ---
 
 ## Introduction
@@ -17,7 +17,7 @@ as a collection of measurements.
 Consider a sustained note played on a flute.
 
 ```{=html}
-<audio controls preload="metadata" src="flute-a4.wav"></audio>
+<audio controls preload="metadata" src="data/flute-a4.wav"></audio>
 ```
 
 A microphone converts the changing sound pressure into an electrical signal.

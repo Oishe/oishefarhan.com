@@ -119,6 +119,30 @@ Attachments live in `vault/attachments/`, and only those a published page refere
 Reference them with Markdown image syntax and the same vault-folder path:
 `![alt](attachments/figure.svg)`.
 
+### Data a document computes over
+
+An attachment is something a page *displays*; publication prep finds it by reading the Markdown
+image and link syntax. A recording an `{ojs}` cell decodes, or a CSV a `{python}` cell loads, is
+neither — it is an input to the computation, and prep cannot see it, because
+`FileAttachment("…")` and a raw `<audio src>` are not Markdown references.
+
+Put those beside the note that reads them, in a `data/` folder inside the section, and reference
+them **relative to the document** rather than from the vault folder:
+
+```markdown
+<audio controls src="data/flute-a4.wav"></audio>
+FileAttachment("data/flute-a4.wav")
+```
+
+This is the one place the vault-folder rule does not apply, and it works for a different reason
+from everything else on this page. Quarto's own resource discovery copies the file to
+`generated/quarto/<section>/data/`, the bridge emitter mirrors that whole tree into `site/public/`,
+and the relative URL resolves against the page's own address. Prep is not involved at any step.
+
+The consequence worth remembering: **nothing validates these paths.** A renamed or deleted data
+file does not fail the build the way a broken Markdown link does. It fails in the browser, and only
+on the figures that needed it.
+
 ## Building
 
 ```bash
