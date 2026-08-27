@@ -8,6 +8,7 @@
     "render": "cd vault && uv run quarto render --profile publish",
     "site": "cd site && node quartz/bootstrap-cli.mjs build",
     "serve": "cd site && node quartz/bootstrap-cli.mjs build --serve",
+    "preview": "cd vault && uv run quarto preview --profile preview",
     "pre-build": "npm run design-tokens -- --check && npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto",
     "build": "npm run pre-build && npm run site",
     "build-serve": "npm run pre-build && npm run serve",

@@ -1,0 +1,1088 @@
+---
+title: Signals as Vectors
+description: See how sampling turns a signal into a vector, and how the right basis can reveal a compact representation.
+tags:
+  - ml/signal-processing
+  - ml/linear-algebra
+publish: false
+---
+
+## Introduction
+
+A signal is a quantity that varies. Sound pressure varies over time, brightness
+varies across an image, and the temperature of a room changes through the day.
+These signals arise in different ways, but a computer encounters each of them
+as a collection of measurements.
+
+Consider a sustained note played on a flute.
+
+```{=html}
+<audio controls preload="metadata" src="flute-a4.wav"></audio>
+```
+
+A microphone converts the changing sound pressure into an electrical signal.
+In principle, that signal varies continuously with time. A digital recording
+instead measures it at a sequence of equally spaced instants. Connecting a
+short run of those measurements with a line reveals the oscillation produced
+by the note.
+
+```{ojs}
+//| echo: false
+flute = {
+  const context = new OfflineAudioContext(1, 1, 11025)
+  const audio = await context.decodeAudioData(
+    await FileAttachment("flute-a4.wav").arrayBuffer()
+  )
+  return {
+    sampleRate: audio.sampleRate,
+    samples: audio.getChannelData(0),
+  }
+}
+```
+
+```{ojs}
+//| echo: false
+sampleWindow = (center, count) => {
+  const middle = Math.round(center * flute.sampleRate)
+  const first = middle - Math.floor(count / 2)
+  return Array.from(
+    flute.samples.slice(first, first + count),
+    (amplitude, i) => ({
+      time: 1000 * (first + i) / flute.sampleRate,
+      amplitude,
+    })
+  )
+}
+```
+
+```{ojs}
+//| echo: false
+waveform = sampleWindow(0.724, 160)
+```
+
+```{ojs}
+Plot.plot({
+  height: 240,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "time (ms)", grid: true },
+  y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.line(waveform, { x: "time", y: "amplitude" }),
+  ],
+})
+```
+
+The line helps us see the shape of the waveform, but the recording does not
+store a continuous curve. It stores individual measurements. Magnifying a
+smaller interval makes them visible.
+
+```{ojs}
+//| echo: false
+closeup = sampleWindow(0.724, 64)
+```
+
+```{ojs}
+Plot.plot({
+  height: 240,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "time (ms)", grid: true },
+  y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.ruleX(closeup, {
+      x: "time",
+      y1: 0,
+      y2: "amplitude",
+      strokeOpacity: 0.6,
+    }),
+    Plot.dot(closeup, { x: "time", y: "amplitude", r: 2.5 }),
+  ],
+})
+```
+
+Each dot is one sample, and reading from left to right gives an ordered list of
+numbers. The full recording contains 11,025 samples; the figures show short
+excerpts---64 samples in the close-up---for clarity, while the later frequency
+analysis will use a longer window.
+
+Suppose an analysis window contains $n$ samples. If the underlying continuous
+signal is $x(t)$ and the sampling times are $t_1,\ldots,t_n$, then the recorded
+values are
+
+$$
+x_i=x(t_i), \qquad i=1,\ldots,n.
+$$
+
+We can collect them into a vector:
+
+$$
+\mathbf{x}=
+\begin{bmatrix}
+x_1 \\
+x_2 \\
+\vdots \\
+x_n
+\end{bmatrix}
+\in\mathbb{R}^n.
+$$
+
+The sampled window is therefore a point in $\mathbb{R}^n$, with one coordinate
+for each sampling instant. These sample values are its coordinates in the
+standard basis.
+
+The same vector can also be built from a different set of basis vectors. If
+those building blocks match the structure of the signal, many of their weights
+may be small or zero. This concentration underlies transform compression in
+audio, images, and video. We will first examine the idea geometrically in two
+dimensions, then return to the flute note and a basis of oscillating waves.
+
+## Changing the basis
+
+Before returning to the flute note, consider a vector in two dimensions. In
+the usual horizontal and vertical coordinate system, let
+
+$$
+\mathbf{x}=
+\begin{bmatrix}
+2 \\
+3
+\end{bmatrix}
+=2\mathbf{e}_1+3\mathbf{e}_2.
+$$
+
+The numbers 2 and 3 tell us how far to travel along the standard basis vectors
+$\mathbf{e}_1$ and $\mathbf{e}_2$ to reach $\mathbf{x}$. Now rotate the
+coordinate axes through an angle $\theta$. The new basis vectors are
+
+$$
+\boldsymbol{\psi}_1=
+\begin{bmatrix}
+\cos\theta \\
+\sin\theta
+\end{bmatrix},
+\qquad
+\boldsymbol{\psi}_2=
+\begin{bmatrix}
+-\sin\theta \\
+\cos\theta
+\end{bmatrix}.
+$$
+
+Both have length one, and they are perpendicular to each other. They therefore
+form an orthonormal basis.
+
+Once the basis is chosen, we build $\mathbf{x}$ by taking a weighted sum of
+its basis vectors:
+
+$$
+\mathbf{x}=
+s_1\boldsymbol{\psi}_1+s_2\boldsymbol{\psi}_2=
+\underbrace{
+\begin{bmatrix}
+\vert & \vert \\
+\boldsymbol{\psi}_1 & \boldsymbol{\psi}_2
+\\
+\vert & \vert
+\end{bmatrix}
+}_{\displaystyle \Psi}
+\underbrace{
+\begin{bmatrix}
+s_1 \\
+s_2
+\end{bmatrix}
+}_{\displaystyle \mathbf{s}}
+=\Psi\mathbf{s}.
+$$
+
+The columns of $\Psi$ are the building blocks. The coordinates $s_1$ and
+$s_2$ tell us how much of each one to use, including its sign. In the diagram,
+$\mathbf{x}$ remains fixed while the basis rotates. The two heavier component
+arrows show the reconstruction: the first contributes
+$s_1\boldsymbol{\psi}_1$, and the second adds
+$s_2\boldsymbol{\psi}_2$ to reach $\mathbf{x}$.
+
+
+```{ojs}
+//| echo: false
+rotated = {
+  const angle = theta * Math.PI / 180
+  const x = { x: 2, y: 3 }
+  const psi1 = { x: Math.cos(angle), y: Math.sin(angle), label: "ψ₁" }
+  const psi2 = { x: -Math.sin(angle), y: Math.cos(angle), label: "ψ₂" }
+  const s1 = x.x * psi1.x + x.y * psi1.y
+  const s2 = x.x * psi2.x + x.y * psi2.y
+  const p1 = { x: s1 * psi1.x, y: s1 * psi1.y }
+
+  return {
+    x, psi1, psi2, s1, s2,
+    labels: [
+      {
+        x: 1.15 * psi1.x + 0.3 * psi2.x,
+        y: 1.15 * psi1.y + 0.3 * psi2.y,
+        label: psi1.label,
+      },
+      {
+        x: 1.15 * psi2.x - 0.3 * psi1.x,
+        y: 1.15 * psi2.y - 0.3 * psi1.y,
+        label: psi2.label,
+      },
+    ],
+    components: [
+      { x1: 0, y1: 0, x2: p1.x, y2: p1.y, weight: s1 },
+      { x1: p1.x, y1: p1.y, x2: x.x, y2: x.y, weight: s2 },
+    ].filter((d) => Math.abs(d.weight) > 0.01),
+    componentLabels: [
+      {
+        x: 0.5 * p1.x - 0.3 * psi2.x,
+        y: 0.5 * p1.y - 0.3 * psi2.y,
+        label: "s₁ψ₁",
+        weight: s1,
+      },
+      {
+        x: p1.x + 0.5 * s2 * psi2.x + 0.3 * psi1.x,
+        y: p1.y + 0.5 * s2 * psi2.y + 0.3 * psi1.y,
+        label: "s₂ψ₂",
+        weight: s2,
+      },
+    ].filter((d) => Math.abs(d.weight) > 0.15),
+    axes: [psi1, psi2].map((p) => ({
+      x1: -4 * p.x, y1: -4 * p.y,
+      x2: 4 * p.x, y2: 4 * p.y,
+    })),
+  }
+}
+```
+
+```{ojs}
+Plot.plot({
+  aspectRatio: 1,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "x₁", domain: [-4, 4], grid: true },
+  y: { label: "x₂", domain: [-4, 4], grid: true },
+  marks: [
+    Plot.ruleX([0]),
+    Plot.ruleY([0]),
+    Plot.link(rotated.axes, {
+      x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+      strokeOpacity: 0.35,
+    }),
+    Plot.arrow([rotated.psi1, rotated.psi2], {
+      x1: 0, y1: 0, x2: "x", y2: "y",
+      strokeOpacity: 0.65,
+    }),
+    Plot.text(rotated.labels, {
+      x: "x",
+      y: "y",
+      text: "label",
+      fontSize: 18,
+      fontWeight: 600,
+    }),
+    Plot.arrow(rotated.components, {
+      x1: "x1", y1: "y1", x2: "x2", y2: "y2",
+      strokeWidth: 2.5,
+    }),
+    Plot.text(rotated.componentLabels, {
+      x: "x", y: "y", text: "label",
+      fontSize: 17,
+      fontWeight: 600,
+    }),
+    Plot.arrow([rotated.x], {
+      x1: 0, y1: 0, x2: "x", y2: "y",
+      strokeWidth: 3.5,
+    }),
+    Plot.text([rotated.x], {
+      x: "x", y: "y", text: () => "x",
+      dx: 10, dy: -10,
+      fontSize: 18,
+    }),
+  ],
+})
+```
+
+```{ojs}
+//| echo: false
+viewof theta = Inputs.range([90, -90], {
+  label: "rotation θ (degrees)",
+  value: 30,
+  step: 0.1,
+})
+```
+
+```{ojs}
+//| echo: false
+md`At ${tex`\theta=${theta.toFixed(1)}^\circ`}, the current reconstruction,
+rounded to two decimal places, is
+
+${tex.block`
+\mathbf{x}
+=
+\begin{bmatrix}
+2 \\
+3
+\end{bmatrix}
+=\Psi\mathbf{s}
+\approx
+\underbrace{
+\begin{bmatrix}
+${rotated.psi1.x.toFixed(2)} & ${rotated.psi2.x.toFixed(2)} \\
+${rotated.psi1.y.toFixed(2)} & ${rotated.psi2.y.toFixed(2)}
+\end{bmatrix}
+}_{\displaystyle \Psi=[\,\boldsymbol{\psi}_1\ \boldsymbol{\psi}_2\,]}
+\underbrace{
+\begin{bmatrix}
+${rotated.s1.toFixed(2)} \\
+${rotated.s2.toFixed(2)}
+\end{bmatrix}
+}_{\displaystyle \mathbf{s}}.
+`}`
+```
+
+Rotating the basis does not move $\mathbf{x}$. It changes the building blocks
+and the weights needed to combine them. An especially simple description
+appears when $\boldsymbol{\psi}_1$ points in the same direction as
+$\mathbf{x}$. Move the slider to
+$\theta=\tan^{-1}(3/2)\approx56.3^\circ$. The second component arrow shrinks
+to zero, and the coordinates become
+
+$$
+\mathbf{s}=
+\begin{bmatrix}
+\sqrt{13} \\
+0
+\end{bmatrix}.
+$$
+
+One coordinate contains the vector's entire length, while the other is zero.
+This is a two-dimensional example of a sparse representation.
+
+For an orthonormal basis, the weights can be recovered concisely because
+$\Psi^{\mathsf T}\Psi=I$:
+
+$$
+\mathbf{s}=\Psi^{\mathsf T}\mathbf{x}.
+$$
+
+The same reconstruction extends to $n$ dimensions. If
+$\boldsymbol{\psi}_1,\ldots,\boldsymbol{\psi}_n$ form an orthonormal basis,
+then
+
+$$
+\mathbf{x}
+=
+\underbrace{
+\begin{bmatrix}
+\vert & & \vert \\
+\boldsymbol{\psi}_1 & \cdots & \boldsymbol{\psi}_n
+\\
+\vert & & \vert
+\end{bmatrix}
+}_{\displaystyle \Psi}
+\underbrace{
+\begin{bmatrix}
+s_1 \\
+\vdots \\
+s_n
+\end{bmatrix}
+}_{\displaystyle \mathbf{s}}
+=\Psi\mathbf{s}
+=\sum_{k=1}^n s_k\boldsymbol{\psi}_k.
+$$
+
+Changing the basis is reversible: $n$ sample coordinates become $n$ basis
+coordinates, and no information has been removed. It does not perform
+compression by itself. Its value is that a well-chosen collection of basis
+vectors may produce a coordinate vector $\mathbf{s}$ with only a few
+significant entries. For the flute note, the next question is whether sampled
+sinusoids can provide such building blocks.
+
+## A frequency basis
+
+For the flute note, a natural set of building blocks is a collection of
+oscillating waves. We will analyze a window of $n=4096$ samples centered at the
+same point in the recording as the earlier figures. At 11,025 samples per
+second, this window spans about 0.37 seconds.
+
+For Fourier formulas, it is convenient to number samples and basis vectors
+from zero. We can write the $j$th entry of the $k$th basis vector in terms of
+a cosine and sine, where $i^2=-1$:
+
+$$
+\boldsymbol{\psi}_k[j]
+=\frac{1}{\sqrt{n}}
+\left[
+\cos\left(\frac{2\pi jk}{n}\right)
++i\sin\left(\frac{2\pi jk}{n}\right)
+\right],
+\qquad j,k=0,\ldots,n-1.
+$$
+
+Euler's formula, $e^{i\phi}=\cos\phi+i\sin\phi$, lets us write the same basis
+vector more compactly:
+
+$$
+\boldsymbol{\psi}_k[j]
+=\frac{1}{\sqrt{n}}e^{2\pi i jk/n}.
+$$
+
+A complex exponential packages a cosine and sine of the same frequency into
+one basis vector. If the sample rate is $f_s$, then the $k$th nonnegative
+frequency is
+
+$$
+f_k=\frac{k f_s}{n},
+\qquad 0\le k\le \frac{n}{2}.
+$$
+
+For a fixed $k$, the $n$ values
+$\boldsymbol{\psi}_k[0],\ldots,\boldsymbol{\psi}_k[n-1]$ form one column of the
+Fourier basis matrix $\Psi_F$. Its real part is a sampled cosine and its
+imaginary part is a sampled sine. The common factor $1/\sqrt{n}$ gives every
+basis vector length one.
+
+The following plot shows the real parts of three basis vectors corresponding
+to prominent harmonics in the flute recording. The waves are drawn vertically
+to emphasize that each complete curve is a column of $\Psi_F$. Only the first
+160 of 4,096 entries are shown, and the common factor $1/\sqrt{n}$ is omitted
+from the horizontal scale.
+
+```{ojs}
+//| echo: false
+analysisSize = 4096
+```
+
+```{ojs}
+//| echo: false
+basisWaves = [
+  { k: 164, basis: "ψ₁₆₄  ·  441 Hz" },
+  { k: 328, basis: "ψ₃₂₈  ·  883 Hz" },
+  { k: 492, basis: "ψ₄₉₂  ·  1324 Hz" },
+].flatMap(({ k, basis }) =>
+  d3.range(160).map((j) => ({
+    basis,
+    sample: j,
+    value: Math.cos(2 * Math.PI * k * j / analysisSize),
+  }))
+)
+```
+
+```{ojs}
+Plot.plot({
+  height: 380,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "real part", domain: [-1.1, 1.1], grid: true },
+  y: { label: "sample index j", reverse: true },
+  fx: {
+    label: null,
+    domain: [
+      "ψ₁₆₄  ·  441 Hz",
+      "ψ₃₂₈  ·  883 Hz",
+      "ψ₄₉₂  ·  1324 Hz",
+    ],
+  },
+  marks: [
+    Plot.line(basisWaves, {
+      x: "value", y: "sample", fx: "basis",
+    }),
+  ],
+})
+```
+
+Collecting all $n$ basis vectors as columns gives the Fourier basis matrix
+
+$$
+\Psi_F=
+\begin{bmatrix}
+\vert & \vert & & \vert \\
+\boldsymbol{\psi}_0 & \boldsymbol{\psi}_1 & \cdots & \boldsymbol{\psi}_{n-1}
+\\
+\vert & \vert & & \vert
+\end{bmatrix}.
+$$
+
+::: {.callout-note collapse="true"}
+## The Fourier matrix
+
+A heatmap makes it possible to see many Fourier basis vectors at once. The
+full matrix used for the flute has $4096^2$ complex entries, so this figure
+shows the scaled real part of a smaller $64\times64$ Fourier matrix. Each
+vertical strip is one sampled cosine basis vector; the corresponding imaginary
+part contains sampled sines. Red cells are positive, blue cells are negative,
+and pale cells are near zero.
+
+```{ojs}
+//| echo: false
+fourierMatrix = d3.cross(
+  d3.range(64),
+  d3.range(64),
+  (j, k) => ({ j, k, value: Math.cos(2 * Math.PI * j * k / 64) })
+)
+```
+
+```{ojs}
+Plot.plot({
+  aspectRatio: 1,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "basis index k", ticks: d3.range(0, 64, 8) },
+  y: {
+    label: "sample index j",
+    ticks: d3.range(0, 64, 8),
+    reverse: true,
+  },
+  color: {
+    type: "diverging",
+    scheme: "RdBu",
+    domain: [-1, 1],
+  },
+  marks: [
+    Plot.cell(fourierMatrix, {
+      x: "k", y: "j", fill: "value", inset: 0,
+    }),
+    Plot.frame(),
+  ],
+})
+```
+:::
+
+The reconstruction and transform have the same form as before, except that a
+complex basis requires the conjugate transpose $\Psi_F^*$:
+
+$$
+\mathbf{x}=\Psi_F\mathbf{s},
+\qquad
+\mathbf{s}=\Psi_F^*\mathbf{x}.
+$$
+
+Although $\mathbf{x}$ has real entries, we may regard it as a vector in
+$\mathbb{C}^n$. Its Fourier coefficients then satisfy
+$s_{n-k}=\overline{s_k}$. Each conjugate pair reconstructs one real sinusoid:
+$|s_k|$ determines its strength and $\arg(s_k)$ determines its phase.
+
+We can therefore transform the longer flute window and plot only its
+nonnegative-frequency magnitudes, normalized by the largest one. We retain the
+complex value of every nonnegative-frequency coefficient; the corresponding
+negative-frequency coefficients are determined by conjugate symmetry.
+
+```{ojs}
+//| echo: false
+analysisWindow = sampleWindow(0.724, analysisSize)
+```
+
+```{ojs}
+//| echo: false
+fourier = {
+  const values = analysisWindow.map((d) => d.amplitude)
+  const scale = 1 / Math.sqrt(analysisSize)
+  const coefficients = []
+
+  for (let k = 0; k <= analysisSize / 2; ++k) {
+    let re = 0
+    let im = 0
+    for (let j = 0; j < analysisSize; ++j) {
+      const phase = 2 * Math.PI * k * j / analysisSize
+      re += values[j] * Math.cos(phase)
+      im -= values[j] * Math.sin(phase)
+    }
+    coefficients.push({
+      k,
+      frequency: k * flute.sampleRate / analysisSize,
+      re: scale * re,
+      im: scale * im,
+      magnitude: scale * Math.hypot(re, im),
+    })
+  }
+
+  const shown = coefficients.filter((d) => d.frequency <= 3000)
+  const largest = d3.max(shown, (d) => d.magnitude)
+  const spectrum = shown.map((d) => ({
+    ...d,
+    relativeMagnitude: d.magnitude / largest,
+  }))
+  const fundamental = spectrum
+    .filter((d) => d.frequency >= 400 && d.frequency <= 480)
+    .reduce((a, b) => b.magnitude > a.magnitude ? b : a)
+  const peaks = d3.range(1, 6).map((harmonic) =>
+    spectrum
+      .filter((d) => Math.abs(
+        d.frequency - harmonic * fundamental.frequency
+      ) <= 25)
+      .reduce((a, b) => b.magnitude > a.magnitude ? b : a)
+  )
+  const rankedCoefficients = coefficients
+    .map((d) => {
+      const paired = d.k > 0 && d.k < analysisSize / 2
+      return {
+        ...d,
+        energy: (paired ? 2 : 1) * d.magnitude ** 2,
+      }
+    })
+    .sort((a, b) => b.energy - a.energy)
+  const rankedEnergies = rankedCoefficients.map((d) => d.energy)
+  const totalEnergy = d3.sum(rankedEnergies)
+  const binsFor = (fraction) => {
+    let energy = 0
+    for (let i = 0; i < rankedEnergies.length; ++i) {
+      energy += rankedEnergies[i]
+      if (energy >= fraction * totalEnergy) return i + 1
+    }
+  }
+
+  return {
+    coefficients,
+    rankedCoefficients,
+    spectrum,
+    peaks,
+    stats: {
+      bins: coefficients.length,
+      energy90: binsFor(0.90),
+      energy95: binsFor(0.95),
+      energy99: binsFor(0.99),
+    },
+  }
+}
+```
+
+```{ojs}
+Plot.plot({
+  height: 380,
+  subtitle: "Fourier coefficient magnitudes |sₖ| normalized",
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "frequency (Hz)", domain: [0, 3000], grid: true },
+  y: {
+    label: "relative coefficient magnitude",
+    domain: [0, 1.12],
+    grid: true,
+  },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.ruleX(fourier.spectrum, {
+      x: "frequency",
+      y1: 0,
+      y2: "relativeMagnitude",
+      strokeOpacity: 0.55,
+    }),
+    Plot.dot(fourier.peaks, {
+      x: "frequency", y: "relativeMagnitude", r: 3,
+    }),
+    Plot.text(fourier.peaks, {
+      x: "frequency",
+      y: "relativeMagnitude",
+      text: (d) => `${Math.round(d.frequency)} Hz`,
+      dy: -10,
+      fontSize: 14,
+      fontWeight: 600,
+    }),
+  ],
+})
+```
+
+The peaks occur near 441 Hz and its integer multiples. The 441 Hz fundamental
+sets the repetition rate associated with the note's pitch, while the higher
+harmonics help determine its timbre. In this recording, the third harmonic
+near 1324 Hz is even stronger than the fundamental.
+
+Because the Fourier basis is orthonormal, it preserves the signal energy:
+
+$$
+\|\mathbf{x}\|_2^2
+=\sum_{k=0}^{n-1}|s_k|^2.
+$$
+
+```{ojs}
+//| echo: false
+md`The full transform has ${analysisSize.toLocaleString()} complex coefficients.
+Because the signal is real, the one-sided representation groups them into
+${fourier.stats.bins.toLocaleString()} nonnegative-frequency bins. Counting
+each interior bin together with its conjugate partner, the largest
+**${fourier.stats.energy90} bins contain 90%** of the signal energy,
+**${fourier.stats.energy95} contain 95%**, and
+**${fourier.stats.energy99} contain 99%**.`
+```
+
+Almost every coefficient is technically nonzero, but most carry very little
+energy. The note changes slightly over time, the analysis window has finite
+edges, and the recording contains breath and background noise.
+
+No coefficient has yet been removed: the Fourier transform is still a
+reversible change of coordinates. This pattern---many small coefficients and
+a few important ones---is what the next section will call a compressible
+representation. We can then ask what happens when we retain only the $r$
+largest coefficients.
+
+## Sparse representations and approximation
+
+A coefficient vector is **exactly sparse** when only a few of its entries are
+nonzero. For example, a $q$-sparse vector satisfies
+
+$$
+\#\{k:s_k\ne0\}\le q.
+$$
+
+The flute coefficients are not exactly sparse. Almost all are nonzero, but
+their magnitudes fall away quickly enough that a small subset captures most of
+the signal energy. Such a representation is called **compressible**.
+
+To approximate the real signal, select the $r$ largest nonnegative-frequency
+bins. Let $S_r$ contain the corresponding full coefficient indices. Selecting
+an interior bin $k$ places both $k$ and its conjugate partner $n-k$ in $S_r$;
+the DC and Nyquist bins each contribute only one index. Replace every
+coefficient outside this set with zero:
+
+$$
+\tilde{s}_k=
+\begin{cases}
+s_k, & k\in S_r, \\
+0, & k\notin S_r.
+\end{cases}
+$$
+
+The approximation is reconstructed from this shortened coefficient vector:
+
+$$
+\hat{\mathbf{x}}
+=\Psi_F\tilde{\mathbf{s}}
+=\sum_{k\in S_r}s_k\boldsymbol{\psi}_k.
+$$
+
+Thus, $r$ counts frequency bins rather than individual complex coefficients.
+We rank each conjugate pair by its combined energy and always retain or discard
+the pair together, so the reconstruction remains real.
+
+Because the Fourier basis is orthonormal, the reconstruction error is exactly
+the energy in the discarded coefficients:
+
+$$
+\|\mathbf{x}-\hat{\mathbf{x}}\|_2^2
+=\sum_{k\notin S_r}|s_k|^2.
+$$
+
+It follows that retaining the largest bins gives the best approximation
+obtainable from $r$ nonnegative-frequency bins in this basis: no other choice
+of $r$ bins discards less energy.
+
+Move the slider to change the number of retained frequency bins. The first
+plot emphasizes the coefficients that remain; the second compares the
+resulting reconstruction with the original waveform.
+
+```{ojs}
+//| echo: false
+viewof retainedCount = Inputs.range([1, 128], {
+  label: "retained frequency bins r",
+  value: 17,
+  step: 1,
+})
+```
+
+```{ojs}
+//| echo: false
+approximation = {
+  const retained = fourier.rankedCoefficients.slice(0, retainedCount)
+  const retainedBins = new Set(retained.map((d) => d.k))
+  const totalEnergy = d3.sum(fourier.rankedCoefficients, (d) => d.energy)
+  const retainedEnergy = d3.sum(retained, (d) => d.energy)
+  const scale = 1 / Math.sqrt(analysisSize)
+
+  const reconstructed = analysisWindow.map((d, j) => {
+    let amplitude = 0
+    for (const coefficient of retained) {
+      const phase = 2 * Math.PI * coefficient.k * j / analysisSize
+      const value = coefficient.re * Math.cos(phase)
+        - coefficient.im * Math.sin(phase)
+      const paired = coefficient.k > 0 &&
+        coefficient.k < analysisSize / 2
+      amplitude += (paired ? 2 : 1) * value
+    }
+    return { time: d.time, original: d.amplitude, approximation: scale * amplitude }
+  })
+
+  const first = Math.floor((analysisSize - 160) / 2)
+  const waveform = reconstructed
+    .slice(first, first + 160)
+    .flatMap((d) => [
+      { time: d.time, amplitude: d.original, series: "original" },
+      { time: d.time, amplitude: d.approximation, series: "approximation" },
+    ])
+
+  const energyFraction = retainedEnergy / totalEnergy
+  return {
+    retainedSpectrum: fourier.spectrum.filter((d) => retainedBins.has(d.k)),
+    waveform,
+    energyFraction,
+    relativeError: Math.sqrt(Math.max(0, 1 - energyFraction)),
+  }
+}
+```
+
+```{ojs}
+Plot.plot({
+  height: 380,
+  subtitle: `Retained Fourier magnitudes (r = ${retainedCount})`,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "frequency (Hz)", domain: [0, 3000], grid: true },
+  y: {
+    label: "normalized |sₖ|",
+    domain: [0, 1.05],
+    grid: true,
+  },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.ruleX(fourier.spectrum, {
+      x: "frequency",
+      y1: 0,
+      y2: "relativeMagnitude",
+      strokeOpacity: 0.12,
+    }),
+    Plot.ruleX(approximation.retainedSpectrum, {
+      x: "frequency",
+      y1: 0,
+      y2: "relativeMagnitude",
+      strokeWidth: 1.5,
+    }),
+  ],
+})
+```
+
+```{ojs}
+Plot.plot({
+  height: 380,
+  subtitle: `Original and ${retainedCount}-bin reconstruction`,
+  style: { background: "transparent", fontSize: "14px" },
+  x: { label: "time (ms)", grid: true },
+  y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
+  color: { legend: true },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.line(approximation.waveform, {
+      x: "time", y: "amplitude", stroke: "series",
+    }),
+  ],
+})
+```
+
+```{ojs}
+//| echo: false
+md`With ${tex`r=${retainedCount}`}, the approximation retains
+**${(100 * approximation.energyFraction).toFixed(1)}%** of the signal energy.
+Its relative ${tex`L^2`} error is
+**${(100 * approximation.relativeError).toFixed(1)}%**.`
+```
+
+Using fewer components gives a shorter description, but it discards more
+energy and increases the reconstruction error. Increasing $r$ improves the
+approximation until, with every coefficient restored, $\hat{\mathbf{x}}$ is
+again exactly $\mathbf{x}$.
+
+The Fourier transform itself did not compress the signal; it exposed which
+coordinates mattered most. Thresholding created an approximation. A compact
+representation can then store only the retained frequency indices and complex
+values, while quantization can reduce their precision further.
+
+This works well for the flute because its oscillations align with a small
+number of Fourier basis vectors. The same procedure will be far less effective
+when the basis does not match the signal.
+
+## The basis must match the signal
+
+Sparsity is not a property of a signal alone. It belongs to the combination of
+a signal and a basis. To see this, keep the Fourier basis fixed and compare the
+flute with two other signals of the same length.
+
+The first is a **single-sample impulse**: one sample equals one and every other
+sample equals zero. The second is **white noise**, generated here from a fixed
+random seed so that the example is reproducible. We transform all three
+signals and rank their nonnegative-frequency bins by energy, just as we did for
+the flute.
+
+The following curves show how much signal energy is retained by the largest
+$r$ bins. As in the previous section, $S_r$ contains all coefficient indices
+represented by those bins, including their conjugate partners:
+
+$$
+E(r)
+=\frac{\displaystyle\sum_{k\in S_r}|s_k|^2}
+{\displaystyle\sum_k|s_k|^2}.
+$$
+
+A curve that rises quickly indicates a compressible representation. A curve
+that rises slowly means that many coefficients are needed.
+
+```{ojs}
+//| echo: false
+whiteNoise = {
+  let state = 2026
+  return d3.range(analysisSize).map(() => {
+    state = (Math.imul(1664525, state) + 1013904223) >>> 0
+    return state / 2 ** 32 - 0.5
+  })
+}
+```
+
+```{ojs}
+//| echo: false
+oneSidedEnergy = (values) => {
+  const n = values.length
+  return d3.range(n / 2 + 1).map((k) => {
+    let re = 0
+    let im = 0
+    for (let j = 0; j < n; ++j) {
+      const phase = 2 * Math.PI * k * j / n
+      re += values[j] * Math.cos(phase)
+      im -= values[j] * Math.sin(phase)
+    }
+    const paired = k > 0 && k < n / 2
+    return (paired ? 2 : 1) * (re ** 2 + im ** 2) / n
+  }).sort(d3.descending)
+}
+```
+
+```{ojs}
+//| echo: false
+energyComparison = {
+  const n = analysisSize
+  const signals = [
+    {
+      signal: "flute",
+      energy: fourier.rankedCoefficients.map((d) => d.energy),
+    },
+    {
+      signal: "single impulse",
+      energy: d3.range(n / 2 + 1)
+        .map((k) => (k > 0 && k < n / 2 ? 2 : 1) / n)
+        .sort(d3.descending),
+    },
+    { signal: "white noise", energy: oneSidedEnergy(whiteNoise) },
+  ]
+
+  const curves = signals.flatMap(({ signal, energy }) => {
+    const total = d3.sum(energy)
+    let retained = 0
+    return energy.map((value, i) => {
+      retained += value
+      return { signal, bins: i + 1, fraction: retained / total }
+    })
+  })
+
+  const binsFor = (energy, fraction) => {
+    const target = fraction * d3.sum(energy)
+    let retained = 0
+    for (let i = 0; i < energy.length; ++i) {
+      retained += energy[i]
+      if (retained >= target) return i + 1
+    }
+  }
+
+  return {
+    curves,
+    stats: Object.fromEntries(signals.map(({ signal, energy }) => [
+      signal,
+      { energy90: binsFor(energy, 0.9) },
+    ])),
+  }
+}
+```
+
+```{ojs}
+Plot.plot({
+  height: 400,
+  marginBottom: 48,
+  subtitle: "Energy retained by the largest frequency bins",
+  style: { background: "transparent", fontSize: "14px" },
+  x: {
+    label: "retained frequency bins r",
+    type: "log",
+    domain: [1, analysisSize / 2 + 1],
+    ticks: [1, 4, 16, 64, 256, 2049],
+    grid: true,
+  },
+  y: {
+    label: "retained energy",
+    domain: [0, 1],
+    tickFormat: (d) => d3.format(".0%")(d),
+    grid: true,
+  },
+  color: {
+    domain: ["flute", "single impulse", "white noise"],
+    range: ["#625bf6", "#d97706", "#64748b"],
+    legend: true,
+  },
+  marks: [
+    Plot.ruleY([0]),
+    Plot.ruleY([0.9], {
+      strokeDasharray: "4,4",
+      strokeOpacity: 0.5,
+    }),
+    Plot.line(energyComparison.curves, {
+      x: "bins",
+      y: "fraction",
+      stroke: "signal",
+      strokeWidth: 2,
+    }),
+  ],
+})
+```
+
+```{ojs}
+//| echo: false
+md`The flute reaches **90% of its energy with
+${energyComparison.stats.flute.energy90} frequency bins**. The same threshold
+requires **${energyComparison.stats["white noise"].energy90.toLocaleString()}
+bins for the noise** and
+**${energyComparison.stats["single impulse"].energy90.toLocaleString()} bins
+for the impulse**.`
+```
+
+The flute curve rises quickly because the sustained note is approximately
+periodic and dominated by a few harmonically related oscillations. Those
+oscillations resemble a small number of the Fourier basis vectors, so most of
+the energy collects in their coordinates.
+
+The impulse reveals the importance of the basis particularly clearly. In the
+standard basis it is exactly sparse: it is one standard basis vector. In the
+Fourier basis, however, every frequency is needed to place that energy at one
+precise instant. Its Fourier magnitudes are equal, apart from the grouping of
+conjugate pairs, so discarding frequencies spreads the impulse out in time.
+
+White noise also has no small set of dominant Fourier coordinates. Its rapid,
+irregular changes distribute energy broadly across the frequency basis. A
+different realization would move the individual coefficients around, but the
+overall lack of concentration would remain.
+
+Changing basis therefore does not automatically make a signal compressible.
+The chosen basis must reflect structure that the signal actually contains.
+Fourier waves are a useful shared vocabulary for oscillatory signals, but they
+are not a universally sparse vocabulary.
+
+We could choose a separate basis tailored to each signal, but then the basis
+itself would also have to be stored or communicated. In practice, a basis may
+be fixed in advance, as the Fourier basis is here, or learned once from a
+collection of related signals and reused. That second possibility leads to
+methods that use data to discover useful directions.
+
+## Conclusion
+
+The article followed two closely related equations:
+
+$$
+\mathbf{x}=\Psi\mathbf{s},
+\qquad
+\hat{\mathbf{x}}=\Psi\tilde{\mathbf{s}}.
+$$
+
+Sampling first turned the flute signal $x(t)$ into a vector $\mathbf{x}$.
+Choosing the Fourier basis then described that vector by the weights
+$\mathbf{s}$ of oscillating basis vectors. Because those waves match the
+structure of the sustained note, a small number of the weights contain most of
+its energy.
+
+The first equation is a reversible change of coordinates. The second replaces
+the smaller weights with zero and reconstructs an approximation. The transform
+itself did not compress anything; the shorter description comes from retaining
+and encoding only the important coefficients, usually with some additional
+loss of numerical precision. This is the basic pattern behind transform coding
+in audio, images, and video.
+
+The quality of that description ultimately depends on the basis. Fourier
+waves work well for the flute and poorly for an impulse or white noise. More
+generally, we can ask whether useful basis vectors can be learned from a
+collection of data rather than chosen in advance. The singular value
+decomposition provides one answer to that question.
