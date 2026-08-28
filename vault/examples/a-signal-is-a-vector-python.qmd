@@ -1,0 +1,956 @@
+---
+title: A Signal is a Vector (Python)
+description: A published article rebuilt the Python-first way — NumPy, matplotlib, and ojs_define — kept as the worked record of what that route costs.
+tags:
+  - examples/computation
+  - examples/interactive
+  - ml/signal-processing
+publish: false
+format: html
+execute:
+  freeze: true
+  cache: true
+---
+
+::: {.callout-note}
+**This is a publishing fixture, not the note itself.** The note lives at
+[Signals as Vectors](articles/signals-as-vectors.qmd), written in pure Observable JS. This is
+the same prose and the same argument built the other way — NumPy computing at render time,
+matplotlib drawing the static figures, and only the arrays needed for interaction crossing into the
+browser through `ojs_define`. The two were written side by side to settle which engine this vault
+should use; Observable won, and this page is kept as the worked evidence. The
+[note at the foot](#what-this-engine-costs) is the part worth reading.
+:::
+
+A recording, a temperature trace, a row of pixels: measure any of them and you get a list of
+numbers. That list is a faithful description of the signal, but it is almost never an *economical*
+one. Change the coordinate system — measure the same signal against a different set of axes — and
+most of those numbers turn to zero. What is left is a short list that reconstructs the original to
+within rounding error.
+
+That is the whole trick behind image and audio compression, and it takes only one idea from linear
+algebra to see why it works.
+
+```{python}
+#| label: setup
+#| include: false
+import json
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+import knowledge_theme
+
+knowledge_theme.apply()
+
+N = 64
+SIGNAL = knowledge_theme.series(0)
+BASIS = knowledge_theme.series(2)
+ALT = knowledge_theme.series(1)
+EXTRA = knowledge_theme.series(3)
+KEPT = knowledge_theme.series(5)
+INK = knowledge_theme.tokens()["chart"]["ink"]
+
+
+def dct_basis(n):
+    """Orthonormal DCT-II synthesis matrix; column k is a cosine of rising frequency."""
+    i = np.arange(n)
+    k = np.arange(n)
+    Psi = np.cos(np.pi * (2 * i[:, None] + 1) * k[None, :] / (2 * n))
+    Psi[:, 0] *= np.sqrt(1 / n)
+    Psi[:, 1:] *= np.sqrt(2 / n)
+    return Psi
+
+
+def fourier_basis(n):
+    """Real orthonormal Fourier basis: DC, then cos/sin pairs, closing on Nyquist."""
+    t = np.arange(n) / n
+    columns = [np.ones(n) / np.sqrt(n)]
+    for k in range(1, n // 2):
+        columns.append(np.sqrt(2 / n) * np.cos(2 * np.pi * k * t))
+        columns.append(np.sqrt(2 / n) * np.sin(2 * np.pi * k * t))
+    columns.append(np.cos(np.pi * np.arange(n)) / np.sqrt(n))
+    return np.column_stack(columns)
+
+
+def build_signals(n):
+    t = np.arange(n) / n
+    cosines = (
+        0.5
+        + 4.0 * np.cos(2 * np.pi * 1 * t)
+        + 2.0 * np.cos(2 * np.pi * 3 * t)
+        + 1.2 * np.cos(2 * np.pi * 6 * t)
+    )
+    smooth = (
+        2.4 * np.sin(2 * np.pi * t)
+        + 1.3 * np.cos(2 * np.pi * 2 * t + 0.7)
+        + 2.0 * np.exp(-(((t - 0.34) / 0.11) ** 2))
+        + np.random.default_rng(7).normal(0, 0.22, n)
+    )
+    square = np.where((t > 0.18) & (t < 0.62), 1.8, -1.2)
+    noise = np.random.default_rng(11).normal(0, 1.5, n)
+    return {
+        "three cosines": cosines,
+        "smooth + noise": smooth,
+        "square wave": square,
+        "white noise": noise,
+    }
+
+
+def keep_top(s, r):
+    kept = np.zeros_like(s)
+    order = np.argsort(np.abs(s))[::-1][:r]
+    kept[order] = s[order]
+    return kept
+
+
+def coeffs_for_energy(s, frac=0.99):
+    energy = np.sort(np.asarray(s, np.float64) ** 2)[::-1]
+    total = energy.sum()
+    if total == 0:
+        return 0
+    return int(np.searchsorted(np.cumsum(energy) / total, frac) + 1)
+
+
+def rel_error(x, y):
+    denom = np.linalg.norm(x)
+    return 0.0 if denom == 0 else float(np.linalg.norm(x - y) / denom)
+
+
+def stem(ax, idx, vals, color, alpha=1.0, markersize=3.0):
+    markerline, stemline, baseline = ax.stem(idx, vals)
+    plt.setp(markerline, color=color, markersize=markersize, alpha=alpha)
+    plt.setp(stemline, color=color, linewidth=1.1, alpha=alpha)
+    plt.setp(baseline, color=INK, linewidth=0.8, alpha=0.35)
+
+
+def bare(ax):
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.grid(False)
+    for side in ("top", "right", "left", "bottom"):
+        ax.spines[side].set_visible(False)
+
+
+PSI = {"Fourier": fourier_basis(N), "DCT": dct_basis(N)}
+SIGNALS = build_signals(N)
+X0 = SIGNALS["three cosines"]
+```
+
+## 1. A signal is a vector
+
+Start with something concrete: a smooth, periodic trace, sampled at $n = 64$ evenly spaced instants.
+
+```{python}
+#| label: opener-plot
+#| echo: false
+t = np.arange(N) / N
+fig, ax = plt.subplots(figsize=(7.6, 2.2))
+ax.plot(t, X0, color=SIGNAL)
+ax.set(xlabel="time", ylabel="amplitude")
+plt.show()
+```
+
+Sampling turns that curve into 64 numbers. Nothing has been lost — the samples *are* the signal, as
+far as anything downstream is concerned — but the picture on the left is what we usually draw, and
+the one on the right is what the computer actually holds.
+
+```{python}
+#| label: three-views
+#| echo: false
+fig, (ax_stem, ax_strip) = plt.subplots(
+    1, 2, figsize=(7.6, 2.8), gridspec_kw={"width_ratios": [9, 1], "wspace": 0.35}
+)
+stem(ax_stem, np.arange(N), X0, SIGNAL)
+ax_stem.set(xlabel="sample index $i$", ylabel="$x_i$")
+peak = np.abs(X0).max()
+ax_strip.imshow(X0[:, None], cmap="RdBu_r", vmin=-peak, vmax=peak, aspect="auto")
+ax_strip.set_title(r"$\mathbf{x}$", fontsize=12)
+bare(ax_strip)
+plt.show()
+```
+
+Stack those samples into a column and the signal becomes a single vector:
+
+$$
+\mathbf{x} = \begin{bmatrix} x_1 \\ x_2 \\ \vdots \\ x_n \end{bmatrix} \in \mathbb{R}^{n}.
+$$
+
+This is the move worth pausing on. We are used to reading a signal as *64 things* — one value per
+instant. Linear algebra reads it as **one thing**: a single point in a 64-dimensional space, whose
+$i$-th coordinate happens to be the amplitude at time $i$. Every operation from here on acts on that
+one point.
+
+And if the signal is a point, then the 64 numbers are not the signal. They are the signal's
+*coordinates*, and coordinates depend on the axes you chose.
+
+## 2. Coordinates are a choice
+
+Drop to two dimensions, where the whole argument fits in one picture. Here is a vector
+$\mathbf{v}$, measured against two sets of axes: the standard ones, and a rotated pair you control.
+
+Every angle the slider can reach is computed in NumPy ahead of time and shipped to the browser as a
+table of frames, because nothing recomputes once the page is built.
+
+```{python}
+#| label: rotation-frames
+#| echo: false
+v2 = np.array([1.0, 1.6])
+degrees = np.arange(-90, 91)
+frames = []
+for deg in degrees:
+    th = np.deg2rad(deg)
+    e1 = np.array([np.cos(th), np.sin(th)])
+    e2 = np.array([-np.sin(th), np.cos(th)])
+    frames.append(
+        {
+            "deg": int(deg),
+            "e1": [round(float(c), 6) for c in e1],
+            "e2": [round(float(c), 6) for c in e2],
+            "coords": [round(float(v2 @ e1), 6), round(float(v2 @ e2), 6)],
+        }
+    )
+ojs_define(rotFrames=frames, rotVector=[float(v2[0]), float(v2[1])])
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Quarto's builtin `width` measures the Quarto frame, which is wider than the
+// column the text actually occupies inside the Quartz page, so a figure sized
+// from it overflows and gets a scrollbar. Measure the content element instead;
+// Generators.width also makes this reactive to a window resize.
+contentWidth = Generators.observe((notify) => {
+  const el = document.querySelector(".quarto-page .quarto-content") ?? document.body
+  const read = () => notify(el.getBoundingClientRect().width)
+  read()
+  const observer = new ResizeObserver(read)
+  observer.observe(el)
+  return () => observer.disconnect()
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+figW = Math.max(300, Math.min(contentWidth, 720))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Observable Plot needs literal colour strings, so the palette is re-read from
+// the page whenever the site's theme toggle fires.
+theme = Generators.observe((notify) => {
+  const read = () => {
+    const cs = getComputedStyle(document.documentElement)
+    const v = (k) => cs.getPropertyValue(k).trim()
+    return {
+      ink: v("--qmd-chart-ink") || "#797979",
+      series: [1, 2, 3, 4, 5, 6].map((i) => v(`--qmd-chart-series-${i}`)),
+    }
+  }
+  notify(read())
+  const onChange = () => notify(read())
+  document.addEventListener("themechange", onChange)
+  return () => document.removeEventListener("themechange", onChange)
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+col = ({
+  signal: theme.series[0],
+  basis: theme.series[2],
+  alt: theme.series[1],
+  extra: theme.series[3],
+  kept: theme.series[5],
+  muted: theme.ink,
+})
+```
+
+```{ojs}
+//| echo: false
+viewof rotDeg = Inputs.range([-90, 90], { value: 30, step: 1, label: "rotate the axes θ°", width: 360 })
+```
+
+```{ojs}
+//| echo: false
+rotFigure = {
+  const frame = rotFrames[Math.round(rotDeg) + 90]
+  const size = Math.min(400, figW)
+  const L = 2.3
+  const k = (size / 2 - 34) / L
+  const px = (a, b) => [size / 2 + a * k, size / 2 - b * k]
+  const seg = (p, q, style) =>
+    htl.svg`<line x1=${px(...p)[0]} y1=${px(...p)[1]} x2=${px(...q)[0]} y2=${px(...q)[1]} style=${style}/>`
+
+  const [e1, e2] = [frame.e1, frame.e2]
+  const [c1, c2] = frame.coords
+  const v = rotVector
+  const ink = "stroke:var(--qmd-chart-ink);stroke-width:1.2;opacity:.75"
+  const rot = "stroke:var(--qmd-chart-series-6);stroke-width:1.6"
+  const dash = "stroke:var(--qmd-chart-series-6);stroke-width:1;stroke-dasharray:4 4;opacity:.65"
+  const tip = px(v[0], v[1])
+
+  return htl.svg`<svg width=${size} height=${size} viewBox="0 0 ${size} ${size}" style="max-width:100%;overflow:visible">
+    ${seg([-L, 0], [L, 0], ink)}
+    ${seg([0, -L], [0, L], ink)}
+    ${seg([-e1[0] * L, -e1[1] * L], [e1[0] * L, e1[1] * L], rot)}
+    ${seg([-e2[0] * L, -e2[1] * L], [e2[0] * L, e2[1] * L], rot)}
+    ${seg(v, [c1 * e1[0], c1 * e1[1]], dash)}
+    ${seg(v, [c2 * e2[0], c2 * e2[1]], dash)}
+    ${seg([0, 0], v, "stroke:var(--qmd-chart-series-1);stroke-width:2.6;stroke-linecap:round")}
+    <circle cx=${tip[0]} cy=${tip[1]} r="4" style="fill:var(--qmd-chart-series-1)"/>
+    <text x=${px(e1[0] * L * 1.06, e1[1] * L * 1.06)[0]} y=${px(e1[0] * L * 1.06, e1[1] * L * 1.06)[1]}
+      style="font-size:13px;font-style:italic;fill:var(--qmd-chart-series-6)">e₁′</text>
+    <text x=${px(e2[0] * L * 1.06, e2[1] * L * 1.06)[0]} y=${px(e2[0] * L * 1.06, e2[1] * L * 1.06)[1]}
+      style="font-size:13px;font-style:italic;fill:var(--qmd-chart-series-6)">e₂′</text>
+    <text x=${tip[0] + 9} y=${tip[1] - 7}
+      style="font-size:13px;font-style:italic;font-weight:600;fill:var(--qmd-chart-series-1)">v</text>
+  </svg>`
+}
+```
+
+```{ojs}
+//| echo: false
+rotReadout = {
+  const frame = rotFrames[Math.round(rotDeg) + 90]
+  const [c1, c2] = frame.coords
+  const near = Math.abs(c2) < 0.04
+  const el = document.createElement("div")
+  const src = String.raw`\begin{bmatrix} ${rotVector[0].toFixed(2)} \\ ${rotVector[1].toFixed(2)} \end{bmatrix}
+    = \begin{bmatrix} ${frame.e1[0].toFixed(2)} & ${frame.e2[0].toFixed(2)} \\ ${frame.e1[1].toFixed(2)} & ${frame.e2[1].toFixed(2)} \end{bmatrix}
+      \begin{bmatrix} ${c1.toFixed(2)} \\ ${c2.toFixed(2)} \end{bmatrix}`
+  if (window.katex) window.katex.render(src, el, { throwOnError: false, displayMode: true })
+  else el.textContent = src
+  const note = htl.html`<div style="text-align:center;${near ? "color:var(--qmd-chart-series-6);font-weight:600" : "opacity:.7"}">
+    ${near ? "the second coordinate is ≈ 0 — one number now describes this vector" : "keep turning: at θ ≈ 58° the second coordinate vanishes"}</div>`
+  return htl.html`<div>${el}${note}</div>`
+}
+```
+
+Two things are happening here, and it is worth separating them.
+
+First, **the arrow never moves.** Turning the axes changes the numbers we write down, not the object
+we wrote them about. A vector exists before any coordinate system does; a basis is just the set of
+rulers we agreed to measure it with.
+
+Second — and this is the point of the whole page — **at one particular angle the second coordinate
+goes to zero.** Line the axes up with the arrow and it takes a single number to say where the arrow
+is, instead of two. The vector did not get simpler. Our description of it did.
+
+That is sparsity, and everything that follows is this same move, run in 64 dimensions instead of 2.
+
+## 3. The same move in $n$ dimensions
+
+Nothing above used the fact that there were two dimensions. Pick any **orthonormal basis** of
+$\mathbb{R}^n$ — unit vectors $\boldsymbol{\psi}_1, \dots, \boldsymbol{\psi}_n$ meeting at right
+angles — and stack them as the columns of a matrix $\Psi$. The same signal $\mathbf{x}$ then has a
+new coordinate vector $\mathbf{s}$:
+
+$$
+\mathbf{x}
+= \Psi\,\mathbf{s}
+= \underbrace{\begin{bmatrix} \big| & \big| & & \big| \\ \boldsymbol{\psi}_1 & \boldsymbol{\psi}_2 & \cdots & \boldsymbol{\psi}_n \\ \big| & \big| & & \big| \end{bmatrix}}_{\Psi}\,
+\underbrace{\begin{bmatrix} s_1 \\ s_2 \\ \vdots \\ s_n \end{bmatrix}}_{\mathbf{s}}
+= \sum_{k=1}^{n} s_k\, \boldsymbol{\psi}_k .
+$$
+
+Read the product column by column and the signal is a **weighted sum of basis vectors**, each scaled
+by its coordinate. Read it the other way and the coordinates come back out by a single transpose,
+because orthonormality means $\Psi^{\top}\Psi = I$:
+
+$$
+\mathbf{s} = \Psi^{\top}\mathbf{x}, \qquad \Psi^{\top} = \Psi^{-1} .
+$$
+
+So this is a **rotation**: exactly reversible, and lossless. Two consequences matter downstream.
+Nothing is thrown away by changing basis — every claim about compression later comes from what we
+*choose to discard*, never from the transform itself. And by Parseval's theorem the rotation
+preserves length, $\lVert\mathbf{x}\rVert = \lVert\mathbf{s}\rVert$, so "energy" means the same
+thing in every orthonormal basis. That is what makes it fair to rank coordinates by magnitude and
+call the big ones important.
+
+```{python}
+#| label: matrix-equation
+#| echo: false
+Psi_f = PSI["Fourier"]
+s0 = Psi_f.T @ X0
+fig, (ax_x, ax_p, ax_s) = plt.subplots(
+    1, 3, figsize=(6.0, 3.8), gridspec_kw={"width_ratios": [1, 9, 1], "wspace": 0.55}
+)
+for ax, matrix, title in (
+    (ax_x, X0[:, None], r"$\mathbf{x}$"),
+    (ax_p, Psi_f, r"$\Psi$"),
+    (ax_s, s0[:, None], r"$\mathbf{s}$"),
+):
+    lim = np.abs(matrix).max()
+    ax.imshow(matrix, cmap="RdBu_r", vmin=-lim, vmax=lim, aspect="auto")
+    ax.set_title(title, fontsize=13)
+    bare(ax)
+for x_pos, symbol in ((-0.10, "="), (1.06, r"$\times$")):
+    ax_p.text(x_pos, 0.5, symbol, transform=ax_p.transAxes, ha="center", va="center", fontsize=16)
+plt.show()
+```
+
+The middle panel is the Fourier basis for $n = 64$: each column is one basis vector, red positive,
+blue negative. On the left is the signal; on the right its coordinates in that basis. The right-hand
+strip is already the punchline — nearly all of it is the flat middle colour, meaning nearly all of
+it is zero — but we have not yet said what those columns are or why they are worth using.
+
+## 4. Bases of waves
+
+For signals that vary smoothly, the useful rotations use **waves of increasing frequency** as their
+axes.
+
+The **Fourier basis** writes a signal as a sum of complex exponentials,
+$\boldsymbol{\psi}_k \propto e^{2\pi i k t} = \cos(2\pi k t) + i \sin(2\pi k t)$. Split each
+exponential into its cosine and sine halves and you get a real orthonormal basis: a constant DC
+term, then a cosine/sine pair at each frequency.
+
+The **discrete cosine transform**, introduced by Nasir Ahmed in 1974, keeps only the cosines,
+
+$$
+\boldsymbol{\psi}_k(i) \;\propto\; \cos\!\Big(\tfrac{\pi\,(2i + 1)\,k}{2n}\Big),
+$$
+
+which corresponds to reflecting the signal evenly at its edges rather than wrapping it around. That
+one change avoids the artificial discontinuity a periodic basis imposes at the boundary, and it is
+why the DCT — not the DFT — sits inside JPEG, MPEG, and MP3.
+
+Here are the first six columns of each.
+
+```{python}
+#| label: basis-gallery
+#| echo: false
+cols = 6
+fig, axes = plt.subplots(2, cols, figsize=(7.6, 2.2), sharex=True, sharey=True)
+for k in range(cols):
+    axes[0, k].plot(PSI["Fourier"][:, k], color=BASIS, linewidth=1.4)
+    axes[1, k].plot(PSI["DCT"][:, k], color=BASIS, linewidth=1.4)
+    axes[0, k].set_title(rf"$\boldsymbol{{\psi}}_{{{k + 1}}}$", fontsize=10)
+axes[0, 0].set_ylabel("Fourier", fontsize=10)
+axes[1, 0].set_ylabel("DCT", fontsize=10)
+for ax in axes.ravel():
+    ax.axhline(0, color=INK, linewidth=0.6, alpha=0.5)
+    bare(ax)
+plt.show()
+```
+
+Both start with a flat column — the signal's mean — and wiggle faster from there. Neither is
+"correct"; they are two of infinitely many orthonormal bases, and the interesting question is which
+one a *particular* signal happens to line up with.
+
+## 5. What a single coefficient means
+
+Each coordinate is an inner product,
+
+$$
+s_k = \boldsymbol{\psi}_k^{\top}\mathbf{x} = \sum_{i=1}^{n} \psi_k(i)\, x_i ,
+$$
+
+which is a measure of **overlap**: multiply the signal by the wave sample-by-sample, then add up the
+result. Where the two agree in sign the product is positive; where they disagree it is negative. If
+the wave is genuinely present in the signal, the positives pile up and the sum is large. If it is
+not, the products scatter around zero and cancel.
+
+Both bases and all four signals cross into the browser here, because the reader is about to choose
+between them and a rendered page cannot go back to Python for more.
+
+```{python}
+#| label: signal-payload
+#| echo: false
+ojs_define(
+    psiCols={name: np.round(P.T, 6).tolist() for name, P in PSI.items()},
+    sigValues={name: np.round(v, 6).tolist() for name, v in SIGNALS.items()},
+    nSamples=N,
+)
+```
+
+```{ojs}
+//| echo: false
+viewof sigPick = Inputs.select(Object.keys(sigValues), { value: "three cosines", label: "signal" })
+```
+
+```{ojs}
+//| echo: false
+viewof basisPick = Inputs.radio(["Fourier", "DCT"], { value: "Fourier", label: "basis" })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+n = nSamples
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+x = sigValues[sigPick]
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// psiCols[name][k] is the k-th basis vector, already transposed in NumPy.
+Psi = psiCols[basisPick]
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+innerProduct = (a, b) => a.reduce((acc, v, i) => acc + v * b[i], 0)
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+s = Psi.map((psi) => innerProduct(psi, x))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+order = s.map((v, i) => i).sort((a, b) => Math.abs(s[b]) - Math.abs(s[a]))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+base = (opts) =>
+  Plot.plot({ style: { background: "transparent", fontSize: "12px" }, ...opts })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+lineMarks = (values, color, extra = {}) =>
+  Plot.line(values.map((v, i) => ({ i, v })), { x: "i", y: "v", stroke: color, strokeWidth: 1.9, ...extra })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+stemMarks = function (values, color, opacity = 1) {
+  const rows = values.map((v, i) => ({ i, v }))
+  return [
+    Plot.ruleY([0], { stroke: "currentColor", strokeOpacity: 0.35 }),
+    Plot.ruleX(rows, { x: "i", y1: 0, y2: "v", stroke: color, strokeOpacity: opacity, strokeWidth: 1.2 }),
+    Plot.dot(rows, { x: "i", y: "v", fill: color, fillOpacity: opacity, r: 2.4 }),
+  ]
+}
+```
+
+```{ojs}
+//| echo: false
+viewof projK = Inputs.range([1, 64], { value: 3, step: 1, label: "wave k", width: Math.min(420, figW) })
+```
+
+```{ojs}
+//| echo: false
+projFigure = {
+  const psi = Psi[projK - 1]
+  const product = x.map((v, i) => v * psi[i])
+  const mini = (marks, label) =>
+    base({
+      width: figW,
+      height: 110,
+      marginLeft: 52,
+      marginBottom: 18,
+      marginTop: 8,
+      x: { axis: null },
+      y: { label, grid: true },
+      marks,
+    })
+  const zero = Plot.ruleY([0], { stroke: "currentColor", strokeOpacity: 0.3 })
+  return htl.html`<div>
+    ${mini([zero, lineMarks(x, col.signal)], "signal x")}
+    ${mini([zero, lineMarks(psi, col.basis)], `wave ψ${projK}`)}
+    ${mini(
+      [
+        Plot.areaY(product.map((v, i) => ({ i, v })), { x: "i", y: "v", fill: col.kept, fillOpacity: 0.35 }),
+        zero,
+        lineMarks(product, col.kept, { strokeWidth: 1.4 }),
+      ],
+      "product"
+    )}
+  </div>`
+}
+```
+
+```{ojs}
+//| echo: false
+projSpectrum = {
+  const k = projK - 1
+  const here = [{ i: k, v: s[k] }]
+  return base({
+    width: figW,
+    height: 230,
+    marginLeft: 52,
+    marginBottom: 36,
+    x: { label: "coordinate k", domain: [-1, n] },
+    y: { label: "sₖ", grid: true },
+    marks: [
+      ...stemMarks(s.map((v, i) => (i === k ? 0 : v)), col.muted, 0.4),
+      Plot.ruleX(here, { x: "i", y1: 0, y2: "v", stroke: col.kept, strokeWidth: 2.4 }),
+      Plot.dot(here, { x: "i", y: "v", fill: col.kept, r: 4 }),
+      Plot.text(here, {
+        x: "i",
+        y: "v",
+        text: (d) => d.v.toFixed(2),
+        dy: s[k] >= 0 ? -12 : 14,
+        fill: col.kept,
+        fontSize: 12,
+      }),
+    ],
+  })
+}
+```
+
+The shaded area in the third panel *is* $s_k$ — its signed total, dropped into the spectrum below as
+the highlighted bar. Sweep the slider and watch the two behave in lockstep: at most values of $k$
+the product oscillates evenly about zero and the bar is a stub, and at a handful of frequencies the
+product sits mostly on one side and the bar shoots up.
+
+A spectrum is nothing more than this measurement repeated $n$ times, once per axis.
+
+## 6. Rebuilding the signal, one wave at a time
+
+Because $\Psi$ is a rotation, the coordinates are a complete recipe. Scale each wave by its
+coefficient and add:
+
+$$
+\mathbf{x} = \Psi\,\mathbf{s} = \sum_{k=1}^{n} s_k\, \boldsymbol{\psi}_k .
+$$
+
+Take the three largest terms of that sum, for the opening signal in the Fourier basis:
+
+```{python}
+#| label: sum-equation
+#| echo: false
+order0 = np.argsort(np.abs(s0))[::-1]
+terms = 3
+fig, axes = plt.subplots(1, 1 + terms, figsize=(7.6, 2.4), sharey=True, gridspec_kw={"wspace": 0.6})
+axes[0].plot(X0, color=SIGNAL, linewidth=1.6)
+axes[0].set_title(r"$\mathbf{x}$", fontsize=12)
+bare(axes[0])
+for j in range(terms):
+    k = order0[j]
+    axes[j + 1].plot(s0[k] * Psi_f[:, k], color=BASIS, linewidth=1.6)
+    axes[j + 1].set_title(rf"$s_{{{k + 1}}}\,\boldsymbol{{\psi}}_{{{k + 1}}}$", fontsize=12)
+    bare(axes[j + 1])
+    axes[j + 1].text(
+        -0.30, 0.5, "=" if j == 0 else "+", transform=axes[j + 1].transAxes,
+        ha="center", va="center", fontsize=16,
+    )
+axes[-1].text(1.22, 0.5, r"$+\ \cdots$", transform=axes[-1].transAxes, ha="center", va="center", fontsize=14)
+plt.show()
+```
+
+And here is the same sum accumulating: each panel adds the next-largest term.
+
+```{python}
+#| label: partial-sums
+#| echo: false
+steps = [1, 2, 4, 8]
+fig, axes = plt.subplots(1, len(steps), figsize=(7.6, 1.9), sharey=True)
+for ax, r in zip(axes, steps):
+    recon = Psi_f @ keep_top(s0, r)
+    ax.plot(X0, color=INK, linewidth=1.0, alpha=0.6)
+    ax.plot(recon, color=BASIS, linewidth=1.8)
+    ax.set_title(rf"$r = {r}$  ·  error {rel_error(X0, recon):.1%}", fontsize=10)
+    bare(ax)
+plt.show()
+```
+
+On the three-cosine signal in the Fourier basis, this is not an approximation that gets good — it is
+**exact** at $r = 4$, because that signal genuinely is four Fourier waves and nothing else. Section
+9 shows what happens to signals that are not so obliging.
+
+## 7. Sparsity, measured
+
+Sort the coefficient magnitudes largest-first and plot them on a log axis. This **decay curve** is
+the honest diagnostic — the same object as a scree plot in PCA, and it says how compressible a
+signal is in a given basis regardless of where the big coefficients happen to sit.
+
+```{python}
+#| label: decay-curves
+#| echo: false
+fig, ax = plt.subplots(figsize=(7.6, 2.8))
+for (label, coords), color in zip(
+    (("standard", X0), ("DCT", PSI["DCT"].T @ X0), ("Fourier", Psi_f.T @ X0)),
+    (SIGNAL, BASIS, KEPT),
+):
+    mags = np.sort(np.abs(coords))[::-1]
+    ax.plot(np.arange(1, N + 1), np.maximum(mags / mags.max(), 1e-6), color=color, label=label)
+ax.set(xlabel="rank (largest first)", ylabel=r"$|s_k| / \max$", yscale="log", ylim=(1e-6, 1.5))
+ax.legend()
+plt.show()
+```
+
+```{python}
+#| label: energy-counts
+#| echo: false
+from IPython.display import Markdown
+
+rows = [
+    ("standard", coeffs_for_energy(X0)),
+    ("DCT", coeffs_for_energy(PSI["DCT"].T @ X0)),
+    ("Fourier", coeffs_for_energy(Psi_f.T @ X0)),
+]
+Markdown(
+    "| basis | coordinates holding 99% of the energy |\n|---|---|\n"
+    + "\n".join(f"| {name} | {count} / {N} |" for name, count in rows)
+)
+```
+
+A curve that plunges means a short list suffices; a curve that stays flat means every coordinate is
+carrying its share and there is nothing to throw away.
+
+Note what the standard basis looks like on a smooth signal: essentially flat. All 64 samples matter,
+because in the time domain a smooth signal has no small numbers in it. The information was always
+compressible — it just was not *visible* as compressible until we rotated.
+
+## 8. Keeping the top $r$
+
+Zero out everything except the $r$ largest-magnitude coordinates to get $\mathbf{s}_r$, then rotate
+back:
+
+$$
+\hat{\mathbf{x}} = \Psi\,\mathbf{s}_r .
+$$
+
+Store $r$ values and $r$ indices instead of $n$ samples. Parseval is what makes this defensible:
+because the rotation preserves length, the error you introduce in the coefficient domain is exactly
+the error you get back in the signal domain, so discarding the smallest coefficients really is the
+best you can do for a given $r$.
+
+```{ojs}
+//| echo: false
+viewof keepR = Inputs.range([1, 64], { value: 4, step: 1, label: "terms kept r", width: Math.min(420, figW) })
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+keptState = {
+  const idx = new Set(order.slice(0, keepR))
+  const recon = new Array(n).fill(0)
+  let kept = 0
+  let total = 0
+  for (let k = 0; k < n; k++) {
+    total += s[k] * s[k]
+    if (!idx.has(k)) continue
+    kept += s[k] * s[k]
+    const psi = Psi[k]
+    for (let i = 0; i < n; i++) recon[i] += s[k] * psi[i]
+  }
+  let num = 0
+  let den = 0
+  for (let i = 0; i < n; i++) {
+    num += (x[i] - recon[i]) ** 2
+    den += x[i] ** 2
+  }
+  return { idx, recon, error: den === 0 ? 0 : Math.sqrt(num / den), energy: total === 0 ? 1 : kept / total }
+}
+```
+
+```{ojs}
+//| echo: false
+keepFigure = {
+  const half = figW >= 600 ? Math.floor((figW - 24) / 2) : figW
+  const sig = base({
+    width: half,
+    height: 250,
+    marginLeft: 48,
+    marginBottom: 36,
+    x: { label: "sample index i" },
+    y: { label: "value", grid: true },
+    marks: [
+      Plot.ruleY([0], { stroke: "currentColor", strokeOpacity: 0.3 }),
+      lineMarks(x, col.muted, { strokeWidth: 1.2, strokeOpacity: 0.65 }),
+      lineMarks(keptState.recon, col.basis, { strokeWidth: 2 }),
+    ],
+    caption: "grey: original · green: reconstruction",
+  })
+  const coef = base({
+    width: half,
+    height: 250,
+    marginLeft: 48,
+    marginBottom: 36,
+    x: { label: "coordinate k" },
+    y: { label: "sₖ", grid: true },
+    marks: [
+      ...stemMarks(s.map((v, i) => (keptState.idx.has(i) ? 0 : v)), col.muted, 0.35),
+      ...stemMarks(s.map((v, i) => (keptState.idx.has(i) ? v : 0)), col.kept),
+    ],
+    caption: `${basisPick} coordinates · kept in colour`,
+  })
+  return htl.html`<div style="display:flex;gap:1.1rem;flex-wrap:wrap;justify-content:center">${sig}${coef}</div>`
+}
+```
+
+```{ojs}
+//| echo: false
+keepStats = {
+  const cell = (value, label) => htl.html`<div style="min-width:9rem">
+    <div style="font-size:1.5rem;line-height:1.2;color:var(--dark)">${value}</div>
+    <div style="font-size:.8rem;opacity:.75;color:var(--darkgray)">${label}</div></div>`
+  return htl.html`<div style="display:flex;gap:2rem;flex-wrap:wrap;margin:1rem 0">
+    ${cell(`${keepR} / ${n}`, "terms kept")}
+    ${cell(`${(keptState.energy * 100).toFixed(2)}%`, "energy retained")}
+    ${cell(`${(keptState.error * 100).toFixed(2)}%`, "reconstruction error")}
+  </div>`
+}
+```
+
+Sweeping $r$ traces out a **rate–distortion curve**: how much fidelity you buy per coefficient
+stored. The gap between the two curves below is the entire practical argument for choosing one basis
+over another — drawn here in matplotlib, so it is fixed to the opening signal rather than following
+the picker above.
+
+```{python}
+#| label: rate-distortion
+#| echo: false
+fig, ax = plt.subplots(figsize=(7.6, 2.8))
+for (name, color) in (("Fourier", KEPT), ("DCT", BASIS)):
+    P = PSI[name]
+    coords = P.T @ X0
+    curve = [max(rel_error(X0, P @ keep_top(coords, r)), 1e-6) for r in range(1, N + 1)]
+    ax.plot(np.arange(1, N + 1), curve, color=color, label=name)
+ax.set(xlabel="terms kept $r$", ylabel="relative error", yscale="log", ylim=(1e-6, 1.5))
+ax.legend()
+plt.show()
+```
+
+## 9. When it does not work
+
+It is easy to come away thinking the DCT is a compression machine. It is not. Sparsity is a property
+of the **signal and basis together**, and a basis that suits one signal can be useless for another.
+
+Below are all four signals, each measured in the Fourier basis, on one set of axes.
+
+```{python}
+#| label: failure-curves
+#| echo: false
+fig, ax = plt.subplots(figsize=(7.6, 3.0))
+for (name, values), color in zip(SIGNALS.items(), (SIGNAL, BASIS, ALT, EXTRA)):
+    mags = np.sort(np.abs(Psi_f.T @ values))[::-1]
+    ax.plot(np.arange(1, N + 1), np.maximum(mags / mags.max(), 1e-6), color=color, label=name)
+ax.set(xlabel="rank (largest first)", ylabel=r"$|s_k| / \max$", yscale="log", ylim=(1e-6, 1.5))
+ax.legend()
+plt.show()
+```
+
+Three regimes, and they are worth naming because you will meet all three in real data.
+
+**Exactly sparse.** The three-cosine signal falls off a cliff: four coefficients, then numerical
+noise at $10^{-16}$. Rare in the wild, useful as a sanity check.
+
+**Compressible.** *Smooth + noise* is the realistic case. The curve drops steeply — that is the
+smooth part — and then flattens onto a floor set by the noise. You can compress the signal well, but
+not perfectly, and the flat tail tells you exactly where to stop: past that knee you are spending
+coefficients to store noise. Almost all natural signals look like this.
+
+**Incompressible.** White noise is flat in *every* orthonormal basis, and that is not an accident of
+the Fourier basis. Rotations preserve length, and isotropic noise has no preferred direction to be
+rotated onto, so no choice of axes concentrates it. The cost shows up in the numbers: keep the four
+largest Fourier coefficients of the three-cosine signal and the error is zero; keep the four largest
+of the noise and it is still 85%. Even half of all 64 coefficients leave 27% error. This is the
+counterexample that makes the rest of the page a claim rather than a tautology.
+
+The **square wave** sits in between and is instructive for a different reason: it is smooth almost
+everywhere, but its two discontinuities force every wave in the basis to contribute something to
+resolving the edge. Truncate anyway and you get Gibbs ringing around the jump. Edges are exactly
+what wavelets exist to handle, because a wavelet is localised in space as well as frequency.
+
+## 10. Where this goes
+
+Everything above is one lemma — *change the basis, then truncate* — and a surprising amount of
+practice is built on it.
+
+**Transform coding.** JPEG runs a DCT on 8×8 pixel blocks, quantises the coefficients, and entropy
+codes what survives. MP3 and AAC do the analogous thing in time-frequency, with the quantiser shaped
+by a psychoacoustic model of what you cannot hear. The transform is the cheap part; the interesting
+engineering is in choosing what to discard.
+
+**PCA and the SVD.** Fourier and the DCT are bases chosen *a priori*, on the assumption that natural
+signals are smooth. PCA drops the assumption and learns the basis from data instead: the principal
+components are the orthonormal directions that make the decay curve fall as fast as it possibly can
+for a given dataset. Same picture, same scree plot, different origin story for the axes.
+
+**Wavelets.** Fixed frequency bases fail at edges. Wavelets trade some frequency resolution for
+spatial localisation, which is why JPEG 2000 uses them and why they hold up on signals with sharp
+transitions.
+
+**Compressed sensing.** The strongest version of the idea. If a signal is sparse in *some* known
+basis, you can reconstruct it from far fewer measurements than the sampling theorem seems to demand
+— by solving for the sparsest coefficient vector consistent with what you measured. Sparsity stops
+being a compression trick and becomes a prior.
+
+## What this engine costs
+
+Read against [the pure Observable version](articles/signals-as-vectors.qmd), five
+differences stand out, and none of them are about the maths.
+
+**Static figures cannot follow the theme.** Every matplotlib panel on this page is rasterised once
+at render time, so its labels and axes are drawn in the neutral grey the token file picks to clear
+3:1 contrast against *both* page backgrounds — 4.11:1 on each, the ceiling for any single colour
+against that pair. The Observable figures on the sibling page draw their axis text from live CSS
+variables instead, so each theme gets its own full-contrast ink rather than the compromise. The
+series palette is shared, so the coloured marks agree; it is the type that diverges.
+
+**Interaction has to be paid for in advance.** The rotation demo above ships 181 precomputed frames
+because the angle slider has 181 stops; there is no Python left at read time to compute a 182nd. The
+vector itself is fixed, where the pure-JS version lets you drag it, because a draggable vector would
+mean precomputing a two-dimensional grid of positions instead of a list.
+
+**The payload grows with the interaction surface.** Letting the reader switch basis and signal means
+`ojs_define` carries both 64×64 matrices and all four signals into the page — around 8,500 numbers
+of inline JSON. That is fine at $n = 64$ and untenable at $n = 4096$, which is the size a real audio
+frame would be.
+
+**Typography has to be sized for the column, not the figure.** A matplotlib figure is rasterised at
+whatever size it was declared and then scaled to fit the reading column, and its labels scale with
+it. A nine-inch wide small-multiple lands here at roughly half size, so the panel titles arrive at
+five points. There is no equivalent failure in Observable Plot, whose type is real text at real
+page size.
+
+**Freeze can serve a stale page.** These figures are cached in `vault/_freeze/`, and the cache holds
+the *executed document*, not just the Python outputs — including the source of the Observable cells
+alongside them. Editing an `{ojs}` cell on this page does not always invalidate it, so a corrected
+chart can keep rendering from the old code with a completely green build. That happened once while
+this page was being written; the fix is to delete the document's freeze directory and re-render.
+
+What Python buys in exchange is real: NumPy rather than hand-written loops, matplotlib's typography
+and layout for dense small-multiples, and direct reuse of the original notebook's code. The trade is
+worth making when the computation is genuinely heavy or genuinely hard to express in JavaScript. At
+$n = 64$, with a transform that is nine lines either way, it is not.
+
+## Appendix: the transforms
+
+```{python}
+#| label: appendix-source
+#| eval: false
+def dct_basis(n):
+    """Orthonormal DCT-II synthesis matrix; column k is a cosine of rising frequency."""
+    i = np.arange(n)
+    k = np.arange(n)
+    Psi = np.cos(np.pi * (2 * i[:, None] + 1) * k[None, :] / (2 * n))
+    Psi[:, 0] *= np.sqrt(1 / n)
+    Psi[:, 1:] *= np.sqrt(2 / n)
+    return Psi
+
+
+def fourier_basis(n):
+    """Real orthonormal Fourier basis: DC, then cos/sin pairs, closing on Nyquist."""
+    t = np.arange(n) / n
+    columns = [np.ones(n) / np.sqrt(n)]
+    for k in range(1, n // 2):
+        columns.append(np.sqrt(2 / n) * np.cos(2 * np.pi * k * t))
+        columns.append(np.sqrt(2 / n) * np.sin(2 * np.pi * k * t))
+    columns.append(np.cos(np.pi * np.arange(n)) / np.sqrt(n))
+    return np.column_stack(columns)
+```

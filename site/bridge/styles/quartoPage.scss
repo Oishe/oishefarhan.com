@@ -31,6 +31,22 @@
       margin: 1.5rem 0;
     }
 
+    // `echo: false` and `output: false` are markup decisions, not omissions:
+    // pandoc still emits the cell and its source, tagged `.hidden`, and relies
+    // on the stylesheet to keep them out of the page. Quarto's own CSS carries
+    // that rule, but `minimal: true` drops it and the Quartz shell has no
+    // equivalent, so without this every suppressed cell prints its source.
+    .cell.hidden,
+    .cell-code.hidden,
+    .cell-output.hidden,
+    // `code-fold: true` wraps the source in <details class="code-fold">, and a
+    // suppressed cell gets a *visible* .cell containing a hidden <details>.
+    // The .cell.hidden rule above does not reach it, so without this line every
+    // echo: false cell grows an empty disclosure triangle.
+    details.code-fold.hidden {
+      display: none;
+    }
+
     // Quartz styles `pre` for its own fenced blocks; pandoc's wrapper markup
     // sits one level deeper, so the same border and radius are restated here
     // rather than inherited.
@@ -149,6 +165,51 @@
       opacity: 1;
     }
 
+    // The disclosure for `code-fold: true`. It wraps .code-copy-outer-scaffold,
+    // so the copy button above keeps working unchanged. Quarto draws the marker
+    // with Bootstrap Icons, which `minimal: true` never loads, so it is drawn
+    // here -- the same approach .code-copy-button takes.
+    details.code-fold {
+      margin: 0;
+
+      > summary {
+        color: var(--gray);
+        cursor: pointer;
+        font-family: var(--codeFont);
+        font-size: 0.8rem;
+        list-style: none;
+        padding: 0.2rem 0;
+        transition: color 0.2s ease;
+        user-select: none;
+
+        &::-webkit-details-marker {
+          display: none;
+        }
+
+        // A triangle that points right when closed and down when open, so the
+        // control reads as a disclosure without a glyph font.
+        &::before {
+          content: "";
+          border-left: 0.35rem solid currentColor;
+          border-top: 0.25rem solid transparent;
+          border-bottom: 0.25rem solid transparent;
+          display: inline-block;
+          margin-right: 0.4rem;
+          transition: transform 0.15s ease;
+          vertical-align: baseline;
+        }
+
+        &:hover,
+        &:focus-visible {
+          color: var(--secondary);
+        }
+      }
+
+      &[open] > summary::before {
+        transform: rotate(90deg);
+      }
+    }
+
     // -----------------------------------------------------------------------
     // Tables. Quartz uses a horizontal rule per row rather than a full grid;
     // pandoc and pandas both emit their own table markup that never reaches it.
@@ -212,6 +273,11 @@
       text-align: center;
     }
 
+    // Quarto wraps display math in .math.display; MathJax's SVG runtime then
+    // replaces the TeX inside it with <mjx-container display="true">. The
+    // wrapper carries the scroll so a wide equation scrolls rather than
+    // widening the page, and mjx-container gets the same treatment for the
+    // build-time output rehype-mathjax emits on the Markdown side.
     .math.display {
       display: block;
       margin: 1.25rem 0;
@@ -219,11 +285,110 @@
       overflow-y: hidden;
       text-align: center;
 
-      .katex-display {
+      mjx-container[jax="SVG"][display="true"] {
         display: block;
         margin: 0;
         padding: 0.25rem 0;
       }
+    }
+
+    mjx-container[jax="SVG"][display="true"] {
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+
+    // MathJax colours glyphs with currentColor, so inline and display math
+    // inherit the body ink in both themes without a dark-mode rule.
+    mjx-container[jax="SVG"] svg {
+      max-width: 100%;
+    }
+
+    // -----------------------------------------------------------------------
+    // Column layouts. Quarto's `.column-page` / `.column-screen-inset` classes
+    // survive `minimal: true`, but the grid CSS that gives them meaning does
+    // not, so the breakout is implemented here.
+    //
+    // Deliberately NOT a named-column grid on .quarto-content. That is the
+    // textbook approach and it was measured against this article first: grid
+    // items do not collapse margins, so every gap between blocks doubled (16px
+    // to 32, 20 to 40, 24 to 48) and the page grew 3,276px, a 26% stretch. The
+    // vertical rhythm here is carried by collapsing margins, so the content
+    // stays in normal flow and only the breakout elements are widened.
+    //
+    // How far they widen is the shell's business, not the fragment's. A
+    // fragment cannot see the page hosting it, and deriving the room from the
+    // viewport assumes the reading column is centred in it -- measured against
+    // the layout of the day, that assumption overflowed by 162px, because the
+    // article fills its grid column exactly and the next thing along is the
+    // table of contents. So the shell publishes the room it actually has and
+    // the default is zero: a fragment dropped into a layout that has not opted
+    // in simply does not break out, which is the failure worth having.
+    // -----------------------------------------------------------------------
+
+    > .column-page,
+    > .column-body-outset,
+    > .column-screen-inset {
+      max-width: none;
+      width: auto;
+    }
+
+    > .column-page,
+    > .column-body-outset {
+      margin-inline: calc(-1 * var(--qmd-breakout-page, 0px));
+    }
+
+    > .column-screen-inset {
+      margin-inline: calc(-1 * var(--qmd-breakout-screen, 0px));
+    }
+
+    // Quarto puts margin content in the right margin, which on this site is
+    // already spoken for by the table of contents. Rather than fight for that
+    // space or suppress the rail, margin content reads as an inset aside at
+    // reading width -- it keeps its aside-ness and degrades gracefully at every
+    // width, which a real sidenote would not.
+    > .column-margin {
+      border-left: 2px solid var(--lightgray);
+      color: var(--gray);
+      font-size: 0.9rem;
+      margin: 1.5rem 0;
+      padding-left: 1rem;
+
+      > div > :first-child {
+        margin-top: 0;
+      }
+
+      > div > :last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Cross-references. `@fig-`, `@tbl-`, `@sec-` and the numbering that goes
+    // with them are pandoc filters, so unlike callouts they survive
+    // `minimal: true` intact. Only the link treatment is missing; this matches
+    // the internal-link styling Quartz gives a wikilink so a reference reads
+    // the same in a .qmd as in a .md.
+    // -----------------------------------------------------------------------
+
+    a.quarto-xref {
+      background-color: var(--highlight);
+      border-radius: 5px;
+      color: var(--secondary);
+      font-weight: 600;
+      padding: 0 0.1rem;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--tertiary);
+      }
+    }
+
+    // A referenced float is wrapped in .quarto-float carrying the anchor id.
+    // Landing on it from a cross-reference should not leave the caption jammed
+    // against the navbar.
+    .quarto-float {
+      scroll-margin-top: 4rem;
     }
 
     // -----------------------------------------------------------------------

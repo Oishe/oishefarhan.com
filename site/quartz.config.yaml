@@ -1,6 +1,7 @@
 # yaml-language-server: $schema=./quartz/plugins/quartz-plugins.schema.json
 configuration:
-  pageTitle: Knowledge Garden
+  # The <title>, the OG title, and SiteNav's wordmark fallback.
+  pageTitle: Oishe Farhan
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
@@ -26,25 +27,25 @@ configuration:
       code: IBM Plex Mono
     colors:
       lightMode:
-        light: "#faf8f8"
-        lightgray: "#e5e5e5"
-        gray: "#b8b8b8"
-        darkgray: "#4e4e4e"
-        dark: "#2b2b2b"
-        secondary: "#284b63"
-        tertiary: "#84a59d"
-        highlight: "rgba(143, 159, 169, 0.15)"
-        textHighlight: "#fff23688"
+        light: "#eff1f5"
+        lightgray: "#ccd0da"
+        gray: "#9ca0b0"
+        darkgray: "#4c4f69"
+        dark: "#3c3f58"
+        secondary: "#1a5ee0"
+        tertiary: "#106e74"
+        highlight: "rgba(124, 127, 147, 0.15)"
+        textHighlight: "#df8e1d55"
       darkMode:
-        light: "#161618"
-        lightgray: "#393639"
-        gray: "#646464"
-        darkgray: "#d4d4d4"
-        dark: "#ebebec"
-        secondary: "#7b97aa"
-        tertiary: "#84a59d"
-        highlight: "rgba(143, 159, 169, 0.15)"
-        textHighlight: "#b3aa0288"
+        light: "#1e1e2e"
+        lightgray: "#313244"
+        gray: "#6c7086"
+        darkgray: "#cdd6f4"
+        dark: "#e6eaf7"
+        secondary: "#89b4fa"
+        tertiary: "#94e2d5"
+        highlight: "rgba(147, 153, 178, 0.18)"
+        textHighlight: "#f9e2af55"
   # <<< design tokens: theme (generated) <<<
 plugins:
   - source: "@quartz-community/created-modified-date"
@@ -59,11 +60,15 @@ plugins:
     order: 10
   - source: "@quartz-community/syntax-highlighting"
     enabled: true
+    # >>> design tokens: syntax highlighting (generated) >>>
+    # Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts.
+    # Edit that file and run `npm run design-tokens`; do not edit this one.
     options:
       theme:
-        light: github-light
-        dark: github-dark
+        light: catppuccin-latte
+        dark: catppuccin-mocha
       keepBackground: false
+    # <<< design tokens: syntax highlighting (generated) <<<
     order: 20
   - source: "@quartz-community/obsidian-flavored-markdown"
     enabled: true
@@ -101,7 +106,15 @@ plugins:
   - source: "@quartz-community/latex"
     enabled: true
     options:
-      renderEngine: katex
+      # MathJax, not KaTeX, so both renderers produce the same glyphs: this uses
+      # rehype-mathjax/svg, and vault/_quarto.yml loads MathJax's own SVG
+      # runtime, which is the same renderer emitting the same
+      # <mjx-container jax="SVG"> paths. It is also the cheaper option here --
+      # rehype-mathjax renders at build time, so a .md page ships no math JS at
+      # all, and the plugin's externalResources() has no mathjax case, which
+      # drops the sitewide katex@0.16.11 stylesheet and copy-tex.min.js.
+      # The one loss is copy-as-LaTeX on .md pages.
+      renderEngine: mathjax
     order: 80
   - source: "@quartz-community/citations"
     enabled: true
@@ -109,8 +122,15 @@ plugins:
       bibliographyFile: ./content/bibliography.bib
       linkCitations: true
     order: 85
+  # Off. It turns every newline in the source into a <br>, which matches
+  # Obsidian's editor but not what a published paragraph should do: prose here
+  # is wrapped at about 95 characters, so each line ended where the author's
+  # editor wrapped it and then wrapped again at the reading measure, leaving
+  # visibly ragged paragraphs -- worst at mobile widths. Turn it back on only if
+  # a document actually depends on single-newline breaks; the fix there is a
+  # trailing double-space, which is standard Markdown and stays local.
   - source: "@quartz-community/hard-line-breaks"
-    enabled: true
+    enabled: false
     order: 90
   - source: "@quartz-community/ox-hugo"
     enabled: false
@@ -128,11 +148,6 @@ plugins:
       header: Schibsted Grotesk
       code: IBM Plex Mono
   # <<< design tokens: fonts (generated) <<<
-  - source: "@quartz-themes/core"
-    enabled: true
-    options:
-      theme: default
-      mode: both
   - source: "@quartz-community/remove-draft"
     enabled: true
   # Layer 2 of the privacy boundary (section 22.1). Publication prep is the
@@ -176,31 +191,28 @@ plugins:
     enabled: true
   - source: "@quartz-community/folder-page"
     enabled: true
+    options:
+      # "1 item under this folder." is a file-manager sentence, and it is the
+      # first thing under the section blurb. The listing itself stays.
+      showFolderCount: false
   - source: "@quartz-community/tag-page"
     enabled: true
+  # The site is a portfolio, not a wiki: a file tree, a graph and a backlinks
+  # panel all invite browsing sideways when the job is to read one article.
   - source: "@quartz-community/explorer"
-    enabled: true
-    layout:
-      position: left
-      priority: 50
+    enabled: false
+  # Also the only consumer of d3 and PIXI; disabling it is what lets
+  # site/quartz.ts stop preloading ~600 KB on every Quarto page.
   - source: "@quartz-community/graph"
-    enabled: true
-    layout:
-      position: right
-      priority: 10
+    enabled: false
   - source: "@quartz-community/search"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 20
       group: toolbar
-      groupOptions:
-        grow: true
   - source: "@quartz-community/backlinks"
-    enabled: true
-    layout:
-      position: right
-      priority: 50
+    enabled: false
   - source: "@quartz-community/article-title"
     enabled: true
     layout:
@@ -216,23 +228,20 @@ plugins:
     layout:
       position: beforeBody
       priority: 30
+  # Superseded by SiteNav (site/bridge/siteNav.tsx), which renders the wordmark
+  # and the section links together. Two components in the header slot would
+  # render two wordmarks.
   - source: "@quartz-community/page-title"
-    enabled: true
-    layout:
-      position: left
-      priority: 10
+    enabled: false
   - source: "@quartz-community/darkmode"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 30
       group: toolbar
+  # Reader mode hid the sidebars. There are no sidebars left to hide.
   - source: "@quartz-community/reader-mode"
-    enabled: true
-    layout:
-      position: left
-      priority: 35
-      group: toolbar
+    enabled: false
   - source: "@quartz-community/breadcrumbs"
     enabled: true
     layout:
@@ -258,18 +267,22 @@ plugins:
       priority: 50
   - source: "@quartz-community/recent-notes"
     enabled: false
+  # Padded the mobile left sidebar, which no longer exists.
   - source: "@quartz-community/spacer"
-    enabled: true
+    enabled: false
     options: {}
     order: 25
-    layout:
-      position: left
-      priority: 25
-      display: mobile-only
   - source: "@quartz-community/bases-page"
     enabled: true
     options: {}
     order: 50
+  # Do not disable this. Despite the name it is the site's frontmatter parser --
+  # its markdownPlugins step is what sets file.data.frontmatter -- and the
+  # properties table is only its component half. Turning it off leaves every
+  # document with no frontmatter, so @quartz-community/explicit-publish filters
+  # the entire vault out and the build emits a site with no pages and no error.
+  # The table is suppressed instead: no layout entry, so the component is never
+  # placed, plus hidePropertiesView as a second latch.
   - source: "@quartz-community/note-properties"
     enabled: true
     options:
@@ -279,14 +292,10 @@ plugins:
         - tags
         - aliases
       excludedProperties: []
-      hidePropertiesView: false
+      hidePropertiesView: true
       delimiters: ---
       language: yaml
     order: 5
-    layout:
-      position: beforeBody
-      priority: 15
-      display: all
   - source: "@quartz-community/obsidian-plugin-excalidraw"
     # Not installed; leaving this enabled makes every build warn and skip it.
     enabled: false
@@ -301,22 +310,35 @@ layout:
       priority: 35
       direction: row
       gap: 0.5rem
+  # `left` is cleared everywhere and `right` holds only the table of contents.
+  # Clearing a position matters even where the frame would not render it:
+  # collectComponents (dispatcher.ts:40-63) walks these arrays to gather CSS and
+  # afterDOMLoaded scripts, so a component left in an unrendered slot still ships
+  # a stylesheet and still runs a script against DOM that is not there.
   byPageType:
     "404":
       positions:
         beforeBody: []
         left: []
         right: []
-    content: {}
-    folder:
-      exclude:
-        - reader-mode
+    # QuartoPage declares `layout: "content"`, so this entry covers .md and .qmd
+    # alike.
+    content:
       positions:
+        left: []
+    folder:
+      positions:
+        left: []
         right: []
     tag:
-      exclude:
-        - reader-mode
       positions:
+        left: []
         right: []
-    canvas: {}
-    bases: {}
+    canvas:
+      positions:
+        left: []
+        right: []
+    bases:
+      positions:
+        left: []
+        right: []

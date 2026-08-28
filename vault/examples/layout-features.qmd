@@ -1,0 +1,55 @@
+---
+title: Layout Features
+description: A Quarto check for column layouts and cross-references, which survive minimal rendering.
+tags:
+  - examples/layout
+publish: false
+fixture: true
+format: html
+---
+
+This page checks the two Quarto *content* features that survive `minimal: true`
+with their classes intact: column layouts and cross-references. It deliberately
+contains no executable cells, so it carries no `_freeze/` entry and its prose
+can be edited freely — see the note on frozen fixtures in `AUTHORING.md`.
+
+Callouts are absent on purpose. Quarto only emits callout markup when Bootstrap
+is loaded, so under `minimal: true` a callout div degrades to a blockquote with
+its type discarded, and publication prep rejects the syntax outright.
+
+## Column layouts
+
+Body text sits at the reading measure, which is where prose belongs.
+
+::: {.column-page}
+This block carries `.column-page`. It should break out past the reading measure
+while staying inside the page chrome, and it should stop breaking out entirely
+once the window is too narrow to afford it.
+:::
+
+::: {.column-screen-inset}
+This block carries `.column-screen-inset` and should be wider still, bounded by
+the same rule: never wider than the room actually available.
+:::
+
+::: {.column-margin}
+Margin content renders as an inset aside at reading width rather than a true
+sidenote, because the right margin on this site belongs to the table of
+contents.
+:::
+
+## Cross-references {#sec-crossrefs}
+
+Cross-references are pure markup, so this page keeps them that way: no image
+file and no executable cell, which is what lets the fixture stay unfrozen.
+
+| basis | coefficients | energy retained |
+|---|---|---|
+| standard | 4,096 | 100% |
+| Fourier | 17 | 94.6% |
+
+: A table carrying a label, so pandoc numbers it. {#tbl-crossref}
+
+The reference in this sentence points at @tbl-crossref, and this one points at
+@sec-crossrefs. Pandoc numbers and links both without any help from Bootstrap,
+which is why cross-references survive `minimal: true` when callouts do not.

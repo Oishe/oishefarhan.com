@@ -12,12 +12,12 @@ set -eu
 # htmlwidgets is deliberately absent: it is an R framework with no Python path.
 # Shiny is absent because it requires a running server.
 
-interactive_page="site/public/examples/interactive-features.html"
-plotly_page="site/public/examples/computational-features.html"
+interactive_page="generated/fixture-site/examples/interactive-features.html"
+plotly_page="generated/fixture-site/examples/computational-features.html"
 
 # --- Observable JS ----------------------------------------------------------
 test -f "$interactive_page"
-test -f "site/public/examples/interactive-features_files/libs/quarto-ojs/quarto-ojs-runtime.js"
+test -f "generated/fixture-site/examples/interactive-features_files/libs/quarto-ojs/quarto-ojs-runtime.js"
 
 grep -Fq 'type="ojs-module-contents"' "$interactive_page"   # the cell source
 grep -Fq 'type="ojs-define"' "$interactive_page"            # the Python -> OJS data handoff
@@ -44,21 +44,36 @@ if grep -Fq 'requirejs' "$plotly_page"; then
   exit 1
 fi
 
-# --- Quartz's own libraries must win the race -------------------------------
-# d3 and PIXI are UMD. If an AMD loader is installed first, d3's anonymous
-# define() is swallowed, window.d3 is never set, Quartz's graph dies, and the
-# failed define can poison the require context badly enough that third-party
-# widget bundles stop resolving. Preloading them as classic scripts ahead of the
-# Quarto resources is what keeps both sides working.
+# Plotly nests a MathJax 2 loader in its cell output so LaTeX in chart labels
+# renders. It claims window.MathJax, which aborts the MathJax 3 runtime this
+# site loads for prose maths and leaves the page typeset by a third renderer in
+# markup no stylesheet here targets. It must not survive extraction.
 for page in "$interactive_page" "$plotly_page"; do
-  d3_at=$(grep -bo 'd3@7/dist/d3.min.js' "$page" | head -1 | cut -d: -f1)
-  if [ -z "$d3_at" ]; then
-    printf '%s\n' "Quartz's d3 preload is missing from $page" >&2
+  if grep -Eq 'mathjax/2\.[0-9]' "$page"; then
+    printf '%s\n' "Plotly's MathJax 2 loader survived extraction in $page; it breaks MathJax 3." >&2
     exit 1
   fi
-  loader_at=$(grep -bo 'requirejs@\|quarto-ojs-runtime.js\|cdn.plot.ly' "$page" | head -1 | cut -d: -f1)
-  if [ -n "$loader_at" ] && [ "$d3_at" -gt "$loader_at" ]; then
-    printf '%s\n' "d3 preload appears after the fragment's module loader in $page" >&2
+done
+
+# Prose maths is MathJax on both sides -- rehype-mathjax at build time for .md,
+# the pinned SVG runtime here for .qmd -- so KaTeX must be gone from the page
+# chrome. The Observable runtime bundles its own KaTeX for maths written inside
+# reactive cells; that is out of reach by construction and is not what this
+# checks, hence the CDN-reference match rather than a bare 'katex'.
+for page in "$interactive_page" "$plotly_page"; do
+  if grep -Fq 'cdn.jsdelivr.net/npm/katex' "$page"; then
+    printf '%s\n' "A KaTeX CDN reference survived in $page; maths should be MathJax on both sides." >&2
+    exit 1
+  fi
+done
+grep -Fq 'mathjax@3.2.2/es5/tex-svg-full.js' "$plotly_page"
+
+# The d3/PIXI preload race is gone with the graph: site/quartz.ts records why
+# those preloads existed and what re-enabling the graph would require. What is
+# worth asserting now is the opposite -- that nothing is paying for them.
+for page in "$interactive_page" "$plotly_page"; do
+  if grep -Fq 'd3@7/dist/d3.min.js' "$page" || grep -Fq 'pixi.js@8' "$page"; then
+    printf '%s\n' "A d3/PIXI preload is still shipping on $page; nothing on the site consumes either." >&2
     exit 1
   fi
 done
@@ -66,11 +81,13 @@ done
 # --- Both pages remain first-class Quartz pages -----------------------------
 for page in "$interactive_page" "$plotly_page"; do
   grep -Fq 'id="quartz-root"' "$page"
-  grep -Fq 'class="explorer nav-files-container"' "$page"
+  grep -Fq 'data-frame="default"' "$page"
+  grep -Fq 'class="page-header"' "$page"
+  grep -Fq 'class="site-nav"' "$page"
   grep -Fq 'class="quarto-content"' "$page"
 done
 
-grep -Fq '"examples/interactive-features"' site/public/static/contentIndex.json
-grep -Fq '"examples/computational-features"' site/public/static/contentIndex.json
+grep -Fq '"examples/interactive-features"' generated/fixture-site/static/contentIndex.json
+grep -Fq '"examples/computational-features"' generated/fixture-site/static/contentIndex.json
 
 printf '%s\n' 'Interactive component validation passed.'

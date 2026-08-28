@@ -4,6 +4,12 @@ import { pathToFileURL } from "node:url"
 
 const executableFence = /^\s*(`{3,}|~{3,})\s*\{[^}]+\}\s*$/
 
+// `{{< include ... >}}` pulls in a partial that Quarto resolves before the
+// engine runs, so the stub -- which is prose only -- has nothing to resolve it
+// with. Left in place the raw shortcode reaches contentIndex.json and shows up
+// as literal text in search results, descriptions and popovers.
+const includeShortcode = /^\s*\{\{<\s*include\b[^}]*>\}\}\s*$/
+
 // Bridge-only metadata (section 21): it identifies the stub to the Quartz page type
 // and records the authoritative source, and never appears in vault frontmatter.
 function stubMetadata(sourcePath: string): string {
@@ -34,6 +40,10 @@ export function stripExecutableCells(source: string): string {
       if (closingFence.test(line)) {
         closingFence = undefined
       }
+      continue
+    }
+
+    if (includeShortcode.test(line)) {
       continue
     }
 

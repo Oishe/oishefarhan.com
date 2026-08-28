@@ -1,0 +1,67 @@
+<!--
+Shared OJS preamble for charted articles. Include it once, near the top of the
+body, with an include shortcode naming this file relative to the article:
+`../_theme/_ojs-setup.qmd`. The shortcode is not spelled out here because
+Quarto resolves includes in a pre-engine text pass that does not respect HTML
+comments -- a literal one on this line would include this file into itself and
+recurse until the stack blows.
+
+It defines three reactive values every Observable Plot figure on this site
+needs: `contentWidth`, `figW`, and `col`. Deliberately no frontmatter -- an
+included file contributes body content only, and its own metadata would be
+ignored. The leading underscore keeps Quarto from rendering it as a page.
+-->
+
+```{ojs}
+//| echo: false
+//| output: false
+// Quarto's builtin `width` measures the Quarto frame, which is wider than the
+// column the text actually occupies, so a figure sized from it overflows and
+// gets a scrollbar. Measure the content element instead; Generators.observe
+// also makes this reactive to a window resize.
+//
+// The two selectors are the published and the preview DOM: Quartz hosts the
+// fragment inside .quarto-page .quarto-content, and `quarto preview` renders a
+// full Bootstrap page whose body is main#quarto-document-content. Falling
+// straight through to document.body would silently measure the viewport.
+contentWidth = Generators.observe((notify) => {
+  const el =
+    document.querySelector(".quarto-page .quarto-content") ??
+    document.querySelector("main#quarto-document-content") ??
+    document.body
+  const read = () => notify(el.getBoundingClientRect().width)
+  read()
+  const observer = new ResizeObserver(read)
+  observer.observe(el)
+  return () => observer.disconnect()
+})
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+figW = Math.max(300, Math.min(contentWidth, 720))
+```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Plot writes its marks as SVG attributes, which take a literal colour rather
+// than a var(...) reference, so the palette is read off the page once. The
+// chart tokens are shared by both themes, so there is nothing to re-read when
+// the theme toggle fires.
+//
+// Read from body, not documentElement: the preview bundles define --qmd-* on a
+// plain :root, but custom properties inherit, so body resolves under either
+// selector. No fallback colour -- the tokens are generated from tokens.yaml and
+// always present, and a silent fallback would hide the one failure worth
+// seeing.
+col = {
+  const cs = getComputedStyle(document.body)
+  const v = (k) => cs.getPropertyValue(k).trim()
+  return {
+    ink: v("--qmd-chart-ink"),
+    series: [1, 2, 3, 4, 5, 6].map((i) => v(`--qmd-chart-series-${i}`)),
+  }
+}
+```

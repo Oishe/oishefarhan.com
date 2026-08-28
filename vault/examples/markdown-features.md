@@ -6,7 +6,8 @@ aliases:
   - Stochastics
 tags:
   - examples/markdown
-publish: true
+publish: false
+fixture: true
 ---
 
 # Markdown and Obsidian Features

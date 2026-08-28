@@ -101,6 +101,38 @@ function isAmdShim(element: Element, amdIsLoadBearing: boolean): boolean {
   )
 }
 
+// Plotly ships a MathJax 2.x <script> inside its cell output so that LaTeX in
+// chart labels renders. It is nested in the figure div rather than sitting in
+// head/body, so the resource filter above never sees it -- and unlike the AMD
+// shim it is not merely redundant. Loading it sets window.MathJax to a v2
+// config object, and the MathJax 3 runtime this site loads for prose maths then
+// aborts on startup with "Cannot read properties of undefined (reading
+// 'loader')". MathJax 2 goes on to typeset the page itself in its own markup
+// (.MathJax_SVG), which no stylesheet here targets and whose glyphs do not match
+// the build-time output on the Markdown side. Dropping it leaves Plotly to
+// render normally -- it tests for window.MathJax and simply skips LaTeX in
+// labels, which nothing on this site uses.
+const plotlyMathJaxSource = /\/mathjax\/2\.[\d.]+\/MathJax\.js/
+const plotlyMathJaxConfig = /window\.MathJax\.Hub\.Config/
+
+function isPlotlyMathJax(element: Element): boolean {
+  if (element.tagName !== "script") return false
+  const source = resourcePath(element)
+  if (source) return plotlyMathJaxSource.test(source)
+  return plotlyMathJaxConfig.test(scriptText(element))
+}
+
+// The script sits inside content rather than among the hoisted resources, so
+// removing it means pruning the tree rather than filtering a list.
+function dropPlotlyMathJax(root: Root): void {
+  visitElements(root, (element) => {
+    if (!Array.isArray(element.children)) return
+    element.children = element.children.filter(
+      (child) => !(isElement(child) && isPlotlyMathJax(child)),
+    ) as ElementContent[]
+  })
+}
+
 function assertNoBootstrapResources(resources: Element[]): void {
   const bootstrapResource = resources.find((resource) =>
     resourcePath(resource)?.split(/[?#]/, 1)[0].split("/").includes("bootstrap"),
@@ -228,6 +260,7 @@ export function extractQuartoPage(
       },
     ],
   }
+  dropPlotlyMathJax(root)
   if (resolveLink) resolveSourceLinks(root, resolveLink)
   markLinksForFullPageNavigation(root)
   return root

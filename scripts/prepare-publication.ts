@@ -20,6 +20,7 @@ export type SourceDocument = {
   raw: string
   body: string
   publish: boolean
+  fixture: boolean
   title: string
   aliases: string[]
   tags: string[]
@@ -31,10 +32,23 @@ export type SourceDocument = {
 export type Problem = { file: string; message: string }
 
 export type PrepareOptions = {
+  /**
+   * Stage `fixture: true` documents as though they were published.
+   *
+   * The validators inspect real built pages -- a Quarto fragment hosted in a
+   * Quartz shell, a Python cell, a Jupyter widget -- and nothing in the
+   * portfolio exercises those paths. So the fixtures still have to be built;
+   * they just must not reach the public site. This flag is the seam: the
+   * production build leaves it off and the fixtures vanish, the validation
+   * build turns it on and gets its own output tree.
+   */
+  includeFixtures: boolean
   vaultDir: string
   contentDir: string
   linkMapPath: string
   quartoDir: string
+  /** Profile name `quarto render --profile <name>` activates. */
+  quartoProfile: string
   attachmentRoot: string
   bibliographySource: string
   bibliographyTarget: string
@@ -56,10 +70,12 @@ export type PrepareResult = {
 }
 
 export const defaultOptions: PrepareOptions = {
+  includeFixtures: false,
   vaultDir: "vault",
   contentDir: "generated/quartz-content",
   linkMapPath: "generated/link-map.json",
   quartoDir: "generated/quarto",
+  quartoProfile: "publish",
   attachmentRoot: "attachments",
   bibliographySource: "vault/references.bib",
   bibliographyTarget: "generated/quartz-content/bibliography.bib",
@@ -173,6 +189,24 @@ export async function collectFiles(root: string): Promise<string[]> {
   return found
 }
 
+/**
+ * Force `publish: true` on a staged copy.
+ *
+ * Staging already decided what belongs in this tree; the frontmatter flag is
+ * the vault's opinion, and for a fixture it says `false`. Quartz reads only the
+ * staged tree, and `@quartz-community/explicit-publish` would drop every
+ * fixture on sight. Rewriting keeps the staged tree's own invariant honest --
+ * everything here is published, within this build -- while the vault source
+ * keeps saying `publish: false`, which is what stops it reaching the site.
+ */
+export function markStagedAsPublished(contents: string): string {
+  const { frontmatter } = parseFrontmatter(contents)
+  if (!frontmatter) return contents
+  return /^publish:.*$/m.test(contents)
+    ? contents.replace(/^publish:.*$/m, "publish: true")
+    : contents.replace(/^---\n/, "---\npublish: true\n")
+}
+
 export function slugForSourcePath(sourcePath: string): string {
   return sourcePath.replace(/\.(md|qmd)$/, "")
 }
@@ -182,6 +216,7 @@ function readDocument(
   repoPath: string,
   raw: string,
   problems: Problem[],
+  includeFixtures = false,
 ): SourceDocument | undefined {
   const { frontmatter, body } = parseFrontmatter(raw)
   if (!frontmatter) {
@@ -198,6 +233,19 @@ function readDocument(
   const publish = frontmatter.publish
   if (publish !== undefined && typeof publish !== "boolean") {
     problems.push({ file: repoPath, message: "`publish` must be true or false" })
+    return undefined
+  }
+
+  const fixture = frontmatter.fixture
+  if (fixture !== undefined && typeof fixture !== "boolean") {
+    problems.push({ file: repoPath, message: "`fixture` must be true or false" })
+    return undefined
+  }
+  if (fixture === true && publish === true) {
+    problems.push({
+      file: repoPath,
+      message: "a `fixture` document must be `publish: false`; fixtures never reach the site",
+    })
     return undefined
   }
 
@@ -220,7 +268,8 @@ function readDocument(
     frontmatter,
     raw,
     body,
-    publish: publish === true,
+    publish: publish === true || (includeFixtures && fixture === true),
+    fixture: fixture === true,
     title: title.trim(),
     aliases,
     tags,
@@ -303,7 +352,16 @@ const quartoUnsupported: { pattern: RegExp; message: string }[] = [
   {
     pattern: /^\s*>\s*\[!\w+\]/m,
     message:
-      "Obsidian callout syntax renders as a plain blockquote from a .qmd; use a Quarto callout, e.g. ::: {.callout-note}",
+      "Obsidian callout syntax renders as a plain blockquote from a .qmd, keeping the [!note] marker as literal text. Quarto callouts are not an alternative here: Quarto only emits callout markup when Bootstrap is present, and this site renders a body fragment without it. Use a blockquote or a section heading",
+  },
+  {
+    // Not Obsidian syntax but the same failure mode: it looks supported and
+    // degrades silently. Quarto emits callout markup only when Bootstrap is
+    // present, and a published .qmd here is a body fragment without it, so the
+    // div collapses to a blockquote and the callout type is discarded.
+    pattern: /^\s*:::+\s*\{[^}]*\.callout-\w+/m,
+    message:
+      "Quarto callouts (::: {.callout-note}) need Bootstrap, which a published .qmd here does not load; the div degrades to a plain blockquote and the callout type is lost. Use a blockquote or a section heading",
   },
   {
     pattern: /==(?![\s=])[^=\n]+(?<![\s=])==/,
@@ -585,7 +643,10 @@ async function checkFreezeTree(
 
   const published = new Set(
     documents
-      .filter((document) => document.publish && document.sourceType === "quarto")
+      .filter(
+        (document) =>
+          (document.publish || document.fixture) && document.sourceType === "quarto",
+      )
       .map((document) => document.slug),
   )
 
@@ -624,7 +685,7 @@ export async function preparePublication(
     if (file.endsWith(".md") || file.endsWith(".qmd")) {
       const repoPath = `${options.vaultDir}/${file}`
       const raw = await readFile(path.join(options.vaultDir, file), "utf8")
-      const document = readDocument(file, repoPath, raw, problems)
+      const document = readDocument(file, repoPath, raw, problems, options.includeFixtures)
       if (document) {
         documents.push(document)
       }
@@ -722,11 +783,13 @@ export async function preparePublication(
     const source = path.join(options.vaultDir, document.sourcePath)
     const target = path.join(options.contentDir, `${document.slug}.md`)
     await mkdir(path.dirname(target), { recursive: true })
-    const contents = rewriteLinkTargets(
-      document.sourceType === "quarto"
-        ? generateQmdStub(document.raw, document.repoPath)
-        : document.raw,
-      publishedIndex,
+    const contents = markStagedAsPublished(
+      rewriteLinkTargets(
+        document.sourceType === "quarto"
+          ? generateQmdStub(document.raw, document.repoPath)
+          : document.raw,
+        publishedIndex,
+      ),
     )
     await writeFile(target, contents, "utf8")
     await carryTimestamps(source, target)
@@ -766,14 +829,25 @@ export async function preparePublication(
   // A null/empty render field can fall back to project discovery. An exclusion
   // target makes the zero-QMD case explicitly render nothing.
   const profileTargets = quartoTargets.length > 0 ? quartoTargets : ["!**/*"]
+  // The output directory travels with the profile: a fixture render must not
+  // write over the artifacts the production bridge reads.
+  const quartoOutputDir = path.posix.relative(
+    options.vaultDir,
+    options.quartoDir.split(path.sep).join(path.posix.sep),
+  )
   const quartoProfile = [
     "# Generated by scripts/prepare-publication.ts; do not edit.",
     "project:",
+    `  output-dir: ${JSON.stringify(quartoOutputDir)}`,
     "  render:",
     ...profileTargets.map((target) => `    - ${JSON.stringify(target)}`),
     "",
   ].join("\n")
-  await writeFile(path.join(options.vaultDir, "_quarto-publish.yml"), quartoProfile, "utf8")
+  await writeFile(
+    path.join(options.vaultDir, `_quarto-${options.quartoProfile}.yml`),
+    quartoProfile,
+    "utf8",
+  )
 
   return { documents, published, attachments: stagedAttachments, linkMap }
 }
@@ -787,8 +861,23 @@ async function main(): Promise<void> {
   // edit can reach the site with `prepare-publication --keep-quarto && site`
   // instead of a full Quarto re-render.
   const keepQuarto = process.argv.includes("--keep-quarto")
+  // --fixtures stages the validation fixtures alongside real content, into a
+  // separate tree. Only `npm run validate` passes it; the production build
+  // never does, so nothing under examples/ can reach the public site.
+  const includeFixtures = process.argv.includes("--fixtures")
+  const fixtureDirs = includeFixtures
+    ? {
+        contentDir: "generated/fixture-content",
+        linkMapPath: "generated/fixture-link-map.json",
+        quartoDir: "generated/fixture-quarto",
+        quartoProfile: "fixtures",
+        bibliographyTarget: "generated/fixture-content/bibliography.bib",
+      }
+    : {}
   try {
     const result = await preparePublication({
+      includeFixtures,
+      ...fixtureDirs,
       requireQuarto,
       clearQuartoOutput: !requireQuarto && !keepQuarto,
     })

@@ -13,6 +13,8 @@ export type Mode = "light" | "dark"
 export type DesignTokens = {
   colors: Record<Mode, Record<string, string>>
   typography: { header: string; body: string; code: string }
+  /** The shiki theme each mode was derived from, kept for provenance. */
+  syntaxThemes: Record<Mode, string>
   syntax: Record<Mode, Record<string, string>>
   chart: {
     grounds: Record<Mode, string>
@@ -29,19 +31,29 @@ export type GeneratedFile = { path: string; contents: string }
 
 export type GenerateOptions = {
   tokensPath: string
+  palettesDir: string
   quartzConfigPath: string
   quartoTokensScssPath: string
   vaultTokensJsonPath: string
   mplStylePath: string
+  quartoPreviewScssPath: Record<Mode, string>
 }
 
 export const defaultOptions: GenerateOptions = {
   tokensPath: "vault/_theme/tokens.yaml",
+  palettesDir: "vault/_theme/palettes",
   quartzConfigPath: "site/quartz.config.yaml",
   quartoTokensScssPath: "site/bridge/styles/quartoTokens.scss",
   vaultTokensJsonPath: "vault/_theme/knowledge_theme/tokens.json",
   mplStylePath: "vault/_theme/knowledge_theme/knowledge.mplstyle",
+  quartoPreviewScssPath: {
+    light: "vault/_theme/quarto-preview-light.scss",
+    dark: "vault/_theme/quarto-preview-dark.scss",
+  },
 }
+
+/** Reading measure, in px. Kept equal to --measure in the Quartz stylesheet. */
+const PREVIEW_BODY_WIDTH = "736px"
 
 const BANNER = "Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts."
 const EDIT_HINT = "Edit that file and run `npm run design-tokens`; do not edit this one."
@@ -86,6 +98,122 @@ export const SYNTAX_CLASSES: Record<string, string[]> = {
   error: ["al", "er", "wa"],
 }
 
+/**
+ * Where each semantic token comes from in a TextMate theme, most specific
+ * first. Pandoc names tokens by role and shiki colours them by scope, so this
+ * table is the join between the two vocabularies -- the one piece of the
+ * mapping that is a judgement call rather than a lookup.
+ *
+ * A theme that declares none of a token's scopes falls back to its own body
+ * text colour, which is what an editor shows for that token anyway. Catppuccin
+ * genuinely renders variables as plain text, for instance; that is the theme
+ * being faithful, not the resolver giving up.
+ */
+export const SYNTAX_SCOPES: Record<string, string[]> = {
+  keyword: ["keyword.control", "keyword"],
+  type: ["entity.name.type", "storage.type", "support.type"],
+  number: ["constant.numeric"],
+  string: ["string"],
+  comment: ["comment"],
+  function: ["entity.name.function", "support.function"],
+  variable: ["variable"],
+  builtin: ["support.function", "constant.language", "support"],
+  operator: ["keyword.operator"],
+  meta: ["meta.preprocessor", "entity.other.attribute-name"],
+  error: ["invalid.illegal", "invalid"],
+}
+
+type TextMateTheme = {
+  name?: string
+  colors?: Record<string, string>
+  tokenColors?: { scope?: string | string[]; settings?: { foreground?: string } }[]
+}
+
+/**
+ * TextMate scope matching: a rule applies when its scope is a dot-delimited
+ * prefix of the query, and the longest such prefix wins. Later rules win ties,
+ * matching how editors resolve a theme.
+ */
+function foregroundForScope(theme: TextMateTheme, query: string): string | null {
+  let best: string | null = null
+  let bestDepth = -1
+
+  for (const rule of theme.tokenColors ?? []) {
+    const foreground = rule.settings?.foreground
+    if (!foreground) continue
+    const scopes = Array.isArray(rule.scope) ? rule.scope : rule.scope ? [rule.scope] : []
+    for (const raw of scopes) {
+      const scope = raw.trim()
+      if (scope !== query && !query.startsWith(`${scope}.`)) continue
+      const depth = scope.split(".").length
+      if (depth >= bestDepth) {
+        best = foreground
+        bestDepth = depth
+      }
+    }
+  }
+
+  return best
+}
+
+const HEX = /^#[0-9a-fA-F]{6}$/
+
+/** Trim a #rrggbbaa to #rrggbb; theme UI colours sometimes carry alpha. */
+function opaque(hex: string): string | null {
+  const value = hex.trim()
+  if (HEX.test(value)) return value.toLowerCase()
+  if (/^#[0-9a-fA-F]{8}$/.test(value)) return value.slice(0, 7).toLowerCase()
+  return null
+}
+
+export function deriveSyntaxTokens(theme: TextMateTheme, where: string): Record<string, string> {
+  const foreground = opaque(theme.colors?.["editor.foreground"] ?? "")
+  if (!foreground) {
+    fail(`${where}: theme "${theme.name ?? "?"}" declares no usable editor.foreground`)
+  }
+
+  const resolved: Record<string, string> = {}
+  for (const [token, scopes] of Object.entries(SYNTAX_SCOPES)) {
+    let hex: string | null = null
+    for (const scope of scopes) {
+      const found = foregroundForScope(theme, scope)
+      if (found) {
+        hex = opaque(found)
+        if (hex) break
+      }
+    }
+    // Errors are the one token worth chasing outside the scope table: a theme
+    // that never highlights `invalid` still names an error colour for its UI,
+    // and stderr rendered in body text would read as ordinary output.
+    if (!hex && token === "error") {
+      for (const key of ["errorForeground", "editorError.foreground"]) {
+        const found = theme.colors?.[key]
+        if (found) {
+          hex = opaque(found)
+          if (hex) break
+        }
+      }
+    }
+    resolved[token] = hex ?? foreground
+  }
+
+  return resolved
+}
+
+/**
+ * Load a bundled shiki theme by name. The same themes are compiled into
+ * @quartz-community/syntax-highlighting, so naming one here and the same one in
+ * quartz.config.yaml is what keeps a Python cell in a .qmd and a fenced block
+ * in a .md reading identically.
+ */
+export async function loadSyntaxTheme(name: string, where: string): Promise<TextMateTheme> {
+  try {
+    return (await import(`@shikijs/themes/${name}`)).default as TextMateTheme
+  } catch {
+    fail(`${where}: "${name}" is not a bundled shiki theme name`)
+  }
+}
+
 function fail(message: string): never {
   throw new Error(`vault/_theme/tokens.yaml: ${message}`)
 }
@@ -113,25 +241,21 @@ function requireRecord(value: unknown, where: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-export function parseTokens(source: string): DesignTokens {
+export type ParsedTokens = {
+  palette: string
+  typography: DesignTokens["typography"]
+  chart: Omit<DesignTokens["chart"], "grounds">
+}
+
+export type Palette = {
+  colors: DesignTokens["colors"]
+  syntaxThemes: DesignTokens["syntaxThemes"]
+}
+
+export function parseTokens(source: string): ParsedTokens {
   const root = requireRecord(parseYaml(source), "root")
 
-  const colorsRoot = requireRecord(root.colors, "colors")
-  const colors = {} as DesignTokens["colors"]
-  for (const mode of ["light", "dark"] as const) {
-    const modeRecord = requireRecord(colorsRoot[mode], `colors.${mode}`)
-    const resolved: Record<string, string> = {}
-    for (const key of COLOR_KEYS) {
-      resolved[key] = requireString(modeRecord, key, `colors.${mode}`)
-    }
-    const unknown = Object.keys(modeRecord).filter(
-      (key) => !(COLOR_KEYS as readonly string[]).includes(key),
-    )
-    if (unknown.length > 0) {
-      fail(`colors.${mode} has keys Quartz does not consume: ${unknown.join(", ")}`)
-    }
-    colors[mode] = resolved
-  }
+  const palette = requireString(root, "palette", "root")
 
   const typographyRecord = requireRecord(root.typography, "typography")
   const typography = {
@@ -140,29 +264,18 @@ export function parseTokens(source: string): DesignTokens {
     code: requireString(typographyRecord, "code", "typography"),
   }
 
-  const syntaxRoot = requireRecord(root.syntax, "syntax")
-  const syntax = {} as DesignTokens["syntax"]
-  for (const mode of ["light", "dark"] as const) {
-    const modeRecord = requireRecord(syntaxRoot[mode], `syntax.${mode}`)
-    const resolved: Record<string, string> = {}
-    for (const token of Object.keys(SYNTAX_CLASSES)) {
-      resolved[token] = requireString(modeRecord, token, `syntax.${mode}`)
-    }
-    resolved satisfies Record<string, string>
-    syntax[mode] = resolved
-  }
 
   const chartRecord = requireRecord(root.chart, "chart")
   const series = chartRecord.series
   if (!Array.isArray(series) || series.length === 0) {
     fail("chart.series must be a non-empty list")
   }
-  const groundsRecord = requireRecord(chartRecord.grounds, "chart.grounds")
+  if (chartRecord.grounds !== undefined) {
+    fail(
+      "chart.grounds is derived from colors.*.light; remove it rather than keeping a second copy",
+    )
+  }
   const chart = {
-    grounds: {
-      light: requireString(groundsRecord, "light", "chart.grounds"),
-      dark: requireString(groundsRecord, "dark", "chart.grounds"),
-    },
     ink: requireString(chartRecord, "ink", "chart"),
     gridAlpha: requireNumber(chartRecord, "gridAlpha", "chart"),
     series: series.map((value, index) => {
@@ -180,7 +293,80 @@ export function parseTokens(source: string): DesignTokens {
     fail("chart.ink must be a #rrggbb colour")
   }
 
-  return { colors, typography, syntax, chart }
+  return { palette, typography, chart }
+}
+
+
+/**
+ * A palette file: the nine colour roles for both modes, plus the shiki theme
+ * each mode derives its syntax colours from.
+ *
+ * The two travel together on purpose. A page palette and a code palette that
+ * disagree is exactly the drift this indirection exists to prevent, and it is
+ * the drift that was already in the tree -- quartz.config.yaml named one GitHub
+ * variant while the hand-written syntax hexes came from another.
+ */
+export function parsePalette(source: string, where: string): Palette {
+  const root = requireRecord(parseYaml(source), where)
+
+  const colorsRoot = requireRecord(root.colors, `${where}.colors`)
+  const colors = {} as DesignTokens["colors"]
+  for (const mode of ["light", "dark"] as const) {
+    const modeRecord = requireRecord(colorsRoot[mode], `${where}.colors.${mode}`)
+    const resolved: Record<string, string> = {}
+    for (const key of COLOR_KEYS) {
+      resolved[key] = requireString(modeRecord, key, `${where}.colors.${mode}`)
+    }
+    const unknown = Object.keys(modeRecord).filter(
+      (key) => !(COLOR_KEYS as readonly string[]).includes(key),
+    )
+    if (unknown.length > 0) {
+      fail(`${where}.colors.${mode} has keys Quartz does not consume: ${unknown.join(", ")}`)
+    }
+    colors[mode] = resolved
+  }
+
+  const syntaxRoot = requireRecord(root.syntax, `${where}.syntax`)
+  const syntaxThemes = {} as DesignTokens["syntaxThemes"]
+  for (const mode of ["light", "dark"] as const) {
+    syntaxThemes[mode] = requireString(syntaxRoot, mode, `${where}.syntax`)
+  }
+
+  return { colors, syntaxThemes }
+}
+
+/**
+ * Read the token file and colour in the syntax palette from the named shiki
+ * themes. Split from `parseTokens` only because loading a theme is an async
+ * import; everything that validates the source stays synchronous.
+ */
+export async function loadTokens(source: string, palettesDir: string): Promise<DesignTokens> {
+  const parsed = parseTokens(source)
+
+  const palettePath = path.join(palettesDir, `${parsed.palette}.yaml`)
+  let paletteSource: string
+  try {
+    paletteSource = await readFile(palettePath, "utf8")
+  } catch {
+    fail(`palette "${parsed.palette}" has no file at ${palettePath}`)
+  }
+  const { colors, syntaxThemes } = parsePalette(paletteSource, `palettes/${parsed.palette}.yaml`)
+
+  const syntax = {} as DesignTokens["syntax"]
+  for (const mode of ["light", "dark"] as const) {
+    const theme = await loadSyntaxTheme(syntaxThemes[mode], `syntax.${mode}`)
+    syntax[mode] = deriveSyntaxTokens(theme, `syntax.${mode}`)
+  }
+
+  return {
+    ...parsed,
+    colors,
+    syntaxThemes,
+    syntax,
+    // A figure is rasterised once and served to both themes, so it has to stay
+    // legible on both page backgrounds -- which are the palette's own.
+    chart: { ...parsed.chart, grounds: { light: colors.light.light, dark: colors.dark.light } },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -288,8 +474,34 @@ export function renderQuartzFontsBlock(tokens: DesignTokens): string {
   ].join("\n")
 }
 
-export function applyGeneratedBlock(config: string, name: string, block: string): string {
-  const { begin, end } = blockMarkers(name)
+/**
+ * The `@quartz-community/syntax-highlighting` options. Quartz highlights fenced
+ * Markdown blocks with shiki, and quartoTokens.scss colours pandoc's classes
+ * from the same theme -- so both must name it, and neither may be edited alone.
+ */
+export function renderQuartzSyntaxBlock(tokens: DesignTokens): string {
+  const { begin, end } = blockMarkers("syntax highlighting", "    ")
+  return [
+    begin,
+    `    # ${BANNER}`,
+    `    # ${EDIT_HINT}`,
+    "    options:",
+    "      theme:",
+    `        light: ${tokens.syntaxThemes.light}`,
+    `        dark: ${tokens.syntaxThemes.dark}`,
+    // Shiki's own background would fight the Quartz surface the block sits on.
+    "      keepBackground: false",
+    end,
+  ].join("\n")
+}
+
+export function applyGeneratedBlock(
+  config: string,
+  name: string,
+  block: string,
+  indent = "  ",
+): string {
+  const { begin, end } = blockMarkers(name, indent)
   const start = config.indexOf(begin)
   const stop = config.indexOf(end)
   if (start === -1 || stop === -1) {
@@ -311,6 +523,27 @@ function rgba(hex: string, alpha: number): string {
 }
 
 /**
+ * The two halves of the --qmd-* surface, shared by both consumers: the Quartz
+ * stylesheet that styles the embedded Quarto fragment, and the Quarto theme
+ * that makes `quarto preview` show the same colours. One emitter means the two
+ * cannot drift.
+ */
+function qmdSyntaxDeclarations(tokens: DesignTokens, mode: Mode): string[] {
+  return Object.entries(tokens.syntax[mode]).map(
+    ([token, value]) => `  --qmd-syntax-${token}: ${value};`,
+  )
+}
+
+/** Chart tokens are mode-independent: one raster has to survive both themes. */
+function qmdChartDeclarations(tokens: DesignTokens): string[] {
+  return [
+    `  --qmd-chart-ink: ${tokens.chart.ink};`,
+    `  --qmd-chart-grid: ${rgba(tokens.chart.ink, tokens.chart.gridAlpha)};`,
+    ...tokens.chart.series.map((colour, index) => `  --qmd-chart-series-${index + 1}: ${colour};`),
+  ]
+}
+
+/**
  * Custom properties the Quarto frame needs and Quartz does not define. Colours
  * that Quartz *does* define are deliberately absent: quartoPage.scss reads
  * --darkgray, --lightgray and friends straight from Quartz's own :root.
@@ -322,25 +555,23 @@ export function renderQuartoTokensScss(tokens: DesignTokens): string {
     "//",
     "// Only the tokens Quartz has no equivalent for live here. Everything else in",
     "// the Quarto frame is written against Quartz's own theme variables.",
+    "//",
+    "// Syntax colours are derived from the shiki themes named in tokens.yaml, the",
+    "// same themes @quartz-community/syntax-highlighting uses for fenced blocks in",
+    "// Markdown. Both sides therefore move together when the theme changes.",
+    `//   light: ${tokens.syntaxThemes.light}`,
+    `//   dark:  ${tokens.syntaxThemes.dark}`,
     "",
     ":root {",
   ]
 
-  for (const [token, value] of Object.entries(tokens.syntax.light)) {
-    lines.push(`  --qmd-syntax-${token}: ${value};`)
-  }
+  lines.push(...qmdSyntaxDeclarations(tokens, "light"))
   lines.push("")
-  lines.push(`  --qmd-chart-ink: ${tokens.chart.ink};`)
-  lines.push(`  --qmd-chart-grid: ${rgba(tokens.chart.ink, tokens.chart.gridAlpha)};`)
-  tokens.chart.series.forEach((colour, index) => {
-    lines.push(`  --qmd-chart-series-${index + 1}: ${colour};`)
-  })
+  lines.push(...qmdChartDeclarations(tokens))
   lines.push("}")
   lines.push("")
   lines.push(`:root[saved-theme="dark"] {`)
-  for (const [token, value] of Object.entries(tokens.syntax.dark)) {
-    lines.push(`  --qmd-syntax-${token}: ${value};`)
-  }
+  lines.push(...qmdSyntaxDeclarations(tokens, "dark"))
   lines.push("}")
   lines.push("")
   lines.push("// Pandoc emits one two-letter class per highlighted token. The mixin keeps the")
@@ -359,6 +590,108 @@ export function renderQuartoTokensScss(tokens: DesignTokens): string {
   lines.push("")
 
   return lines.join("\n")
+}
+
+/**
+ * A Quarto theme for `quarto preview`, one file per mode.
+ *
+ * The published page is a body fragment: `minimal: true` means Quarto compiles
+ * no theme at all and Quartz supplies every colour. That leaves `quarto
+ * preview` with nothing to look at, so the preview profile turns the chrome
+ * back on -- and until this file existed it turned on *bootswatch* chrome,
+ * which is why drafting happened against a page that looked nothing like the
+ * published one.
+ *
+ * Two files rather than one because Quarto compiles a separate Bootstrap
+ * bundle per mode and switches them by toggling `rel` on link#quarto-bootstrap.
+ * `$body-bg` cannot hold both values. It also means each bundle can define
+ * `--qmd-*` on a plain `:root`: exactly one is ever active, so a cell reading
+ * `getComputedStyle(document.body)` resolves the right mode with no
+ * dark-mode selector in sight.
+ */
+export function renderQuartoPreviewScss(tokens: DesignTokens, mode: Mode): string {
+  const colors = tokens.colors[mode]
+  const { header, body, code } = tokens.typography
+  const families = (name: string, fallback: string) => `"${name}", ${fallback}`
+  const sans = families(body, "system-ui, -apple-system, sans-serif")
+
+  return `// ${BANNER}
+// ${EDIT_HINT}
+//
+// The ${mode} half of the preview theme. Paired with quarto-preview-${mode === "light" ? "dark" : "light"}.scss
+// in vault/_quarto-preview.yml; Quarto compiles one bundle per mode.
+
+/*-- scss:defaults --*/
+
+// Bootstrap's surface, repainted with the palette Quartz uses. These are the
+// variables that decide what the page looks like before a single rule runs.
+$body-bg: ${colors.light};
+$body-color: ${colors.darkgray};
+$link-color: ${colors.secondary};
+$link-hover-color: ${colors.secondary};
+$border-color: ${colors.lightgray};
+
+$font-family-sans-serif: ${sans};
+$font-family-monospace: ${families(code, "ui-monospace, SFMono-Regular, monospace")};
+$headings-font-family: ${families(header, sans)};
+$headings-color: ${colors.dark};
+
+// Google Fonts, the same three Quartz loads. Bootswatch's hook, so Quarto emits
+// the stylesheet link rather than an @import that would land mid-file.
+$web-font-path: "https://fonts.googleapis.com/css2?family=${header.replace(/ /g, "+")}:wght@400;600;700&family=${body.replace(/ /g, "+")}:wght@400;600&family=${code.replace(/ /g, "+")}:wght@400&display=swap";
+
+$code-color: ${colors.secondary};
+$code-block-bg: ${colors.light};
+$code-block-border-left: ${colors.lightgray};
+
+// Quartz owns the reading measure on the published page; match it here so a
+// figure sized from the column width is sized from the same number.
+$grid-body-width: ${PREVIEW_BODY_WIDTH};
+// Quarto scales the root up to 1.0625rem, which made preview body text 17px to
+// Quartz's 16px. Measured: MathJax scales with it, so the same display equation
+// rendered 224px wide in preview and 211px published -- a 6.25% divergence in
+// exactly the thing this preview exists to show. It is $font-size-root that
+// does it, not $font-size-base; the root is what every rem on the page is
+// measured against.
+$font-size-root: 16px;
+$font-size-base: 1rem;
+$grid-sidebar-width: 0px;
+$grid-margin-width: 0px;
+
+$callout-color-note: ${colors.secondary};
+$callout-color-tip: ${colors.tertiary};
+$callout-color-important: ${tokens.syntax[mode].error};
+$callout-color-warning: ${tokens.syntax[mode].variable};
+$callout-color-caution: ${tokens.syntax[mode].type};
+
+/*-- scss:rules --*/
+
+:root {
+  // Native controls -- the audio player, scrollbars, form fields -- are painted
+  // by the browser, not by CSS. Without this they stay light on a dark page.
+  color-scheme: ${mode};
+
+${qmdSyntaxDeclarations(tokens, mode).join("\n")}
+
+${qmdChartDeclarations(tokens).join("\n")}
+
+  // Quartz's own variable names, so a .qmd that reaches for var(--darkgray) in
+  // an inline style renders the same in preview as it does on the site.
+${Object.entries(colors)
+  .map(([name, value]) => `  --${name}: ${value};`)
+  .join("\n")}
+}
+
+// Pandoc's highlight classes. Quarto ships its own colours for these from a
+// separate stylesheet that loads *before* the theme bundle, so these win on
+// order at equal specificity and repaint them from the shared tokens.
+${Object.entries(SYNTAX_CLASSES)
+  .map(
+    ([token, classes]) =>
+      `${classes.map((name) => `code span.${name}`).join(",\n")} {\n  color: var(--qmd-syntax-${token});\n}`,
+  )
+  .join("\n\n")}
+`
 }
 
 /** The whole token tree, for the Python side to read without a YAML parser. */
@@ -432,7 +765,7 @@ export async function generateDesignTokens(
   overrides: Partial<GenerateOptions> = {},
 ): Promise<GeneratedFile[]> {
   const options = { ...defaultOptions, ...overrides }
-  const tokens = parseTokens(await readFile(options.tokensPath, "utf8"))
+  const tokens = await loadTokens(await readFile(options.tokensPath, "utf8"), options.palettesDir)
   assertChartLegibility(tokens)
 
   const quartzConfig = await readFile(options.quartzConfigPath, "utf8")
@@ -441,14 +774,27 @@ export async function generateDesignTokens(
     {
       path: options.quartzConfigPath,
       contents: applyGeneratedBlock(
-        applyGeneratedBlock(quartzConfig, "theme", renderQuartzThemeBlock(tokens)),
-        "fonts",
-        renderQuartzFontsBlock(tokens),
+        applyGeneratedBlock(
+          applyGeneratedBlock(quartzConfig, "theme", renderQuartzThemeBlock(tokens)),
+          "fonts",
+          renderQuartzFontsBlock(tokens),
+        ),
+        "syntax highlighting",
+        renderQuartzSyntaxBlock(tokens),
+        "    ",
       ),
     },
     { path: options.quartoTokensScssPath, contents: renderQuartoTokensScss(tokens) },
     { path: options.vaultTokensJsonPath, contents: renderVaultTokensJson(tokens) },
     { path: options.mplStylePath, contents: renderMplStyle(tokens) },
+    {
+      path: options.quartoPreviewScssPath.light,
+      contents: renderQuartoPreviewScss(tokens, "light"),
+    },
+    {
+      path: options.quartoPreviewScssPath.dark,
+      contents: renderQuartoPreviewScss(tokens, "dark"),
+    },
   ]
 }
 

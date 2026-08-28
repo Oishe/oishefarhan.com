@@ -3,19 +3,25 @@
 //
 // Only the tokens Quartz has no equivalent for live here. Everything else in
 // the Quarto frame is written against Quartz's own theme variables.
+//
+// Syntax colours are derived from the shiki themes named in tokens.yaml, the
+// same themes @quartz-community/syntax-highlighting uses for fenced blocks in
+// Markdown. Both sides therefore move together when the theme changes.
+//   light: catppuccin-latte
+//   dark:  catppuccin-mocha
 
 :root {
-  --qmd-syntax-keyword: #cf222e;
-  --qmd-syntax-type: #953800;
-  --qmd-syntax-number: #0550ae;
-  --qmd-syntax-string: #0a3069;
-  --qmd-syntax-comment: #6e7781;
-  --qmd-syntax-function: #8250df;
-  --qmd-syntax-variable: #953800;
-  --qmd-syntax-builtin: #0550ae;
-  --qmd-syntax-operator: #0550ae;
-  --qmd-syntax-meta: #6e7781;
-  --qmd-syntax-error: #82071e;
+  --qmd-syntax-keyword: #8839ef;
+  --qmd-syntax-type: #df8e1d;
+  --qmd-syntax-number: #fe640b;
+  --qmd-syntax-string: #40a02b;
+  --qmd-syntax-comment: #7c7f93;
+  --qmd-syntax-function: #1e66f5;
+  --qmd-syntax-variable: #4c4f69;
+  --qmd-syntax-builtin: #1e66f5;
+  --qmd-syntax-operator: #179299;
+  --qmd-syntax-meta: #df8e1d;
+  --qmd-syntax-error: #d20f39;
 
   --qmd-chart-ink: #797979;
   --qmd-chart-grid: rgba(121, 121, 121, 0.3);
@@ -28,17 +34,17 @@
 }
 
 :root[saved-theme="dark"] {
-  --qmd-syntax-keyword: #ff7b72;
-  --qmd-syntax-type: #ffa657;
-  --qmd-syntax-number: #79c0ff;
-  --qmd-syntax-string: #a5d6ff;
-  --qmd-syntax-comment: #8b949e;
-  --qmd-syntax-function: #d2a8ff;
-  --qmd-syntax-variable: #ffa657;
-  --qmd-syntax-builtin: #79c0ff;
-  --qmd-syntax-operator: #79c0ff;
-  --qmd-syntax-meta: #8b949e;
-  --qmd-syntax-error: #ffa198;
+  --qmd-syntax-keyword: #cba6f7;
+  --qmd-syntax-type: #f9e2af;
+  --qmd-syntax-number: #fab387;
+  --qmd-syntax-string: #a6e3a1;
+  --qmd-syntax-comment: #9399b2;
+  --qmd-syntax-function: #89b4fa;
+  --qmd-syntax-variable: #cdd6f4;
+  --qmd-syntax-builtin: #89b4fa;
+  --qmd-syntax-operator: #94e2d5;
+  --qmd-syntax-meta: #f9e2af;
+  --qmd-syntax-error: #f38ba8;
 }
 
 // Pandoc emits one two-letter class per highlighted token. The mixin keeps the

@@ -1,3 +1,270 @@
 @use "./variables.scss" as *;
 
-// put your custom CSS here!
+// ===========================================================================
+// Site layout: top bar, one reading column, table of contents in the right
+// margin. No left sidebar, no graph, no backlinks.
+//
+// This file is unlayered and concatenated after base.scss
+// (componentResources.ts:347 wraps base in `@layer quartz-base`), so it beats
+// base.scss at equal specificity without !important -- and it beats base's
+// @media rules too, because a media query adds no specificity. That cuts both
+// ways: every breakpoint base.scss handles has to be handled again here, or a
+// desktop rule written once leaks down to mobile.
+// ===========================================================================
+
+:root {
+  // The reading measure. Everything that carries prose is capped at this and
+  // centred in the content column; the room that leaves on either side is what
+  // Quarto's column layouts break out into (see --qmd-breakout-* below).
+  --measure: 46rem;
+  --toc-rail: 16rem;
+  --rail-gap: 2rem;
+  // base.scss only pads #quartz-body below desktop, which used to be harmless
+  // because the sidebars held the content off the edge. Nothing does now.
+  --page-pad: 1.5rem;
+  // Mirrors base.scss's `.page { max-width: calc(#{desktop} + 300px) }`. The
+  // page is re-declared from this variable below so the two cannot drift; the
+  // breakout arithmetic needs the number.
+  --page-max: 1500px;
+
+  // Room between the reading measure and the edge of the content column, per
+  // side. 100vw counts the scrollbar on platforms that reserve one, so this
+  // over-reads by half a scrollbar; both consumers keep a margin for it.
+  --reading-slack: max(
+    0px,
+    (
+        min(100vw, var(--page-max)) - 2 * var(--page-pad) - var(--toc-rail) - var(--rail-gap) -
+          var(--measure)
+      ) / 2
+  );
+
+  // Published for site/bridge/styles/quartoPage.scss, which defaults both to
+  // zero so a Quarto fragment dropped into a layout that has not opted in
+  // simply does not break out. This is the layout opting in.
+  //
+  // The 1rem the wider of the two gives back is the scrollbar allowance -- it
+  // is also what makes `.column-screen-inset` inset rather than flush. The
+  // narrower one is then derived from it rather than from the slack directly,
+  // so `.column-page` can never end up wider than `.column-screen-inset`; at
+  // 820px, where the slack is only 26px, deriving both independently inverted
+  // them.
+  --qmd-breakout-screen: max(0px, var(--reading-slack) - 1rem);
+  --qmd-breakout-page: min(4rem, var(--qmd-breakout-screen));
+}
+
+@media all and not ($desktop) {
+  :root {
+    --page-pad: 1rem;
+    // No rail below desktop.
+    --reading-slack: max(
+      0px,
+      (min(100vw, var(--page-max)) - 2 * var(--page-pad) - var(--measure)) / 2
+    );
+  }
+}
+
+.page {
+  max-width: var(--page-max);
+}
+
+.page > #quartz-body {
+  padding-inline: var(--page-pad);
+  grid-template-columns: minmax(0, 1fr) var(--toc-rail);
+  grid-template-rows: repeat(5, auto);
+  column-gap: var(--rail-gap);
+  row-gap: 0;
+  grid-template-areas:
+    "grid-header grid-header"
+    "grid-center grid-sidebar-right"
+    "grid-rule   grid-sidebar-right"
+    "grid-after  grid-sidebar-right"
+    "grid-footer grid-footer";
+
+  // DefaultFrame renders `<div class="left sidebar">` whether or not anything
+  // was placed in it, so an empty `left` still costs a column.
+  > .left.sidebar {
+    display: none;
+  }
+
+  // base.scss puts `grid-area: grid-header` on .page-header and
+  // `grid-area: grid-center` on .center > article, but .center sits between
+  // them and the grid, so neither declaration does anything. Dissolving .center
+  // makes them grid items and the top bar can then span both columns -- which
+  // is the whole point, since the header slot renders inside .center.
+  > .center {
+    display: contents;
+  }
+
+  // Folder and tag pages wrap their body differently: .center holds a
+  // .popover-hint carrying the article *and* the generated page listing, so the
+  // `grid-area: grid-center` base.scss puts on `.center > article` does not
+  // reach it and the listing spilled across the full column.
+  > .center > .popover-hint {
+    grid-area: grid-center;
+  }
+
+  > .center > hr {
+    grid-area: grid-rule;
+  }
+
+  > .center > .page-footer {
+    grid-area: grid-after;
+  }
+
+  @media all and not ($desktop) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(5, auto);
+    grid-template-areas:
+      "grid-header"
+      "grid-center"
+      "grid-rule"
+      "grid-after"
+      "grid-footer";
+  }
+}
+
+// --- the reading column ----------------------------------------------------
+// Four separate elements have to line up: the breadcrumbs and title inside the
+// page header, the article, the rule under it, and the after-body slot.
+
+.page > #quartz-body .page-header {
+  grid-area: grid-header;
+  // Bring the header's content box in line with the content column so the
+  // title above the article shares its centre. The top bar cancels this again.
+  padding-inline-end: calc(var(--toc-rail) + var(--rail-gap));
+  margin: 0;
+
+  @media all and not ($desktop) {
+    padding-inline-end: 0;
+  }
+}
+
+.page > #quartz-body .page-header > .popover-hint,
+.page > #quartz-body .center > article,
+.page > #quartz-body .center > .popover-hint,
+.page > #quartz-body .center > hr,
+.page > #quartz-body .center > .page-footer {
+  // width, not just max-width: the auto margins that centre these also cancel a
+  // grid item's default stretch, so without it the article is only as wide as
+  // its widest line and the reading column changes width from page to page.
+  width: 100%;
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+// --- the top bar -----------------------------------------------------------
+// Wordmark left, search and dark-mode toggle right, running the full width of
+// the page rather than the width of the reading column.
+//
+// The plan called for the bar's contents to sit at the reading measure. That
+// only works for a wordmark; the toolbar is right-aligned, and at 1440 the
+// measure ends ~500px short of the page edge, which would leave the dark-mode
+// button floating mid-page instead of terminating the bar. A navbar bounds the
+// page, so it takes the page's width. Step 10's nav links go in the same row.
+
+// The row itself is declared here rather than inherited: Header.css is attached
+// to the <header> wrapper, which DefaultFrame hardcodes instead of placing in a
+// layout array, and collectComponents only walks those arrays -- so the wrapper
+// ships no stylesheet and the bar laid out as a block, wordmark stacked above
+// the toolbar.
+.page > #quartz-body .page-header > header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  margin: 0 calc(-1 * (var(--toc-rail) + var(--rail-gap))) 2.5rem 0;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid var(--lightgray);
+  // The search overlay is a child of the bar; without a stacking context it is
+  // painted under the article.
+  position: relative;
+  z-index: 2;
+
+  @media all and not ($desktop) {
+    margin-right: 0;
+  }
+}
+
+// The wordmark is an <h2 class="page-title">, so Header.css's `header h1 { flex:
+// auto }` never reaches it and the toolbar sits next to the wordmark instead of
+// at the far end of the bar.
+.page > #quartz-body .page-header > header > .page-title {
+  flex: auto;
+  font-size: 1.15rem;
+  font-weight: $semiBoldWeight;
+
+  a {
+    color: var(--dark);
+    background-image: none;
+  }
+}
+
+// --- the table of contents rail --------------------------------------------
+
+.page > #quartz-body .sidebar.right {
+  grid-area: grid-sidebar-right;
+  // base.scss pads the sidebars down by $topSpacing to clear a page header that
+  // used to sit beside them. The rail now starts level with the article.
+  padding: 0 0 2rem 0;
+  font-size: 0.9rem;
+
+  // Only the table of contents lives here, and base.scss already hides that
+  // below desktop, so the rail is an empty flex row at every narrower width.
+  @media all and not ($desktop) {
+    display: none;
+  }
+}
+
+// --- the generated section listing -----------------------------------------
+// @quartz-community/folder-page lays its rows out as
+// `fit-content(8em) 3fr 1fr`, sized for a full-width column. At the reading
+// measure the last track is ~150px and tag slugs break mid-word. Tags are a
+// wiki affordance anyway -- the graph and the explorer went for the same
+// reason -- so the row is date and title, and the space goes to the title.
+
+.page > #quartz-body .page-listing li.section-li > .section {
+  grid-template-columns: fit-content(8em) 1fr;
+
+  > .tags {
+    display: none;
+  }
+}
+
+// --- index pages are navigation, not reading -------------------------------
+// The home page and every section index exist to send a reader somewhere else.
+// A modified date and a reading time under a person's name is a wiki habit and
+// reads as one; @quartz-community/content-meta has no frontmatter switch, so it
+// is suppressed here by the one thing that distinguishes those pages in the
+// DOM. Their tables of contents are turned off in frontmatter, which that
+// plugin does support.
+
+.page[data-frame] > #quartz-body .content-meta {
+  body[data-slug="index"] &,
+  body[data-slug$="/index"] & {
+    display: none;
+  }
+}
+
+// --- footer ----------------------------------------------------------------
+
+.page > #quartz-body footer {
+  grid-area: grid-footer;
+  padding-inline-end: calc(var(--toc-rail) + var(--rail-gap));
+  // base.scss gives the footer `min-width: 100%` under a content-box sizing, so
+  // the rail padding above lands outside that 100% and the document gains a
+  // horizontal scrollbar exactly one rail wide.
+  min-width: 0;
+  // It also leaves `margin-right: auto` on desktop, and an auto margin defeats
+  // a grid item's default stretch, so the footer shrank to its content and sat
+  // against the left page edge instead of under the reading column.
+  margin-inline: 0;
+
+  > * {
+    max-width: var(--measure);
+    margin-inline: auto;
+  }
+
+  @media all and not ($desktop) {
+    padding-inline-end: 0;
+  }
+}

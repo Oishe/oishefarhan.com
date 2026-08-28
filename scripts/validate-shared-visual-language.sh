@@ -7,8 +7,8 @@ set -eu
 #
 # Run after `npm run build`.
 
-quarto_page="site/public/examples/computational-features.html"
-plain_page="site/public/examples/markdown-features.html"
+quarto_page="generated/fixture-site/examples/computational-features.html"
+plain_page="generated/fixture-site/examples/markdown-features.html"
 
 test -f "$quarto_page"
 test -f "$plain_page"
@@ -20,7 +20,7 @@ test -f "$plain_page"
 npm run --silent design-tokens -- --check
 
 # --- Tokens reach the page --------------------------------------------------
-token_css=$(grep -l -- '--qmd-syntax-keyword' site/public/component-*.css)
+token_css=$(grep -l -- '--qmd-syntax-keyword' generated/fixture-site/component-*.css)
 test -n "$token_css"
 grep -Fq "$(basename "$token_css")" "$quarto_page"
 
@@ -62,11 +62,11 @@ fi
 # --- The runtime pass for output CSS cannot reach ---------------------------
 # Plotly writes its surface colours into the figure JSON, so the bridge rewrites
 # them from the same theme variables on load and on every theme change.
-theme_script=$(grep -rl 'js-plotly-plot' site/public/static/scripts/)
+theme_script=$(grep -rl 'js-plotly-plot' generated/fixture-site/static/scripts/)
 test -n "$theme_script"
 grep -Fq 'themechange' "$theme_script"
 grep -Fq 'paper_bgcolor' "$theme_script"
-grep -Fq "$(basename "$theme_script" | sed 's/\.js$//')" site/public/postscript-*.js
+grep -Fq "$(basename "$theme_script" | sed 's/\.js$//')" generated/fixture-site/postscript-*.js
 
 # --- Figures carry no baked-in white ----------------------------------------
 # Plotly's default template paints white paper and a #E5ECF6 plot area into the
@@ -79,6 +79,26 @@ for page in "$quarto_page"; do
     exit 1
   fi
 done
+
+# --- One reading measure, two renderers -------------------------------------
+# The published page gets its measure from --measure in the Quartz stylesheet;
+# quarto preview gets it from $grid-body-width in the generated preview theme,
+# because Quarto sizes a figure from the column width and the OJS preamble
+# measures the column it is actually in. If the two drift, every figure is a
+# different width on the two sides and nothing fails -- it just stops
+# converging, which is the whole point of the exercise.
+measure_rem=$(sed -n 's/^ *--measure: \([0-9.]*\)rem;.*/\1/p' site/quartz/styles/custom.scss)
+preview_px=$(sed -n 's/^\$grid-body-width: \([0-9.]*\)px;.*/\1/p' vault/_theme/quarto-preview-light.scss)
+if [ -z "$measure_rem" ] || [ -z "$preview_px" ]; then
+  printf '%s\n' 'Could not read the reading measure from both stylesheets.' >&2
+  exit 1
+fi
+measure_px=$(awk -v r="$measure_rem" 'BEGIN { printf "%d", r * 16 }')
+if [ "$measure_px" != "$preview_px" ]; then
+  printf '%s\n' \
+    "Reading measure differs: --measure is ${measure_px}px, \$grid-body-width is ${preview_px}px." >&2
+  exit 1
+fi
 
 # --- The plain Quartz pages are untouched -----------------------------------
 if grep -Fq 'quarto-content' "$plain_page"; then

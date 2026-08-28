@@ -40,6 +40,21 @@ ordinary code
   assert.match(stub, /## After/)
 })
 
+test("drops include shortcodes, which a prose-only stub cannot resolve", () => {
+  const source = `Before.
+
+{{< include ../_theme/_ojs-setup.qmd >}}
+
+## After
+`
+  const stub = stripExecutableCells(source)
+
+  assert.doesNotMatch(stub, /\{\{</)
+  assert.doesNotMatch(stub, /_ojs-setup/)
+  assert.match(stub, /Before\./)
+  assert.match(stub, /## After/)
+})
+
 test("rejects an unclosed executable cell", () => {
   assert.throws(() => stripExecutableCells("```{python}\nvalue = 42\n"), /unclosed/)
 })

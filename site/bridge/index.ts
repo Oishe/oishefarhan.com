@@ -12,7 +12,14 @@
  * It lives outside `quartz/` so the vendored tree stays upstream code. The one
  * exception is documented in QUARTZ_UPSTREAM.md: the SPA router honours a
  * `data-spa-exclude` page marker, which QuartoPage sets.
+ *
+ * SiteNav is the fourth thing here and the odd one out: it is a plain Quartz
+ * component with nothing to do with Quarto. It lives here because this is the
+ * directory for components this site owns, and no @quartz-community package
+ * provides a navbar.
  */
+export { SiteNav } from "./siteNav"
+export type { SiteNavLink, SiteNavOptions } from "./siteNav"
 export { QuartoPage } from "./quartoPage"
 export { QuartoArtifacts } from "./quartoArtifacts"
 export { extractQuartoPage } from "./quartoPageHtml"

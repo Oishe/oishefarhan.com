@@ -1,0 +1,68 @@
+# The `quarto preview` profile. Tracked: it names the generated theme files that
+# make a draft look like the published page, so it is part of the system rather
+# than a local convenience.
+#
+# Three jobs.
+#
+# 1. Make a single file renderable. The base render list in _quarto.yml is
+#    negations-only, so it resolves to zero inputs and `quarto preview <file>`
+#    fails with "No output created" rather than overriding it. This adds the one
+#    positive glob that makes a file eligible; the base negations concatenate on
+#    top, so *_hidden/, *.hidden.*, templates/ and _-prefixed partials stay
+#    excluded.
+#
+#    Never move this glob into _quarto.yml -- profile render lists concatenate,
+#    so a positive glob in the base config would join the generated publish
+#    allowlist and push unpublished drafts to the public site.
+#
+# 2. Undo the stripped-down site format. _quarto.yml renders a body fragment for
+#    Quartz to host: `minimal: true` means no theme and no chrome, which is
+#    unreadable on its own. Profiles merge over the base, and scalars override
+#    rather than concatenate, so restoring the chrome gives a normal Quarto page
+#    for drafting.
+#
+# 3. Make that page look like the published one. The theme below is generated
+#    from vault/_theme/tokens.yaml -- the same file that paints the Quartz side
+#    -- so preview and publish share one palette, one set of fonts, and one set
+#    of syntax colours. Run `npm run design-tokens` after editing tokens.yaml.
+#
+#    What still differs, by construction: Quartz's chrome (navbar, TOC, footer)
+#    is absent, and Quarto draws a title block Quartz would otherwise own.
+#
+# Nothing here reaches the site. `npm run render` uses --profile publish, this
+# profile writes to its own output directory, and staging clears
+# generated/quarto/ first.
+#
+# Always pass an explicit file argument:
+#     npm run preview knowledge/new-signal.qmd
+project:
+  # Preview renders never share a directory with the publish artifacts the
+  # bridge reads. `minimal: false` below emits a full Bootstrap document, and
+  # site/bridge/quartoPageHtml.ts hard-fails on any Bootstrap resource that
+  # reaches it -- `npm run build` re-renders over the top, but `npm run
+  # site-fast` (--keep-quarto) would feed a preview artifact straight to that
+  # guard. Separate directories make the two profiles unable to collide.
+  output-dir: ../generated/quarto-preview
+  render:
+    - "**/*.qmd"
+
+format:
+  html:
+    minimal: false
+    # Generated. `cosmo` is a near-neutral Bootstrap base; the scss files carry
+    # the palette, so swapping the base changes spacing and component shapes
+    # rather than colour.
+    theme:
+      light: [cosmo, ../_theme/quarto-preview-light.scss]
+      dark: [cosmo, ../_theme/quarto-preview-dark.scss]
+    # Quarto compiles one Bootstrap bundle per mode and switches them by
+    # toggling `rel` on link#quarto-bootstrap. `embed-resources: true` inlines
+    # both as <style>, so the toggle has nothing to switch and dark mode stops
+    # working. It is also what made a preview artifact 4.9 MB.
+    embed-resources: false
+    # Quartz draws the title from frontmatter and puts the table of contents in
+    # its own rail, so neither belongs in the drafting view.
+    toc: false
+    title-block-style: none
+    anchor-sections: true
+    smooth-scroll: true

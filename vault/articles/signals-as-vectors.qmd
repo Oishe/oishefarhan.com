@@ -28,6 +28,8 @@ instead measures it at a sequence of equally spaced instants. Connecting a
 short run of those measurements with a line reveals the oscillation produced
 by the note.
 
+{{< include ../_theme/_ojs-setup.qmd >}}
+
 ```{ojs}
 //| echo: false
 flute = {
@@ -64,7 +66,9 @@ waveform = sampleWindow(0.724, 160)
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 240,
+  marginLeft: 52,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
@@ -86,7 +90,9 @@ closeup = sampleWindow(0.724, 64)
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 240,
+  marginLeft: 52,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
@@ -258,6 +264,7 @@ rotated = {
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   aspectRatio: 1,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "x₁", domain: [-4, 4], grid: true },
@@ -470,6 +477,7 @@ basisWaves = [
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 380,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "real part", domain: [-1.1, 1.1], grid: true },
@@ -502,7 +510,6 @@ $$
 \end{bmatrix}.
 $$
 
-::: {.callout-note collapse="true"}
 ## The Fourier matrix
 
 A heatmap makes it possible to see many Fourier basis vectors at once. The
@@ -523,6 +530,7 @@ fourierMatrix = d3.cross(
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   aspectRatio: 1,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "basis index k", ticks: d3.range(0, 64, 8) },
@@ -544,7 +552,6 @@ Plot.plot({
   ],
 })
 ```
-:::
 
 The reconstruction and transform have the same form as before, except that a
 complex basis requires the conjugate transpose $\Psi_F^*$:
@@ -646,6 +653,7 @@ fourier = {
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 380,
   subtitle: "Fourier coefficient magnitudes |sₖ| normalized",
   style: { background: "transparent", fontSize: "14px" },
@@ -817,6 +825,7 @@ approximation = {
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 380,
   subtitle: `Retained Fourier magnitudes (r = ${retainedCount})`,
   style: { background: "transparent", fontSize: "14px" },
@@ -846,12 +855,18 @@ Plot.plot({
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 380,
   subtitle: `Original and ${retainedCount}-bin reconstruction`,
+  marginLeft: 52,
   style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
-  color: { legend: true },
+  color: {
+    domain: ["original", "approximation"],
+    range: [col.ink, col.series[0]],
+    legend: true,
+  },
   marks: [
     Plot.ruleY([0]),
     Plot.line(approximation.waveform, {
@@ -985,7 +1000,10 @@ energyComparison = {
 
 ```{ojs}
 Plot.plot({
+  width: figW,
   height: 400,
+  marginLeft: 52,
+  marginRight: 28,
   marginBottom: 48,
   subtitle: "Energy retained by the largest frequency bins",
   style: { background: "transparent", fontSize: "14px" },
@@ -1004,7 +1022,7 @@ Plot.plot({
   },
   color: {
     domain: ["flute", "single impulse", "white noise"],
-    range: ["#625bf6", "#d97706", "#64748b"],
+    range: [col.series[0], col.series[1], col.series[2]],
     legend: true,
   },
   marks: [

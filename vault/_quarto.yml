@@ -37,5 +37,16 @@ format:
     toc: false
     title-block-style: none
     code-copy: true
-    html-math-method: katex
+    # Source is available but not in the way: an article should read as prose,
+    # with the code one click away. Set in the base config so it applies to
+    # preview and publish alike.
+    code-fold: true
+    # Matches renderEngine: mathjax on the Quartz side. tex-svg-full, not
+    # tex-chtml-full: rehype-mathjax's SVG output and this runtime are the same
+    # renderer, so equations are glyph-identical across .md and .qmd. CHTML
+    # would use webfonts and visibly differ. The version is pinned because an
+    # unpinned CDN URL is a deployment that can change under us.
+    html-math-method:
+      method: mathjax
+      url: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js"
     embed-resources: false

@@ -168,6 +168,49 @@ test("drops the RequireJS/AMD shim that breaks Quartz library loading", () => {
   )
 })
 
+test("drops the MathJax 2 runtime Plotly nests in its cell output", () => {
+  const result = extractQuartoPage(`<!doctype html><html><head></head><body>
+    <main id="quarto-document-content">
+      <p>Prose <span class="math inline">\\(\\sigma\\)</span>.</p>
+      <div class="cell-output cell-output-display">
+        <div style="height:525px">
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js?config=TeX-AMS-MML_SVG"></script>
+          <script>if (window.MathJax && window.MathJax.Hub && window.MathJax.Hub.Config) {window.MathJax.Hub.Config({SVG: {font: "STIX-Web"}});}</script>
+          <script src="https://cdn.plot.ly/plotly-3.7.0.min.js"></script>
+          <script>Plotly.newPlot("chart", [])</script>
+        </div>
+      </div>
+    </main>
+  </body></html>`)
+
+  const scripts = elements(result).filter((element) => element.tagName === "script")
+  const sources = scripts.map((element) => String(element.properties?.src ?? ""))
+  const bodies = scripts.map((element) =>
+    element.children.map((child) => (child.type === "text" ? child.value : "")).join(""),
+  )
+
+  // MathJax 2 would claim window.MathJax and abort the MathJax 3 runtime that
+  // renders prose maths, so both it and its configuration guard go.
+  assert.equal(
+    sources.some((src) => src.includes("mathjax/2.7.5")),
+    false,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes("MathJax.Hub.Config")),
+    false,
+  )
+
+  // Plotly itself is untouched.
+  assert.equal(
+    sources.some((src) => src === "https://cdn.plot.ly/plotly-3.7.0.min.js"),
+    true,
+  )
+  assert.equal(
+    bodies.some((body) => body.includes("Plotly.newPlot")),
+    true,
+  )
+})
+
 test("keeps an ESM Plotly import that names a real .js bundle", () => {
   const result = extractQuartoPage(`<!doctype html><html><head>
     <script type="module">import "https://cdn.plot.ly/plotly-3.7.0.min.js"</script>

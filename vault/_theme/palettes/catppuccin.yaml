@@ -1,0 +1,35 @@
+# Catppuccin Latte and Mocha, mapped onto Quartz's roles.
+#
+# Two light-mode accents are darkened from the published flavour: Latte's blue
+# (#1e66f5) and teal (#179299) land at 4.34:1 and 3.31:1 on Latte's base, and
+# both colour body-sized link text, so both were below WCAG AA. Everything else
+# is Catppuccin as published.
+name: Catppuccin
+description: Latte and Mocha, the palette used across the editor and vault.
+# Quartz names these by role, not by luminance: `light` is the page background
+# in *both* schemes, `darkgray` is body text, `dark` is headings.
+colors:
+  light:
+    light: "#eff1f5"           # base
+    lightgray: "#ccd0da"       # surface0
+    gray: "#9ca0b0"            # overlay0
+    darkgray: "#4c4f69"        # text
+    dark: "#3c3f58"            # text, a step darker for headings
+    secondary: "#1a5ee0"       # blue, darkened to 4.99:1
+    tertiary: "#106e74"        # teal, darkened to 5.30:1
+    highlight: "rgba(124, 127, 147, 0.15)"
+    textHighlight: "#df8e1d55" # yellow
+  dark:
+    light: "#1e1e2e"           # base
+    lightgray: "#313244"       # surface0
+    gray: "#6c7086"            # overlay0
+    darkgray: "#cdd6f4"        # text
+    dark: "#e6eaf7"            # text, a step brighter for headings
+    secondary: "#89b4fa"       # blue
+    tertiary: "#94e2d5"        # teal
+    highlight: "rgba(147, 153, 178, 0.18)"
+    textHighlight: "#f9e2af55" # yellow
+
+syntax:
+  light: catppuccin-latte
+  dark: catppuccin-mocha

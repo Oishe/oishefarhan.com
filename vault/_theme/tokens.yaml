@@ -9,84 +9,31 @@
 #   vault/_theme/knowledge_theme/tokens.json         the same tokens, for Python
 #   vault/_theme/knowledge_theme/knowledge.mplstyle  matplotlib rc from chart tokens
 #
-#   npm run design-tokens              rewrite all four
+#   vault/_theme/quarto-preview-*.scss               the Quarto preview theme
+#
+#   npm run design-tokens              rewrite them all
 #   npm run design-tokens -- --check   fail if any is stale
 #
 # Edit this file, never a generated one.
 
 # ---------------------------------------------------------------------------
-# Colours. Quartz emits these as :root custom properties (--light, --dark, ...)
-# and every Quarto rule in bridge/styles/quartoPage.scss is written against
-# those properties rather than against literals, so the Quarto fragment follows
-# the theme toggle for free.
+# Palette. Names a file in _theme/palettes/, which carries the nine colour roles
+# for both modes and the shiki theme each mode derives its syntax colours from.
+# Those two travel together -- a page palette and a code palette that disagree
+# is the thing this indirection exists to prevent -- so swapping the site's
+# whole look is this one line plus `npm run design-tokens`.
+#
+#   catppuccin                 Latte and Mocha throughout (active)
+#   catppuccin-warm            Catppuccin accents on the warm neutral ground
+#   neutral                    Quartz's stock warm neutral, GitHub code
+#   neutral-catppuccin-code    neutral page, Catppuccin code
 # ---------------------------------------------------------------------------
-colors:
-  light:
-    light: "#faf8f8"
-    lightgray: "#e5e5e5"
-    gray: "#b8b8b8"
-    darkgray: "#4e4e4e"
-    dark: "#2b2b2b"
-    secondary: "#284b63"
-    tertiary: "#84a59d"
-    highlight: "rgba(143, 159, 169, 0.15)"
-    textHighlight: "#fff23688"
-  dark:
-    light: "#161618"
-    lightgray: "#393639"
-    gray: "#646464"
-    darkgray: "#d4d4d4"
-    dark: "#ebebec"
-    secondary: "#7b97aa"
-    tertiary: "#84a59d"
-    highlight: "rgba(143, 159, 169, 0.15)"
-    textHighlight: "#b3aa0288"
+palette: catppuccin
 
 typography:
   header: Schibsted Grotesk
   body: Source Sans Pro
   code: IBM Plex Mono
-
-# ---------------------------------------------------------------------------
-# Code highlighting. Quartz highlights Markdown code with shiki's github-light
-# and github-dark themes; Quarto emits pandoc's skylighting token classes with
-# no colours of their own under `minimal: true`. Colouring those classes here,
-# with the same GitHub Primer values shiki uses, is what makes a Python cell
-# read identically on both sides of the boundary.
-#
-# Pandoc class -> token, as applied in bridge/styles/quartoPage.scss:
-#   kw cf im       keyword      dv bn fl       number
-#   dt             type         ch st vs ss    string
-#   co do cv       comment      fu             function
-#   va             variable     bu cn sc       builtin
-#   op             operator     pp at an in    meta
-#   al er wa       error
-# ---------------------------------------------------------------------------
-syntax:
-  light:
-    keyword: "#cf222e"
-    type: "#953800"
-    number: "#0550ae"
-    string: "#0a3069"
-    comment: "#6e7781"
-    function: "#8250df"
-    variable: "#953800"
-    builtin: "#0550ae"
-    operator: "#0550ae"
-    meta: "#6e7781"
-    error: "#82071e"
-  dark:
-    keyword: "#ff7b72"
-    type: "#ffa657"
-    number: "#79c0ff"
-    string: "#a5d6ff"
-    comment: "#8b949e"
-    function: "#d2a8ff"
-    variable: "#ffa657"
-    builtin: "#79c0ff"
-    operator: "#79c0ff"
-    meta: "#8b949e"
-    error: "#ffa198"
 
 # ---------------------------------------------------------------------------
 # Charts. These are the one part of the system that cannot be a theme variable.
@@ -106,17 +53,12 @@ syntax:
 # Backgrounds are transparent everywhere so the Quartz surface shows through.
 # ---------------------------------------------------------------------------
 chart:
-  # The two page backgrounds a figure has to survive. These are NOT taken from
-  # colors.*.light above, and that is deliberate: the site loads
-  # @quartz-themes/core, whose Obsidian theme CSS is injected unlayered and so
-  # supersedes the `configuration.theme` palette Quartz emits from this file.
-  # The values below are what the browser actually resolves --light to in each
-  # mode. If the theme plugin is ever disabled or swapped, re-read them from a
-  # built page and update here, or the legibility check is measuring a palette
-  # nobody sees.
-  grounds:
-    light: "#ffffff"
-    dark: "#1C1C1C"
+  # The two page backgrounds a figure has to survive are colors.*.light, and the
+  # generator reads them from there. They used to be written out by hand,
+  # because @quartz-themes/core injected unlayered CSS that superseded this
+  # palette and the real backgrounds were its values, not these. That plugin is
+  # gone and this file is once again what the browser resolves, so a second copy
+  # would only be a way to drift.
   ink: "#797979"
   gridAlpha: 0.3
   series:

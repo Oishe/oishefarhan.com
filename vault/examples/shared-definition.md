@@ -3,7 +3,8 @@ title: Shared Definition
 description: A shared definition linked from the temporary Markdown feature page.
 tags:
   - examples/markdown
-publish: true
+publish: false
+fixture: true
 ---
 
 # Shared Definition
