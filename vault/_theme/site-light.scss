@@ -1,0 +1,179 @@
+// Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts.
+// Edit that file and run `npm run design-tokens`; do not edit this one.
+//
+// The light half of the site theme. Paired with site-dark.scss
+// in vault/_quarto.yml; Quarto compiles one bundle per mode.
+
+/*-- scss:defaults --*/
+
+// Bootstrap's surface, repainted from tokens.yaml. These are the
+// variables that decide what the page looks like before a single rule runs.
+$body-bg: #eff1f5;
+$body-color: #4c4f69;
+$link-color: #1a5ee0;
+$link-hover-color: #1a5ee0;
+$border-color: #ccd0da;
+
+$font-family-sans-serif: "Source Sans Pro", system-ui, -apple-system, sans-serif;
+$font-family-monospace: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+$headings-font-family: "Schibsted Grotesk", "Source Sans Pro", system-ui, -apple-system, sans-serif;
+$headings-color: #3c3f58;
+
+// The top bar reads as part of the page rather than a separate surface: the
+// same ground, separated by a rule rather than a fill. Left unset it keeps
+// Bootswatch's $gray-100 in *both* bundles, so the bar stayed light on a dark
+// page -- measured as rgb(248, 249, 250) either way.
+//
+// $navbar-fg has to be set explicitly, not inherited. Quarto hardcodes
+// data-bs-theme="dark" on the <nav> element, and one HTML file serves both
+// stylesheets, so that attribute cannot vary by mode; without an explicit
+// foreground Bootstrap's dark-context defaults would paint light text onto the
+// light bundle's bar.
+$navbar-bg: #eff1f5;
+$navbar-fg: #4c4f69;
+$navbar-hl: #1a5ee0;
+
+// Google Fonts, the three the palette names. Bootswatch's hook, so Quarto emits
+// the stylesheet link rather than an @import that would land mid-file.
+$web-font-path: "https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;700&family=Source+Sans+Pro:wght@400;600&family=IBM+Plex+Mono:wght@400&display=swap";
+
+$code-color: #1a5ee0;
+$code-block-bg: #eff1f5;
+$code-block-border-left: #ccd0da;
+
+// The reading measure. A figure sized from the column width is sized from this
+// number.
+$grid-body-width: 736px;
+// Quarto scales the root up to 1.0625rem. Measured: MathJax scales with it, so
+// a display equation rendered 224px wide at 17px against 211px at 16px. Pinned
+// so the measure and the equations stay on one scale. It is $font-size-root
+// that does it, not $font-size-base; the root is what every rem is measured
+// against.
+$font-size-root: 16px;
+$font-size-base: 1rem;
+$grid-sidebar-width: 0px;
+$grid-margin-width: 0px;
+
+$callout-color-note: #1a5ee0;
+$callout-color-tip: #106e74;
+$callout-color-important: #d20f39;
+$callout-color-warning: #4c4f69;
+$callout-color-caution: #df8e1d;
+
+/*-- scss:rules --*/
+
+// A rule, not a fill: the bar shares the page's ground, so without this it has
+// no edge at all. The background is restated here because Quarto's own navbar
+// stylesheet loads after the theme bundle.
+.navbar {
+  background-color: #eff1f5;
+  border-bottom: 1px solid #ccd0da;
+}
+
+// The wordmark is the one navbar item that carries heading weight.
+.navbar .navbar-brand,
+.navbar .navbar-title {
+  color: #3c3f58;
+}
+
+:root {
+  // Native controls -- the audio player, scrollbars, form fields -- are painted
+  // by the browser, not by CSS. Without this they stay light on a dark page.
+  color-scheme: light;
+
+  --qmd-syntax-keyword: #8839ef;
+  --qmd-syntax-type: #df8e1d;
+  --qmd-syntax-number: #fe640b;
+  --qmd-syntax-string: #40a02b;
+  --qmd-syntax-comment: #7c7f93;
+  --qmd-syntax-function: #1e66f5;
+  --qmd-syntax-variable: #4c4f69;
+  --qmd-syntax-builtin: #1e66f5;
+  --qmd-syntax-operator: #179299;
+  --qmd-syntax-meta: #df8e1d;
+  --qmd-syntax-error: #d20f39;
+
+  --qmd-chart-ink: #797979;
+  --qmd-chart-grid: rgba(121, 121, 121, 0.3);
+  --qmd-chart-series-1: #4e7fa2;
+  --qmd-chart-series-2: #9e6e4c;
+  --qmd-chart-series-3: #418663;
+  --qmd-chart-series-4: #9e61b3;
+  --qmd-chart-series-5: #7f7a3d;
+  --qmd-chart-series-6: #b15d79;
+
+  // Palette names exposed directly, so a document reaching for var(--darkgray)
+  // in an inline style resolves against the same tokens.
+  --light: #eff1f5;
+  --lightgray: #ccd0da;
+  --gray: #9ca0b0;
+  --darkgray: #4c4f69;
+  --dark: #3c3f58;
+  --secondary: #1a5ee0;
+  --tertiary: #106e74;
+  --highlight: rgba(124, 127, 147, 0.15);
+  --textHighlight: #df8e1d55;
+}
+
+// Pandoc's highlight classes. Quarto ships its own colours for these from a
+// separate stylesheet that loads *before* the theme bundle, so these win on
+// order at equal specificity and repaint them from the shared tokens.
+code span.kw,
+code span.cf,
+code span.im {
+  color: var(--qmd-syntax-keyword);
+}
+
+code span.dt {
+  color: var(--qmd-syntax-type);
+}
+
+code span.dv,
+code span.bn,
+code span.fl {
+  color: var(--qmd-syntax-number);
+}
+
+code span.ch,
+code span.st,
+code span.vs,
+code span.ss {
+  color: var(--qmd-syntax-string);
+}
+
+code span.co,
+code span.do,
+code span.cv {
+  color: var(--qmd-syntax-comment);
+}
+
+code span.fu {
+  color: var(--qmd-syntax-function);
+}
+
+code span.va {
+  color: var(--qmd-syntax-variable);
+}
+
+code span.bu,
+code span.cn,
+code span.sc {
+  color: var(--qmd-syntax-builtin);
+}
+
+code span.op {
+  color: var(--qmd-syntax-operator);
+}
+
+code span.pp,
+code span.at,
+code span.an,
+code span.in {
+  color: var(--qmd-syntax-meta);
+}
+
+code span.al,
+code span.er,
+code span.wa {
+  color: var(--qmd-syntax-error);
+}

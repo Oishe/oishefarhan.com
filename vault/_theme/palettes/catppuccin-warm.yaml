@@ -4,7 +4,7 @@
 
 name: Catppuccin, warm ground
 description: Catppuccin accents over the warm neutral background.
-# Quartz names these by role, not by luminance: `light` is the page background
+# These are named by role, not by luminance: `light` is the page background
 # in *both* schemes, `darkgray` is body text, `dark` is headings.
 colors:
   light:

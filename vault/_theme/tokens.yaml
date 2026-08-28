@@ -4,12 +4,11 @@
 # Nothing reads this file at build time. A generator projects it into the four
 # places that actually need the values, and each projection is checkable:
 #
-#   site/quartz.config.yaml            configuration.theme, between markers
 #   site/bridge/styles/quartoTokens.scss   CSS custom properties for the Quarto frame
 #   vault/_theme/knowledge_theme/tokens.json         the same tokens, for Python
 #   vault/_theme/knowledge_theme/knowledge.mplstyle  matplotlib rc from chart tokens
 #
-#   vault/_theme/quarto-preview-*.scss               the Quarto preview theme
+#   vault/_theme/site-*.scss                         the site theme
 #
 #   npm run design-tokens              rewrite them all
 #   npm run design-tokens -- --check   fail if any is stale
@@ -25,7 +24,7 @@
 #
 #   catppuccin                 Latte and Mocha throughout (active)
 #   catppuccin-warm            Catppuccin accents on the warm neutral ground
-#   neutral                    Quartz's stock warm neutral, GitHub code
+#   neutral                    a warm off-white and near-black, GitHub code
 #   neutral-catppuccin-code    neutral page, Catppuccin code
 # ---------------------------------------------------------------------------
 palette: catppuccin
@@ -50,12 +49,12 @@ typography:
 # `series` are muted mid-lightness hues, each at or above 4.06:1 on both
 # grounds, well clear of the 3:1 WCAG 1.4.11 minimum for graphical objects.
 #
-# Backgrounds are transparent everywhere so the Quartz surface shows through.
+# Backgrounds are transparent everywhere so the page surface shows through.
 # ---------------------------------------------------------------------------
 chart:
   # The two page backgrounds a figure has to survive are colors.*.light, and the
   # generator reads them from there. They used to be written out by hand,
-  # because @quartz-themes/core injected unlayered CSS that superseded this
+  # because an unlayered stylesheet used to supersede this
   # palette and the real backgrounds were its values, not these. That plugin is
   # gone and this file is once again what the browser resolves, so a second copy
   # would only be a way to drift.

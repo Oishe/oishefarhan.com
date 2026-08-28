@@ -1,32 +1,36 @@
 ---
-title: Markdown and Obsidian Features
-description: A compact publishing check for Obsidian-flavoured Markdown rendered through Quartz.
-aliases:
-  - Markdown Features
-  - Stochastics
+title: Markdown Features
+description: A compact publishing check for prose Markdown — callouts, tasks, links, citations, and attachments.
 tags:
   - examples/markdown
 publish: false
 fixture: true
 ---
 
-# Markdown and Obsidian Features
+# Markdown Features
 
-This temporary page checks the Markdown side of the publishing boundary. Its aliases exercise
-alternate URLs, while [Computational Features](examples/computational-features.qmd) supplies a backlink across renderers.
+This temporary page checks the prose side of the publishing boundary. Its aliases exercise
+alternate URLs, while [Computational Features](computational-features.qmd) supplies a backlink.
 
 ## Callouts, tasks, and highlighting
 
-> [!note] Obsidian callout
-> Quartz should render this as a styled callout.
+::: {.callout-note}
+## Quarto callout
 
-> [!warning]- Collapsible warning
-> This content should start collapsed.
+Quarto emits callout markup whenever Bootstrap is loaded, which it is now that Quarto owns the
+chrome. Under the old fragment architecture this degraded to a bare blockquote.
+:::
+
+::: {.callout-warning collapse="true"}
+## Collapsible warning
+
+This content should start collapsed.
+:::
 
 - [x] Parse task lists
 - [ ] Replace this fixture with real notes
 
-Highlighted text uses ==Obsidian syntax==.
+Highlighted text uses <mark>an HTML mark element</mark>.
 
 ## Mathematics and citation
 
@@ -44,14 +48,14 @@ also renders here.[^note]
 ## Cross-note reference
 
 Definitions live in their own note and are linked rather than embedded:
-[Shared Definition](examples/shared-definition.md).
+[Shared Definition](shared-definition.md).
 
 ## Attachment
 
 Publication prep copies an attachment only when published content references it.
 
-![Monte Carlo estimate converging](attachments/convergence.svg)
+![Monte Carlo estimate converging](../attachments/convergence.svg)
 
-The same file is available as an [ordinary Markdown link](attachments/convergence.svg).
+The same file is available as an [ordinary Markdown link](../attachments/convergence.svg).
 
-Return to [Publishing Examples](examples/index.md).
+Return to [Publishing Examples](index.md).

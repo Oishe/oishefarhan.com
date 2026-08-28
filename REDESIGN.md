@@ -1,495 +1,295 @@
-# Site redesign — status and continuation
+# Dropping Quartz
 
-Working document for the design and portfolio overhaul. Delete it when the work
-lands. Branch: `markdown-links`. Last verified state: 59 script tests, 27 bridge
-tests, six validators, `npm run build` and `npm run validate` all green, working
-tree clean.
+Decision record for the migration from a two-renderer site (Quarto body fragments hosted inside a
+vendored Quartz) to a single Quarto website. Supersedes the previous REDESIGN.md, which recorded the
+design-system rebuild of `956f25a`; the parts of it that survive the migration are folded in below.
+
+Escape hatch: tag `quartz-final` marks `956f25a`, the last commit with the fork and the bridge.
+
+```bash
+git checkout quartz-final -- site/
+```
 
 ## Why
 
-`oishefarhan.com` has two jobs in tension. As a publishing system it renders
-`.md` through Quartz and `.qmd` through Quarto. As a portfolio it has to present
-Oishe to recruiters, hiring managers, and technical managers.
+The site rendered `.md` through Quartz and `.qmd` through Quarto. The cost of that was not either
+renderer. It was making two renderers agree.
 
-Two problems drove the work:
+Measured at `956f25a`:
 
-1. **Drafting happened against a page that lied.** A published `.qmd` is a body
-   fragment (`minimal: true`), so `quarto preview` had to restore bootswatch
-   chrome just to be readable, and every Observable Plot rendered near-invisible
-   grey-on-black.
-2. **The site does not present anyone.** It was titled "Knowledge Garden", the
-   name Oishe Farhan appeared nowhere, and the chrome (graph, 320px explorer,
-   backlinks, a properties table above every article) read as a personal wiki.
-
-## Architecture decision — the fragment stays
-
-Re-litigated with evidence before committing to it.
-
-Quarto emits a body fragment; Quartz owns all chrome. `assertNoBootstrapResources()`
-in `site/bridge/quartoPageHtml.ts` hard-fails if Bootstrap survives. Keep this.
-
-`site/bridge/styles/quartoPage.scss` is 377 lines, and its own header comment
-splits them two ways, which holds up on inspection:
-
-- **~215 lines** restate Quartz conventions for markup Quartz never sees
-  (pandoc's `pre.sourceCode`, Quarto's `.cell-output`, tables, figures).
-  Rendering non-minimal would not delete this — it would replace "write on a
-  blank slate" with "override Bootstrap until it looks like Quartz."
-- **~135 lines** neutralise hardcoded colours that client-side libraries paint
-  inline (Plotly, Lumino, Leaflet, Observable Inputs). Unavoidable in any
-  architecture.
-
-So the file size is the cost of two renderers, not of `minimal: true`. The real
-cost is a small set of Quarto *content* features whose CSS nobody wrote — see
-Step 8.
-
-**Rejected: Bootstrap/Bootswatch inside Quartz.** Quartz's `base.scss` is not
-Bootstrap-derived; Reboot would reset typography, spacing and form controls
-across every component. Turns a bounded problem into an unbounded one.
-
-**Rejected: two shells.** Quarto rendering complete pages gives every Quarto
-feature free, but navbar and footer exist twice and drift, and the two dark-mode
-toggles use different storage keys and selectors (`localStorage["theme"]` +
-`:root[saved-theme]` vs Quarto's own + `body.quarto-dark`), so crossing between
-an `.md` and a `.qmd` risks a flash of the wrong theme.
-
-## Decisions taken
-
-- Fragment-in-Quartz confirmed; pay the content-feature CSS debt.
-- Quarto features to support: **wide-figure/column layouts, cross-references**.
-  Tabsets excluded (need Bootstrap JS). **Callouts dropped** — same root cause:
-  Quarto emits callout markup only when Bootstrap is present, so under
-  `minimal: true` the div degrades to a blockquote with the type discarded
-  before HTML. There are no classes for CSS to reach. `.qmd` files use a
-  blockquote or a section heading; `.md` keeps Obsidian callouts, which Quartz
-  renders properly.
-- Layout: top navbar, no left sidebar, collapsible TOC in the right margin open
-  by default. No graph, no explorer, no backlinks panel.
-- Code folded by default in `.qmd`, set in the base config.
-- Math: MathJax on both sides.
-- Sections: **Articles · Notes · Projects**. **No resume page** — resumes are
-  tailored per application.
-- Palette: **Catppuccin** (Latte/Mocha), with two accents darkened for AA.
-- `vault/examples/` never reaches the site.
-
-## Done (commits `8aa6b4d`..`5d9a3d3`)
-
-| Commit | What |
+| | |
 |---|---|
-| `8aa6b4d` | Parked the two draft essays; `.cell.hidden` rule so suppressed cells stop printing their source |
-| `f9c66e5` | Syntax colours derived from shiki themes; generated Quarto preview theme; preview gets its own output dir and becomes tracked |
-| `e6c1c58` | Dropped `@quartz-themes/core` so `tokens.yaml` actually owns the palette |
-| `b4ac9dc` | `fixture: true` — publishing fixtures build but never reach the site |
-| `1575845` | `chart.grounds` derived from the palette |
-| `4ad6249` | Catppuccin palette; alternatives saved in `_theme/palettes/` |
-| `0caea34` | OJS preamble hoisted to `_theme/_ojs-setup.qmd`; preview width bug fixed; stub generator drops include shortcodes |
-| `8a53927` | MathJax SVG on both sides; Plotly's MathJax 2 dropped in the bridge |
-| `434bbb1` | `code-fold: true` plus the `details.code-fold.hidden` rule it needs |
-| `4954b37` | Callouts dropped; guardrails and docs corrected |
-| `ccd535f` | Column layouts and cross-references; `layout-features.qmd` fixture |
-| `ab5bd12` | Top bar, one reading column, TOC right; wiki chrome retired; breakout gutters published; d3/PIXI preloads dropped; preview root font size pinned |
-| `f1d019a` | `SiteNav` — wordmark and section links, current section marked; `page-title` retired |
-| `5d9a3d3` | IA: `knowledge/` → `articles/` with aliases, Notes and Projects created, `pageTitle` → Oishe Farhan, prose scaffolded with marked TODOs |
+| Project-owned glue | ~5,500 lines |
+| Vendored Quartz | 139 files, no Git metadata, pinned at `075afd3` |
+| `generate-design-tokens.ts` | 855 lines projecting one palette into **6** outputs |
+| `prepare-publication.ts` | 901 lines |
+| `quartoPageHtml.ts` | 267 lines of HTML surgery on Quarto output |
+| `generate-qmd-stub.ts` | every `.qmd` compiled twice |
+| Quarto profiles | 4 |
+| Validators | 6, of which 4 tested the bridge |
+| Documented gotchas | 18, of which 11 were Quartz internals or seam bugs |
 
-### What each unlocked
+`generate-design-tokens.ts --check` is the tell. A drift detector is the correct response to
+unavoidable duplication and an admission that the duplication is structural.
 
-**Preview convergence.** `vault/_quarto-preview.yml` now compiles
-`vault/_theme/quarto-preview-{light,dark}.scss`, generated from `tokens.yaml`.
-Verified: preview and publish resolve the same `--qmd-syntax-keyword`, the same
-`--qmd-chart-ink`, the same fonts. Two files because Quarto compiles one
-Bootstrap bundle per mode and swaps them by toggling `rel` on
-`link#quarto-bootstrap`; `$body-bg` cannot hold both values. That split is a
-benefit — each bundle defines `--qmd-*` on a plain `:root`, exactly one is
-active, so a cell reading a token resolves the right mode with no dark selector.
+What the two renderers bought, against what they cost:
 
-**Syntax derivation.** `tokens.yaml` named a shiki theme instead of 22 hexes.
-This closed a real bug: `quartz.config.yaml` said `github-light` while the
-hand-written hexes came from `github-light-default`, so `.md` and `.qmd` code
-rendered in different GitHub palettes. Derivation reproduced 9 of 11 hand-written
-tokens exactly; `operator` and `meta` moved to what the theme specifies.
+- **Commit `956f25a` disabled every feature that justified Quartz.** `graph`, `explorer`,
+  `backlinks`, `tag-list`, `recent-notes`, `stacked-pages`, `page-title` and `reader-mode` are all
+  `enabled: false`; `left` is cleared on every page type; `obsidian-flavored-markdown` runs with
+  `wikilinks: false`. Its own commit message says the Quartz chrome "read as a personal wiki rather
+  than a portfolio."
+- **The layout that replaced it is Quarto's default layout.** "A top bar, one reading column and a
+  right-hand TOC" is what `quarto render` emits for a website project with `toc-location: right`.
+  5,147 lines went into rebuilding Quartz into Quarto's shape.
+- **Obsidian-only syntax in real content: zero.** The only file using `> [!note]` or `==highlight==`
+  was `examples/markdown-features.md`, a fixture whose purpose was proving the feature worked.
+- **Volume.** 6 published `.md` files (all index/about pages) and 1 published article, which is
+  `.qmd`. The Quartz half served six index pages and a self-referential fixture.
+- **Nothing was deployed.** `git remote -v` was empty. No live URLs, no SEO, no inbound links. The
+  cheapest possible moment to cut.
 
-**Palette library.** `vault/_theme/palettes/*.yaml`, one per palette, each
-carrying colour roles *and* the shiki theme name. `tokens.yaml` names one:
+The reverse trade was never available: `articles/signals-as-vectors.qmd` is 30 OJS cells. Dropping
+Quarto was not on the table.
 
-```yaml
-palette: catppuccin   # catppuccin-warm | neutral | neutral-catppuccin-code
+### The friction that actually mattered
+
+`minimal: true` made the drafting view lie. `AUTHORING.md` said so plainly — under `quarto preview`
+you got "a Quarto page, not *your* page", with dead links, unset `--qmd-chart-*` tokens and no
+`themechange` event. That is the same complaint that motivated the design-system rebuild, and it was
+structural to hosting a fragment. With one renderer, `minimal: true` goes away and **preview and
+publish are the same render**.
+
+Second: the `.md` / `.qmd` divergence table in `AUTHORING.md` listed six syntaxes that worked in one
+engine and hard-failed in the other. One engine collapses that table to one column.
+
+## Decisions
+
+1. **Quarto owns the chrome.** Site becomes `project: type: website`. `minimal: true` is deleted.
+2. **`_theme/quarto-preview-{light,dark}.scss` are promoted to the site theme.** They were already
+   generated from `tokens.yaml`; they stop being a preview-only approximation.
+3. **Links become document-relative.** Obsidian switches to `newLinkFormat: relative`.
+4. **`%%` comments are dropped entirely, not stripped.** The repo is going to a public remote, so
+   comment-stripping was never a privacy mechanism — the source is public either way. TODOs live in
+   `_hidden/`, which is the actual privacy boundary. Publication prep *rejects* `%%` in any
+   published file rather than silently passing it through to render as literal text.
+5. **`site/` is deleted, not archived in-tree.** Tag `quartz-final` is the archive.
+6. **No graph view.** Ruled out on page weight, independently of this migration.
+7. **Backlinks are deferred**, not refused. Prep already parses every link
+   (`scripts/prepare-publication.ts:325`); persisting the edges and inverting them is the work, and
+   it is worth doing when there are enough notes to link.
+
+### Why relative links, when the previous decision was absolute
+
+`AUTHORING.md` argued against relative paths because "a bare `index.md` inside a section means that
+section's index to Obsidian but the site root to Quartz." **That ambiguity was a Quartz artifact.**
+Quarto resolves relative paths the way Obsidian resolves them, so the reason for vault-absolute
+paths leaves with Quartz. Prep still validates every link, so a broken one fails the build.
+
+Confirmed empirically during the spike: rendering the vault-absolute form under a Quarto website
+project produces `WARN: Unable to resolve link target: examples/examples/markdown-features.md` —
+Quarto resolving the path relative to the document, exactly as predicted. 22 links across 10 files.
+
+## The spike
+
+A throwaway `_quarto-webtest.yml` rendered the article and both interactive fixtures as a full
+Quarto website (`minimal: false`, navbar, right TOC, the preview theme) with no Quartz involved.
+Served on `:8995` and driven through a real browser. Results:
+
+### Works natively; the bridge workarounds were unnecessary
+
+`examples/interactive-features.qmd`, standalone:
+
+| | |
+|---|---|
+| OJS cells rendered | 7, none empty, 0 errors |
+| OJS reactive input | live |
+| ipywidgets views | 11 |
+| `ipyleaflet` map | renders |
+| RequireJS | loaded natively |
+
+Quarto emits `requirejs@2.3.6` and `@jupyter-widgets/html-manager` itself. The bridge's UMD-global
+pinning existed only because a fragment was being hosted inside another page's script environment.
+It is not needed.
+
+`articles/signals-as-vectors.qmd`, standalone: **zero console errors.** 88 MathJax 3 containers,
+34 OJS cells (0 empty, 0 errors), 32 SVG plots, the audio element, working code-fold, TOC, navbar.
+The interactive basis-rotation figure responds to its slider.
+
+### Found during the migration
+
+Two defects that only exist because Quarto owns the chrome. Both are now guarded in
+`prepare-publication.ts`, and both were found by building the thing rather than by reading docs.
+
+**Quarto listings glob the filesystem, not the render list.** A `publish: false` draft left in
+`articles/` was linked from the published `articles/index.html` *and* had its raw `.qmd` source
+copied into the output tree as a listing resource. The render reports `contains no metadata` and
+carries on. Quartz's folder-page could not do this because it only ever saw the staged published
+tree; there is no staged tree now, so `checkListingLeaks` enforces it — an unpublished document in
+a listed folder fails the build. Verified with a deliberate probe file, which the guard caught.
+
+**`aliases:` means two different things.** Obsidian reads an entry as another *name* for the note,
+for the quick switcher. Quarto reads it as another *URL* and emits a redirect page — resolved
+against the aliasing document's own directory. So `Knowledge Notes` on `articles/index.md`
+published a junk redirect at `articles/Knowledge Notes/index.html`, and `knowledge/index`, written
+to preserve the old URL, landed at `articles/knowledge/index/` instead of the site root. Aliases
+are now required to be site-absolute (`checkAliases`), and display-only aliases were dropped.
+`/knowledge/index` and `/knowledge/signals-as-vectors` both resolve.
+
+### Broken in vanilla Quarto — not a Quartz artifact
+
+**Plotly on a page that also has maths.** Gotcha 12 from the old REDESIGN.md was recorded as a
+bridge problem. It is not. Quarto nests a MathJax 2.7.5 loader inside Plotly's cell output; it
+claims `window.MathJax`, and MathJax 3 aborts:
+
+```
+Uncaught TypeError: Cannot read properties of undefined (reading 'loader')
+    at https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js
 ```
 
-The test suite validates *every* palette for completeness and chart legibility,
-so unused alternatives cannot rot.
+Switching to `html-math-method: katex` does **not** fix it. It converts a crash into a double
+render: MathJax 2 reaches inside KaTeX's `katex-mathml` annotation and typesets the MathML fallback,
+so both renderings appear nested (`.MathJax_SVG` with `inKatex: true`). Both states are wrong.
 
-**Shared OJS preamble.** `vault/_theme/_ojs-setup.qmd` defines `contentWidth`,
-`figW` and `col` for every charted article; `signals-as-vectors.qmd` pulls it in
-with `{{< include ../_theme/_ojs-setup.qmd >}}`. The move fixed a real bug: the
-old `contentWidth` matched only the *published* selector and fell through to
-`document.body`, so `quarto preview` sized figures from the viewport. Chaining
-`main#quarto-document-content` ahead of the fallback took the measured width
-from 1425 to 735 at a 1440 viewport. `col` now reads from `document.body` and
-has no hardcoded grey fallback. `stripExecutableCells` drops bare include lines,
-so no shortcode reaches `contentIndex.json`; the validator asserts both halves —
-no `{{<` in any stub, *and* the include actually resolved in the artifact.
+The bridge's `isPlotlyMathJax` stripper was a real fix for a real Quarto bug, and deleting the
+bridge gives the bug back.
 
-Verified in both renderers at 1440px: identical `--qmd-chart-ink` and series
-colours, 720px plots, 32 live OJS cells, no errors.
+**Scope: one file.** `grep -rln plotly --include='*.qmd' vault/` returns
+`examples/computational-features.qmd` and nothing else. The published article uses Observable Plot
+(38 `Plot.` calls) and no Python at all. This is a fixture-only defect today.
 
-**One maths renderer.** `renderEngine: mathjax` plus a pinned
-`mathjax@3.2.2/es5/tex-svg-full.js` in `_quarto.yml`. Convergence measured, not
-assumed: the same TeX through rehype-mathjax at build time and through the CDN
-runtime gives byte-identical glyph paths, all nine, even though the bundled
-renderer is 3.2.1 and the CDN 3.2.2. SVG output is why. Also removed the
-sitewide `katex@0.16.11` CSS and `copy-tex.min.js`, left `.md` pages shipping no
-maths JS at all, and closed the unpinned `katex@latest` gap. Lost:
-copy-as-LaTeX.
+**Policy:** Observable Plot for interactive figures, matplotlib for static ones. Keep Plotly out. If
+Plotly is ever wanted on a page with maths, the fix is a Lua filter doing what `isPlotlyMathJax`
+did — walk the tree and drop the nested loader. Note *where*: it is inside the figure, not hoisted
+into head or body, so a head/body resource filter cannot see it. (`plotly.io` may also have an
+`include_mathjax` route; untested.)
 
-**Folded code.** `code-fold: true` in the base config. The risk gotcha 3 flagged
-was real: Signals as Vectors has 23 hidden `<details class="code-fold">` inside
-*visible* cells against 9 genuine ones, so the companion
-`details.code-fold.hidden` rule is what stands between the article and 23 empty
-disclosure triangles. A validator now asserts both the rule and the markup,
-because this is a defect that only shows up visually.
+## Migration
 
-**Column layouts and cross-references.** Both survive `minimal: true` with their
-classes intact — verified by rendering both ways — so only the CSS was missing.
-Two measured decisions:
+1. **Tag `quartz-final`.** Done.
+2. `_quarto.yml` → `type: website`. Drop `minimal: true`. Promote the preview SCSS to the site
+   theme. Navbar for articles / notes / projects / about, `toc-location: right`, built-in search.
+   Delete `_quarto-preview.yml` — the base config is now the drafting view.
+3. Obsidian → `newLinkFormat: relative`. Rewrite the 22 links. Strip the absolute-path branch from
+   `rewriteLinkTargets`; keep validation, made relative-aware.
+4. Extend prep's `%%` rejection from `.qmd` to `.md`.
+5. Rebuild `articles/`, `notes/`, `projects/` indexes as Quarto `listing:` pages. Deletes
+   hand-maintained index bodies; gives recent-notes and tag pages for free.
+6. Repoint `generate-design-tokens.ts`: 6 targets → 4. Delete `renderQuartzThemeBlock`,
+   `renderQuartzFontsBlock`, `renderQuartzSyntaxBlock`, `applyGeneratedBlock`, `blockMarkers`,
+   `renderQuartoTokensScss`. `--check` still proves no drift, over the whole surface.
+7. Delete `site/`, `scripts/generate-qmd-stub.*`, `validate-qmd-stub.sh`,
+   `validate-qmd-stub-suppression.sh`, `validate-quarto-emitter.sh`. Reclaim callouts as
+   `::: {.callout-note}` — they were unavailable only because `minimal: true` dropped Bootstrap.
+8. Deploy: `site-url`, GitHub Pages, CI running `quarto render` + `npm test` + the three surviving
+   validators, with `vault/_freeze/` committed.
 
-- **Not a grid.** The plan's named-column grid on `.quarto-content` was tried
-  and measured: grid items do not collapse margins, so every gap doubled
-  (16→32, 20→40, 24→48) and the article grew 3,276px, 26%. Content stays in
-  normal flow; only breakout elements widen. A validator now fails if
-  `.quarto-content` ever becomes a grid.
-- **The shell owns the gutter.** Deriving the breakout from the viewport assumes
-  the reading column is centred in it; measured, that overflowed by 162px,
-  because the article fills its grid column exactly (`slack: 0`) with the TOC
-  rail 5px later. `--qmd-breakout-page` / `--qmd-breakout-screen` default to
-  zero, so breakouts are inert until **Step 9** publishes real values. Confirmed
-  inert at 1440/1100/820/600/380px and confirmed to widen once a value is set.
+Steps 1–7 are done. Step 8 is open.
 
-`vault/examples/layout-features.qmd` covers both, with no executable cells so it
-stays unfrozen and editable.
+### Net
 
-**The layout.** Graph, explorer, backlinks, reader-mode, spacer and the
-properties table are off; `page-title`, `search` and `darkmode` moved from `left`
-to `header`. What is left is a top bar, one reading column at `--measure: 46rem`,
-and the TOC in a 16rem right rail that drops away below desktop.
+Against `quartz-final`: **206 files changed, 1,194 insertions, 39,992 deletions.**
 
-The grid had to be rebuilt, not reconfigured. `DefaultFrame` renders the header
-slot inside `.center`, and `.center` sits between the grid and the two children
-`base.scss` already gives grid areas to — so `grid-area: grid-header` on
-`.page-header` and `grid-area: grid-center` on `.center > article` were both
-inert, and a full-width bar was impossible. `.center { display: contents }`
-makes them real grid items; `hr` and `.page-footer` then need areas of their own
-or they auto-place below the footer.
+| | Before | After |
+|---|---|---|
+| Renderers | 2 | 1 |
+| Vendored files | 139 | 0 |
+| Design-token targets | 6 | 4 |
+| Validators | 6 | 3 |
+| `scripts/` | 5,498 lines | 2,586 |
+| `_quarto-preview.yml` | 68 lines | 23 |
+| Preview fidelity | approximation | the page |
 
-**Breakout gutters, now with values.** With the measure narrower than the column
-it sits in, `--qmd-breakout-page` and `--qmd-breakout-screen` have real room to
-publish and Step 8's column layouts finally widen. `--qmd-breakout-screen` is
-`slack - 1rem` and `--qmd-breakout-page` is `min(4rem, screen)` — derived from
-the wider one, not from the slack, because at 820px the slack is 26px and
-deriving both independently made `.column-page` *wider* than
-`.column-screen-inset`. The 1rem is the `100vw`-counts-the-scrollbar allowance,
-and it is also what makes the inset inset.
+The profile *count* did not change — base, publish, preview, fixtures — but only `preview` is
+hand-written, and it no longer overrides a single format option. It exists solely to add the one
+positive render glob that a negations-only base list cannot supply.
 
-Measured on `layout-features.qmd` at 1500/1440/1200/1100/820/600/380:
-`scrollWidth === innerWidth` at every width, `.column-page ⊆ .column-screen-inset`
-at every width, and the widest breakout (1112px at 1440) stays 48px clear of the
-TOC rail at 1160.
+### Also deleted
 
-**One root font size.** The convergence check turned up a defect Step 6 could not
-see: Quarto scales the root to `1.0625rem`, so preview body text was 17px against
-Quartz's 16px and MathJax scaled with it — the same display equation measured
-224px wide in preview and 211px published, 6.25% adrift. It is `$font-size-root`
-that does it, not `$font-size-base`. With the root pinned, both sides now render
-16px body text, 720px plots and equation widths of 211/125/1px. A validator
-compares `--measure` against `$grid-body-width` so the two renderers cannot drift
-apart silently; it was checked by breaking it.
+`examples/a-signal-is-a-vector.qmd` (835 lines) and `examples/a-signal-is-a-vector-python.qmd`
+(956 lines): `publish: false`, no `fixture: true`, so they rendered in no profile at all. A bake-off
+record of the OJS route against the Python route. Git history keeps them.
 
-**The navbar.** `site/bridge/siteNav.tsx` renders the wordmark and the section
-links and replaces `@quartz-community/page-title` — two components in the header
-slot would render two wordmarks. `flex: auto` on `.site-nav` is what pushes the
-search and dark-mode toolbar to the far end of the bar. Below 800px the wordmark
-and links stack and the toolbar stays on the first line.
+`examples/computational-features.qmd` and `examples/interactive-features.qmd` stay as fixtures. OJS,
+ipywidgets and Plotly can still break, and that is the one validator worth its keep.
 
-Registration is the part with teeth, and gotcha 1 predicted its shape:
-`loadQuartzConfig` calls `loadQuartzLayout()` itself and hands the result to a
-`PageTypeDispatcher` that closes over it, so pushing a component into
-`export const layout` changes nothing. `site/quartz.ts` mutates a fresh layout —
-`defaults` **and** every `byPageType` header array, which are distinct objects —
-then rebuilds the dispatcher from it. That rebuild is also what carries
-`SiteNav.css` into `component-*.css`, because `getQuartzComponents()` walks the
-same arrays. Verified: the CSS lands in `component-98583a5c.css`, and both Quarto
-validators now assert `class="site-nav"` reaches `.qmd` pages.
+## What survives
 
-The active-section test is pinned by eight tests because it failed silently.
-`simplifySlug` strips the **leading** slash only, so `knowledge/` and
-`knowledge/index` both simplify to `knowledge/` with the trailing slash intact;
-asking whether a page `startsWith(`${section}/`)` builds `knowledge//`, and the
-section index — which matches by equality — is then the only page that ever
-lights up. Every article rendered as though it belonged nowhere, with otherwise
-perfect markup. The tests are JSX-free deliberately: the runner globs
-`bridge/*.test.ts`, so a `.test.tsx` would compile and quietly stop running.
+`prepare-publication.ts` stays. It is the publish allowlist, the privacy boundary, the link
+validator and the freeze-leak check, and Quarto provides none of those. It sheds stub generation and
+the `.qmd`→`.md` rewriting. `validate-publication-prep.sh` stays; it is the most important test in
+the repo.
 
-SPA navigation was checked too: clicking between sections updates the marker and
-leaves exactly one `.site-nav` in the DOM.
+`tokens.yaml` stays the single source of colour, type and chart values.
 
-**The information architecture.** `vault/knowledge/` → `vault/articles/`,
-carrying the article and its audio fixture; `aliases:` keep `/knowledge/index`
-and `/knowledge/signals-as-vectors` alive and the redirects are generated and
-verified. `notes/` and `projects/` exist with section copy and no entries, each
-saying so. `configuration.pageTitle` is **Oishe Farhan**, which is the `<title>`,
-the OG title and `SiteNav`'s wordmark fallback. The navbar carries all four.
+## Gotchas that survive the migration
 
-Everything only Oishe can write is a marked `%%` TODO rather than invented
-filler — positioning line, experience, project entries, About narrative, skills
-list, GitHub and LinkedIn. Obsidian comments, which the build strips; verified
-that no `TODO(oishe)` string survives into the published HTML.
+Renumbered. Everything about Quartz internals, `custom.scss` layering, `DefaultFrame`, the page-type
+dispatcher, the note-properties frontmatter trap, and bridge link resolution is gone with `site/`.
 
-**Four defects that only appeared once there was prose.** Each of these had been
-latent for the life of the site and cost nothing to find beyond looking at a
-rendered page:
+1. **Freeze silently ignores edits — it does not re-execute.** `_freeze/*/execute-results/html.json`
+   stores the document's entire executed *markdown*, prose included, and `freeze: true` restores
+   that instead of reading the source. Editing a frozen `.qmd` produces no kernel start, no
+   `Output created`, and no change on the page: the edit is dropped, on a green build, with no
+   warning. Changing the environment — a new package, an edited `.mplstyle`, a changed token — does
+   not invalidate it either.
 
-- Every page rendered its title twice — once from `article-title`, once from a
-  body `# H1`.
-- `hard-line-breaks` turned every source newline into a `<br>`. Prose here wraps
-  at ~95 characters, so each line ended where the editor wrapped it *and* wrapped
-  again at the reading measure. Disabled. A document that needs a real line break
-  uses a trailing double-space, which is standard Markdown and stays local.
-- Folder and tag pages wrap their body in a `.popover-hint` holding the article
-  **and** the generated listing, so base.scss's `grid-area: grid-center` on
-  `.center > article` never reached it and the listing spilled across the full
-  column. `.center > .popover-hint` now carries the same area and measure.
-- `"1 item under this folder."` sat directly under the section blurb.
-  `showFolderCount: false`.
+   ```bash
+   rm -rf vault/_freeze/<section>/<note>
+   cd vault && uv run quarto render <section>/<note>.qmd
+   ```
 
-Index pages are navigation, not reading: `enableToc: false` in frontmatter, and
-`.content-meta` suppressed on `[data-slug="index"]` and `[data-slug$="/index"]`
-— a modified date and a reading time under a person's name is the wiki habit the
-redesign exists to remove. The generated listing keeps date and title and drops
-the tag column, which broke mid-word at the reading measure.
+   **Largely fixed.** `_quarto.yml` now sets `freeze: auto` rather than `true`. `auto`
+   re-executes when the source changes, which is what freeze was always assumed to do; `true` is
+   what silently drops edits. The hazard that remains is narrower: a change to the *environment* —
+   a new package, an edited `.mplstyle`, a changed token — still does not invalidate a frozen
+   result. Delete the freeze entry by hand for those.
 
-**Fixtures.** `fixture: true` folds into the existing `publish` gate at the one
-place a document is read, so staging, link map, freeze check and the Quarto
-allowlist all follow. `npm run build` cannot see a fixture; `npm run validate`
-builds them to `generated/fixture-site` and runs all six validators there.
+   Freeze also earns nothing on an OJS-only document. `signals-as-vectors.qmd` is 30 OJS cells and
+   zero Python, and OJS runs in the browser.
 
-## Gotchas — these cost real time to find
+2. **Quarto resolves `{{< include >}}` in a pre-engine text pass that ignores HTML comments.**
+   Spelling the shortcode out inside `_ojs-setup.qmd`'s own header comment made the file include
+   itself until `RangeError: Maximum call stack size exceeded`. The trace is a thousand identical
+   `retrieveInclude` frames and names no file; `grep -v retrieveInclude` is what makes the real
+   error visible. Describe an include in prose, never verbatim, inside a file that can be included.
 
-1. **`export const layout` from `site/quartz.ts` is dead code.**
-   `loadQuartzConfig()` calls `loadQuartzLayout()` itself
-   (`config-loader.ts:512`) and hands that object to `PageTypeDispatcher`, which
-   closes over it. Adding a header component requires **replacing the dispatcher
-   instance**, not mutating the export. Two further traps:
-   `buildLayoutForEntries` always assigns `result.header` (possibly `[]`), so the
-   `if (!pt.header)` fallback at `config-loader.ts:707` never fires and each
-   `byPageType` entry owns a distinct array; and `resolveLayout` does
-   `overrides.header ?? sharedDefaults.header`, where `[] ?? x` is `[]`.
+3. **An include shifts OJS source lines**, so every render of an article using `_ojs-setup.qmd`
+   prints `WARN: OJS block count mismatch. Line number reporting is likely to be wrong` once per
+   included cell — three today. It degrades line numbers in OJS *runtime* errors and nothing else.
+   Accepted cost, not a regression to chase.
 
-2. **Quartz globs content with `gitignore: true`** (`quartz/util/glob.ts`).
-   A content root under the ignored `generated/` finds zero files. The existing
-   `site/content` symlink is what hides that; `site/fixture-content` is the same
-   trick. Any new content root needs a symlink from inside `site/`.
+4. **Plotly + maths is broken.** See the spike section above.
 
-3. **A hidden `<details>` inside a visible `.cell` is invisible to
-   `.cell.hidden`.** This was the `code-fold` trap, now closed in `434bbb1` —
-   23 of the 32 folds on Signals as Vectors are of this shape. Kept here because
-   the shape recurs: Quarto's own stylesheet carries the hiding rules for its
-   markup, `minimal: true` drops it, and any *new* Quarto content feature with
-   an `echo: false` path needs the same check. A config diff enabling such a
-   feature always looks fine; the breakage is only visible.
+5. **Observable JS cells share one namespace.** Every `{ojs}` cell in a document, plus every name
+   from `ojs_define`, lives in one scope. Defining a name twice is a runtime error visible only in
+   the browser console; the build stays green. If an OJS chart renders blank, open the console.
 
-4. **The MCP browser runs with Chrome force-dark.** It inverts every screenshot
-   regardless of CSS — a hardcoded `#faf8f8` on `#ffffff` photographs as near
-   black, and `emulateMedia`/`color-scheme` do not disable it. Before any
-   screenshot:
+6. **Maths inside an `{ojs}` cell is rendered by Observable's own bundled KaTeX**, which no
+   configuration here reaches. It looks close to the page's MathJax but not identical. Keep
+   equations in prose when you want them to match. (The spike measured 4 such KaTeX nodes on the
+   article against 88 MathJax containers.)
+
+7. **The MCP browser runs with Chrome force-dark**, which inverts every screenshot regardless of
+   CSS. `emulateMedia` and `color-scheme` do not disable it. Before any screenshot:
 
    ```js
    const cdp = await page.context().newCDPSession(page);
    await cdp.send('Emulation.setAutoDarkModeOverride', { enabled: false });
    ```
 
-5. **`site/quartz/styles/custom.scss` is unlayered and appended last**
-   (`componentResources.ts:347` wraps base in `@layer quartz-base` then
-   concatenates custom). It beats everything in `base.scss` without
-   `!important`, and it is exempt from both style validators —
-   `validate-shared-visual-language.sh` scopes its checks to the compiled
-   `quartoPage.scss` `component-*.css` and to `quartoPage.scss` by name.
-
-6. **The JSON schema is editor-only.** `quartz-plugins.schema.json` omits
-   `header`, `footer` and `template`, but nothing validates it at build time and
-   the loader honours all three. The config already violates it. Do **not** patch
-   it — `QUARTZ_UPSTREAM.md` claims `spa.inline.ts` is the only patched vendored
-   file, and that claim is checkable.
-
-7. **`DefaultFrame` always renders `<div class="left sidebar">`** even when the
-   `left` array is empty. Clearing `left` in config leaves a 320px empty column;
-   the grid must be overridden.
-
-8. **Freeze silently ignores edits — it does not re-execute.** The earlier note
-   here had this backwards. `_freeze/*/execute-results/html.json` stores the
-   document's entire executed **markdown**, prose included, and `freeze: true`
-   restores that instead of reading the source. Editing a frozen `.qmd` produces
-   no kernel start, no `Output created`, and no change on the page: the edit is
-   simply dropped. Cost an hour of "why is my fixture not updating".
-   `articles/signals-as-vectors.qmd` and `examples/layout-features.qmd` have no
-   freeze entry (no executable Python), so both are editable;
-   `computational-features.qmd` and `interactive-features.qmd` are frozen and
-   need `--no-freeze` or a deleted freeze entry before any edit takes effect.
-
-9. **Bash tool cwd persists between calls.** A `cd site` in one call silently
-   applies to the next. This caused an edit to land in the wrong `package.json`.
+8. **Bash tool cwd persists between calls.** A `cd vault` in one call silently applies to the next.
    Prefix with an explicit `cd /Users/oishe/code/knowledge`.
 
-10. **Quarto resolves `{{< include >}}` in a pre-engine text pass that ignores
-    HTML comments.** Spelling the shortcode out as a usage example inside
-    `_ojs-setup.qmd`'s own header comment made the file include itself and
-    recurse until `RangeError: Maximum call stack size exceeded`. The stack
-    trace is a thousand identical `retrieveInclude` frames and names no file;
-    `grep -v retrieveInclude` is what makes the real error visible. Describe an
-    include in prose, never verbatim, inside a file that can be included.
+9. **Scratch HTTP servers may still be running.** Check `lsof -ti:<port>` before trusting a 404.
 
-11. **An include shifts OJS source lines**, so every render of an article using
-    `_ojs-setup.qmd` prints `WARN: OJS block count mismatch. Line number
-    reporting is likely to be wrong` once per included cell — three today. It
-    degrades the line numbers in OJS *runtime error* messages and nothing else;
-    the cells evaluate normally. Accepted cost, not a regression to chase.
+## Open
 
-12. **Plotly nests a MathJax 2.7.5 loader inside its cell output** so LaTeX in
-    chart labels renders. It claims `window.MathJax`, which makes MathJax 3
-    abort with `Cannot read properties of undefined (reading 'loader')`, after
-    which MathJax 2 typesets the page in `.MathJax_SVG` markup nothing here
-    styles. Under KaTeX this was invisible. The bridge now drops it
-    (`isPlotlyMathJax`), but note *where*: it is nested in the figure, not
-    hoisted into head/body, so the existing resource filter could not see it and
-    it needed a tree walk. Any future "strip a script Quarto emitted" work has
-    to ask which of the two it is.
-
-13. **A vault attachment referenced from a `.qmd` 404s.** Quartz rewrites
-    `attachments/x.svg` to `../attachments/x.svg` on the `.md` side; the bridge
-    rewrites `<a href>` for `.md`/`.qmd` targets only, so `<img src>` reaches
-    the page unchanged and misses. Publication prep *accepts* the path (it
-    checks the attachment exists), so the failure is silent until you look at
-    the page. Not fixed — the fix needs the bridge to tell a vault attachment
-    from a Quarto page-relative resource like the article's `data/flute-a4.wav`,
-    which means passing the link map's `attachments` list into `quartoPage.tsx`.
-    Worth doing before any article uses an attachment.
-
-14. **`@quartz-community/note-properties` is the frontmatter parser.** Its name
-    and its options describe a properties table, and turning that table off is
-    the obvious way to stop it printing above every article. Do not. Its
-    `markdownPlugins` step is what sets `file.data.frontmatter`; disable the
-    plugin and every document has no frontmatter, `explicit-publish` filters the
-    whole vault, and the build reports `Filtered out 4 files` and emits a site
-    with no pages and **no error**. Suppress the table instead: no `layout`
-    entry, so the component is never placed, plus `hidePropertiesView: true`.
-    Cost: a full bisect of the plugin list, because nothing in the failure names
-    the plugin responsible.
-
-15. **`Header.css` never ships.** `DefaultFrame` hardcodes the `<header>`
-    wrapper rather than placing it in a layout array, and `collectComponents`
-    only walks those arrays, so the wrapper's `display: flex` never reaches the
-    page. Invisible while the header slot was empty; the moment anything is put
-    in it, the bar lays out as a block with the toolbar stacked under the
-    wordmark. `custom.scss` declares the row itself. Any other frame-hardcoded
-    component has the same hole.
-
-16. **Auto margins cancel a grid item's stretch.** `max-width: var(--measure);
-    margin-inline: auto` centres the article, and also makes it shrink-to-fit:
-    the reading column was 736px on the article and 632px on the home page,
-    changing width from page to page. `width: 100%` alongside the `max-width` is
-    what fixes it. The same shape bit the footer from the other direction —
-    `base.scss` leaves `margin-right: auto` on it at desktop, so it shrank to
-    its content and sat against the left page edge.
-
-17. **Publication prep resolves links inside `%%` comments.** A TODO note that
-    sketches `[Title](notes/slug.md)` for a page that does not exist yet fails
-    the build — before Quartz ever gets to strip the comment. Describe the link
-    in prose inside a comment; never write one.
-
-18. **Scratch HTTP servers** may still be running: 8991 (`generated/quarto-preview`),
-    8992 (`site/public`), 8993 (bake-off builds — one was still holding the port
-    from a previous session; 8994 was used for the fixture site instead).
-    Restart as needed, and check `lsof -ti:<port>` before trusting a 404.
-
-## Remaining work
-
-### Step 11b — the prose Oishe has to write
-
-The structure is built and every page renders. What is left is the content only
-he has, marked in the vault as `%%` TODO comments so it is findable with
-`grep -rn "TODO(oishe)" vault/`. Nothing here blocks anything else; the site is
-publishable without it, it just does not yet say anything.
-
-**`vault/index.md`**
-- The positioning line — role + domain + what he is looking for, one sentence.
-  It is the first thing a hiring manager reads.
-- Two or three more **Featured work** entries. *Signals as Vectors* is the only
-  real one; projects are the natural second and third.
-- **Selected experience** — 3–5 lines of `Company — Role — the outcome in one
-  line`. Outcome, not responsibility.
-- GitHub and LinkedIn. Confirm `farhanoishe@gmail.com` is the address to
-  publish; it was taken from git config. **No resume link** — resumes are
-  tailored per application.
-
-**`vault/about/index.md`** — 2–3 paragraphs of narrative connecting ECE, data
-and software engineering, and ML into one line of work, plus an explicit skills
-list a keyword-scanning recruiter can hit.
-
-**`vault/projects/`** — at least two, one page each on a fixed skeleton:
-*Problem → Approach → Result → Stack → Links*. Until then the Projects nav item
-leads to a page that says it is empty, which is honest but is not the intent.
-
-**`vault/notes/`** — the MIT flow-matching and diffusion coursework, the labs,
-the prerequisite review.
-
-Also open: the footer's `links: {}` in `site/quartz.config.yaml`, which should
-carry the same GitHub / LinkedIn / email as the home page.
-
-### Step 12 — deployment gaps
-
-1. **`baseUrl: localhost:8080`** → `oishefarhan.com`. Feeds
-   `@quartz-community/cname` (`site/public/CNAME` currently contains the literal
-   `localhost`) and `basePath` in `renderPage.tsx`, so canonical URLs, sitemap,
-   RSS and OG tags are all wrong until set.
-2. **No CI, and no git remote at all** (`git remote -v` is empty). Needs a GitHub
-   repo plus a workflow. Requirements: Node ≥22, `uv` + Python, the Quarto CLI,
-   and `vault/_freeze/` committed or CI re-executes every notebook.
-   ⚠️ **CI must run `npm run validate`, not just `npm run build`** — validate is
-   what builds the fixtures and runs the six validators. Running only `build`
-   silently drops all bridge coverage.
-3. **`og-image` disabled** — every link pasted into LinkedIn or an email has no
-   preview card. Disabled over a build-time font fetch; fine in CI, or pin the
-   font.
-4. **`footer.options.links: {}`** — fill with GitHub / LinkedIn / email.
-5. **`analytics: null`** — optional.
-6. **Favicon** — plugin enabled; confirm there is an icon to serve.
-
-## Verification
-
-```bash
-npm run build      # production site -> site/public
-npm run validate   # fixtures -> generated/fixture-site, then all six validators
-npm test           # 58 tests
-```
-
-`npm run design-tokens -- --check` gates every token change and runs first in
-`npm run build`, so a forgotten regeneration fails fast.
-
-Bridge tests are **not** in `npm test`, which globs `scripts/*.test.ts` only.
-Run them with `cd site && npx tsx --test bridge/*.test.ts` (27 today). That glob
-is why `siteNav.test.ts` carries no JSX — a `.test.tsx` compiles fine and stops
-being run.
-
-**Convergence check** — the point of the exercise. Render
-`articles/signals-as-vectors.qmd` both ways and compare in light and dark at
-1440px:
-
-```bash
-npm run preview articles/signals-as-vectors.qmd    # port varies; read the log
-npm run build-serve                                 # localhost:8080
-```
-
-Observable Plot figures should have identical ink and series colours, code blocks
-identical token colours, equations identical glyphs, figures the same width.
-Remember gotcha 4 before screenshotting. As of `ab5bd12` this measures: 16px root
-and body text, 720px plots, display equations 211/125/1px, and a reading column
-of 736px published against 738px in preview — the 2px is Quarto's own grid
-padding.
+- **`site-url`** must be set before deployment; canonical URLs, sitemap, RSS and OG tags depend on
+  it. The Quartz-specific half of this problem — the `cname` plugin writing a literal `localhost`
+  into `site/public/CNAME`, and `og-image` disabled over a build-time font fetch — leaves with
+  `site/`.
+- **No CI and no git remote.** CI needs Node ≥22, `uv` + Python, the Quarto CLI, and
+  `vault/_freeze/` committed or every notebook re-executes.
+- **The prose only Oishe can write.** The positioning line, experience, project entries, the About
+  narrative and the skills list are still TODO markers. They move from `%%` comments to `_hidden/`.

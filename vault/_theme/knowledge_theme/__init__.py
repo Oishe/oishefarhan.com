@@ -1,7 +1,7 @@
 """Shared visual language for computational figures in this vault.
 
 Every published document is rendered once by Quarto and then served under two
-page themes (light and dark) by the Quartz site that wraps it. A figure
+page themes (light and dark) by the site that wraps it. A figure
 produced by matplotlib or Plotly does not get a second render pass per theme —
 it is baked once, as a raster or as embedded JSON, so it has to be legible
 against both page backgrounds simultaneously rather than switching with them.

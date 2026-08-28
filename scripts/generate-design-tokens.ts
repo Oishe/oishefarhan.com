@@ -32,42 +32,27 @@ export type GeneratedFile = { path: string; contents: string }
 export type GenerateOptions = {
   tokensPath: string
   palettesDir: string
-  quartzConfigPath: string
-  quartoTokensScssPath: string
   vaultTokensJsonPath: string
   mplStylePath: string
-  quartoPreviewScssPath: Record<Mode, string>
+  siteScssPath: Record<Mode, string>
 }
 
 export const defaultOptions: GenerateOptions = {
   tokensPath: "vault/_theme/tokens.yaml",
   palettesDir: "vault/_theme/palettes",
-  quartzConfigPath: "site/quartz.config.yaml",
-  quartoTokensScssPath: "site/bridge/styles/quartoTokens.scss",
   vaultTokensJsonPath: "vault/_theme/knowledge_theme/tokens.json",
   mplStylePath: "vault/_theme/knowledge_theme/knowledge.mplstyle",
-  quartoPreviewScssPath: {
-    light: "vault/_theme/quarto-preview-light.scss",
-    dark: "vault/_theme/quarto-preview-dark.scss",
+  siteScssPath: {
+    light: "vault/_theme/site-light.scss",
+    dark: "vault/_theme/site-dark.scss",
   },
 }
 
-/** Reading measure, in px. Kept equal to --measure in the Quartz stylesheet. */
-const PREVIEW_BODY_WIDTH = "736px"
+/** Reading measure, in px. The width of the article column. */
+const BODY_WIDTH = "736px"
 
 const BANNER = "Generated from vault/_theme/tokens.yaml by scripts/generate-design-tokens.ts."
 const EDIT_HINT = "Edit that file and run `npm run design-tokens`; do not edit this one."
-
-/**
- * Marker pair delimiting a generated region inside site/quartz.config.yaml.
- * Quartz reads one config file with no include mechanism, so token values have
- * to be inlined; the markers keep each generated region separate from the
- * hand-written plugin list around it.
- */
-export const blockMarkers = (name: string, indent = "  ") => ({
-  begin: `${indent}# >>> design tokens: ${name} (generated) >>>`,
-  end: `${indent}# <<< design tokens: ${name} (generated) <<<`,
-})
 
 const COLOR_KEYS = [
   "light",
@@ -422,100 +407,6 @@ export function assertChartLegibility(tokens: DesignTokens): void {
 // Projections
 // ---------------------------------------------------------------------------
 
-/** The `configuration.theme` region: colours and typography Quartz emits as CSS. */
-export function renderQuartzThemeBlock(tokens: DesignTokens): string {
-  const { begin, end } = blockMarkers("theme")
-  const lines: string[] = [
-    begin,
-    `  # ${BANNER}`,
-    `  # ${EDIT_HINT}`,
-    "  theme:",
-    "    fontOrigin: googleFonts",
-    "    cdnCaching: true",
-    "    typography:",
-    `      header: ${tokens.typography.header}`,
-    `      body: ${tokens.typography.body}`,
-    `      code: ${tokens.typography.code}`,
-    "    colors:",
-  ]
-
-  for (const [mode, key] of [
-    ["light", "lightMode"],
-    ["dark", "darkMode"],
-  ] as const) {
-    lines.push(`      ${key}:`)
-    for (const colorKey of COLOR_KEYS) {
-      lines.push(`        ${colorKey}: "${tokens.colors[mode][colorKey]}"`)
-    }
-  }
-
-  lines.push(end)
-  return lines.join("\n")
-}
-
-/**
- * The `quartz-fonts` plugin region. The plugin restates the typography the
- * theme already carries — it is what actually self-hosts the font files — so it
- * has to be generated too or the two drift apart.
- */
-export function renderQuartzFontsBlock(tokens: DesignTokens): string {
-  const { begin, end } = blockMarkers("fonts")
-  return [
-    begin,
-    `  # ${BANNER}`,
-    "  - source: \"@quartz-community/quartz-fonts\"",
-    "    enabled: true",
-    "    options:",
-    `      body: ${tokens.typography.body}`,
-    `      interface: ${tokens.typography.body}`,
-    `      header: ${tokens.typography.header}`,
-    `      code: ${tokens.typography.code}`,
-    end,
-  ].join("\n")
-}
-
-/**
- * The `@quartz-community/syntax-highlighting` options. Quartz highlights fenced
- * Markdown blocks with shiki, and quartoTokens.scss colours pandoc's classes
- * from the same theme -- so both must name it, and neither may be edited alone.
- */
-export function renderQuartzSyntaxBlock(tokens: DesignTokens): string {
-  const { begin, end } = blockMarkers("syntax highlighting", "    ")
-  return [
-    begin,
-    `    # ${BANNER}`,
-    `    # ${EDIT_HINT}`,
-    "    options:",
-    "      theme:",
-    `        light: ${tokens.syntaxThemes.light}`,
-    `        dark: ${tokens.syntaxThemes.dark}`,
-    // Shiki's own background would fight the Quartz surface the block sits on.
-    "      keepBackground: false",
-    end,
-  ].join("\n")
-}
-
-export function applyGeneratedBlock(
-  config: string,
-  name: string,
-  block: string,
-  indent = "  ",
-): string {
-  const { begin, end } = blockMarkers(name, indent)
-  const start = config.indexOf(begin)
-  const stop = config.indexOf(end)
-  if (start === -1 || stop === -1) {
-    throw new Error(
-      `site/quartz.config.yaml is missing the generated "${name}" markers.\n` +
-        `Wrap that region in:\n${begin}\n  ...\n${end}`,
-    )
-  }
-  if (stop < start) {
-    throw new Error(`site/quartz.config.yaml has the "${name}" markers in the wrong order`)
-  }
-  return config.slice(0, start) + block + config.slice(stop + end.length)
-}
-
 function rgba(hex: string, alpha: number): string {
   const value = hex.replace("#", "")
   const [r, g, b] = [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16))
@@ -544,55 +435,6 @@ function qmdChartDeclarations(tokens: DesignTokens): string[] {
 }
 
 /**
- * Custom properties the Quarto frame needs and Quartz does not define. Colours
- * that Quartz *does* define are deliberately absent: quartoPage.scss reads
- * --darkgray, --lightgray and friends straight from Quartz's own :root.
- */
-export function renderQuartoTokensScss(tokens: DesignTokens): string {
-  const lines: string[] = [
-    `// ${BANNER}`,
-    `// ${EDIT_HINT}`,
-    "//",
-    "// Only the tokens Quartz has no equivalent for live here. Everything else in",
-    "// the Quarto frame is written against Quartz's own theme variables.",
-    "//",
-    "// Syntax colours are derived from the shiki themes named in tokens.yaml, the",
-    "// same themes @quartz-community/syntax-highlighting uses for fenced blocks in",
-    "// Markdown. Both sides therefore move together when the theme changes.",
-    `//   light: ${tokens.syntaxThemes.light}`,
-    `//   dark:  ${tokens.syntaxThemes.dark}`,
-    "",
-    ":root {",
-  ]
-
-  lines.push(...qmdSyntaxDeclarations(tokens, "light"))
-  lines.push("")
-  lines.push(...qmdChartDeclarations(tokens))
-  lines.push("}")
-  lines.push("")
-  lines.push(`:root[saved-theme="dark"] {`)
-  lines.push(...qmdSyntaxDeclarations(tokens, "dark"))
-  lines.push("}")
-  lines.push("")
-  lines.push("// Pandoc emits one two-letter class per highlighted token. The mixin keeps the")
-  lines.push("// class-to-token mapping next to the values it resolves, and quartoPage.scss")
-  lines.push("// decides where it applies.")
-  lines.push("@mixin quarto-syntax-tokens {")
-  for (const [token, classes] of Object.entries(SYNTAX_CLASSES)) {
-    const selector = classes.map((name) => `span.${name}`).join(",\n  ")
-    lines.push(`  ${selector} {`)
-    lines.push(`    color: var(--qmd-syntax-${token});`)
-    lines.push("  }")
-    lines.push("")
-  }
-  lines.pop()
-  lines.push("}")
-  lines.push("")
-
-  return lines.join("\n")
-}
-
-/**
  * A Quarto theme for `quarto preview`, one file per mode.
  *
  * The published page is a body fragment: `minimal: true` means Quarto compiles
@@ -609,7 +451,7 @@ export function renderQuartoTokensScss(tokens: DesignTokens): string {
  * `getComputedStyle(document.body)` resolves the right mode with no
  * dark-mode selector in sight.
  */
-export function renderQuartoPreviewScss(tokens: DesignTokens, mode: Mode): string {
+export function renderSiteScss(tokens: DesignTokens, mode: Mode): string {
   const colors = tokens.colors[mode]
   const { header, body, code } = tokens.typography
   const families = (name: string, fallback: string) => `"${name}", ${fallback}`
@@ -618,12 +460,12 @@ export function renderQuartoPreviewScss(tokens: DesignTokens, mode: Mode): strin
   return `// ${BANNER}
 // ${EDIT_HINT}
 //
-// The ${mode} half of the preview theme. Paired with quarto-preview-${mode === "light" ? "dark" : "light"}.scss
-// in vault/_quarto-preview.yml; Quarto compiles one bundle per mode.
+// The ${mode} half of the site theme. Paired with site-${mode === "light" ? "dark" : "light"}.scss
+// in vault/_quarto.yml; Quarto compiles one bundle per mode.
 
 /*-- scss:defaults --*/
 
-// Bootstrap's surface, repainted with the palette Quartz uses. These are the
+// Bootstrap's surface, repainted from tokens.yaml. These are the
 // variables that decide what the page looks like before a single rule runs.
 $body-bg: ${colors.light};
 $body-color: ${colors.darkgray};
@@ -636,7 +478,21 @@ $font-family-monospace: ${families(code, "ui-monospace, SFMono-Regular, monospac
 $headings-font-family: ${families(header, sans)};
 $headings-color: ${colors.dark};
 
-// Google Fonts, the same three Quartz loads. Bootswatch's hook, so Quarto emits
+// The top bar reads as part of the page rather than a separate surface: the
+// same ground, separated by a rule rather than a fill. Left unset it keeps
+// Bootswatch's $gray-100 in *both* bundles, so the bar stayed light on a dark
+// page -- measured as rgb(248, 249, 250) either way.
+//
+// $navbar-fg has to be set explicitly, not inherited. Quarto hardcodes
+// data-bs-theme="dark" on the <nav> element, and one HTML file serves both
+// stylesheets, so that attribute cannot vary by mode; without an explicit
+// foreground Bootstrap's dark-context defaults would paint light text onto the
+// light bundle's bar.
+$navbar-bg: ${colors.light};
+$navbar-fg: ${colors.darkgray};
+$navbar-hl: ${colors.secondary};
+
+// Google Fonts, the three the palette names. Bootswatch's hook, so Quarto emits
 // the stylesheet link rather than an @import that would land mid-file.
 $web-font-path: "https://fonts.googleapis.com/css2?family=${header.replace(/ /g, "+")}:wght@400;600;700&family=${body.replace(/ /g, "+")}:wght@400;600&family=${code.replace(/ /g, "+")}:wght@400&display=swap";
 
@@ -644,15 +500,14 @@ $code-color: ${colors.secondary};
 $code-block-bg: ${colors.light};
 $code-block-border-left: ${colors.lightgray};
 
-// Quartz owns the reading measure on the published page; match it here so a
-// figure sized from the column width is sized from the same number.
-$grid-body-width: ${PREVIEW_BODY_WIDTH};
-// Quarto scales the root up to 1.0625rem, which made preview body text 17px to
-// Quartz's 16px. Measured: MathJax scales with it, so the same display equation
-// rendered 224px wide in preview and 211px published -- a 6.25% divergence in
-// exactly the thing this preview exists to show. It is $font-size-root that
-// does it, not $font-size-base; the root is what every rem on the page is
-// measured against.
+// The reading measure. A figure sized from the column width is sized from this
+// number.
+$grid-body-width: ${BODY_WIDTH};
+// Quarto scales the root up to 1.0625rem. Measured: MathJax scales with it, so
+// a display equation rendered 224px wide at 17px against 211px at 16px. Pinned
+// so the measure and the equations stay on one scale. It is $font-size-root
+// that does it, not $font-size-base; the root is what every rem is measured
+// against.
 $font-size-root: 16px;
 $font-size-base: 1rem;
 $grid-sidebar-width: 0px;
@@ -666,6 +521,20 @@ $callout-color-caution: ${tokens.syntax[mode].type};
 
 /*-- scss:rules --*/
 
+// A rule, not a fill: the bar shares the page's ground, so without this it has
+// no edge at all. The background is restated here because Quarto's own navbar
+// stylesheet loads after the theme bundle.
+.navbar {
+  background-color: ${colors.light};
+  border-bottom: 1px solid ${colors.lightgray};
+}
+
+// The wordmark is the one navbar item that carries heading weight.
+.navbar .navbar-brand,
+.navbar .navbar-title {
+  color: ${colors.dark};
+}
+
 :root {
   // Native controls -- the audio player, scrollbars, form fields -- are painted
   // by the browser, not by CSS. Without this they stay light on a dark page.
@@ -675,8 +544,8 @@ ${qmdSyntaxDeclarations(tokens, mode).join("\n")}
 
 ${qmdChartDeclarations(tokens).join("\n")}
 
-  // Quartz's own variable names, so a .qmd that reaches for var(--darkgray) in
-  // an inline style renders the same in preview as it does on the site.
+  // Palette names exposed directly, so a document reaching for var(--darkgray)
+  // in an inline style resolves against the same tokens.
 ${Object.entries(colors)
   .map(([name, value]) => `  --${name}: ${value};`)
   .join("\n")}
@@ -768,32 +637,16 @@ export async function generateDesignTokens(
   const tokens = await loadTokens(await readFile(options.tokensPath, "utf8"), options.palettesDir)
   assertChartLegibility(tokens)
 
-  const quartzConfig = await readFile(options.quartzConfigPath, "utf8")
-
   return [
-    {
-      path: options.quartzConfigPath,
-      contents: applyGeneratedBlock(
-        applyGeneratedBlock(
-          applyGeneratedBlock(quartzConfig, "theme", renderQuartzThemeBlock(tokens)),
-          "fonts",
-          renderQuartzFontsBlock(tokens),
-        ),
-        "syntax highlighting",
-        renderQuartzSyntaxBlock(tokens),
-        "    ",
-      ),
-    },
-    { path: options.quartoTokensScssPath, contents: renderQuartoTokensScss(tokens) },
     { path: options.vaultTokensJsonPath, contents: renderVaultTokensJson(tokens) },
     { path: options.mplStylePath, contents: renderMplStyle(tokens) },
     {
-      path: options.quartoPreviewScssPath.light,
-      contents: renderQuartoPreviewScss(tokens, "light"),
+      path: options.siteScssPath.light,
+      contents: renderSiteScss(tokens, "light"),
     },
     {
-      path: options.quartoPreviewScssPath.dark,
-      contents: renderQuartoPreviewScss(tokens, "dark"),
+      path: options.siteScssPath.dark,
+      contents: renderSiteScss(tokens, "dark"),
     },
   ]
 }

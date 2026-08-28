@@ -1,4 +1,4 @@
-# Catppuccin Latte and Mocha, mapped onto Quartz's roles.
+# Catppuccin Latte and Mocha, mapped onto the palette roles.
 #
 # Two light-mode accents are darkened from the published flavour: Latte's blue
 # (#1e66f5) and teal (#179299) land at 4.34:1 and 3.31:1 on Latte's base, and
@@ -6,7 +6,7 @@
 # is Catppuccin as published.
 name: Catppuccin
 description: Latte and Mocha, the palette used across the editor and vault.
-# Quartz names these by role, not by luminance: `light` is the page background
+# These are named by role, not by luminance: `light` is the page background
 # in *both* schemes, `darkgray` is body text, `dark` is headings.
 colors:
   light:

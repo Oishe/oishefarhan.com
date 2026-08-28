@@ -1,8 +1,6 @@
 ---
 title: Interactive Features
 description: A consolidated Quarto check for Observable JS and browser-only Jupyter widgets.
-aliases:
-  - Browser Interactivity
 tags:
   - examples/computation
   - examples/interactive
@@ -14,9 +12,8 @@ execute:
   cache: true
 ---
 
-This temporary page checks client-side components that remain interactive after Quarto output is
-placed inside the Quartz page frame. See [Computational Features](examples/computational-features.qmd) for Python tables and figures,
-and [Markdown Features](examples/markdown-features.md) for the plain Markdown boundary.
+This temporary page checks the client-side components that have to keep working after a build. See [Computational Features](computational-features.qmd) for Python tables and figures,
+and [Markdown Features](markdown-features.md) for the plain Markdown boundary.
 
 ## Observable JS
 
@@ -117,4 +114,4 @@ site_map.add(Marker(location=(43.6532, -79.3832)))
 site_map
 ```
 
-Return to [Publishing Examples](examples/index.md).
+Return to [Publishing Examples](index.md).

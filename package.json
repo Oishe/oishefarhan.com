@@ -2,22 +2,17 @@
   "name": "knowledge-publishing-system",
   "private": true,
   "type": "module",
-  "description": "Publication prep and validation for the Obsidian -> Quarto -> Quartz pipeline.",
+  "description": "Publication prep and validation for the Obsidian -> Quarto pipeline.",
   "scripts": {
     "prepare-publication": "node --experimental-strip-types scripts/prepare-publication.ts",
     "render": "cd vault && uv run quarto render --profile publish",
-    "site": "cd site && node quartz/bootstrap-cli.mjs build",
-    "serve": "cd site && node quartz/bootstrap-cli.mjs build --serve",
     "preview": "cd vault && uv run quarto preview --profile preview",
-    "pre-build": "npm run design-tokens -- --check && npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto",
-    "build": "npm run pre-build && npm run site",
-    "build-serve": "npm run pre-build && npm run serve",
+    "build": "npm run design-tokens -- --check && npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto",
+    "serve": "cd generated/site && python3 -m http.server 8080",
+    "fixtures": "npm run prepare-publication -- --fixtures && cd vault && uv run quarto render --profile fixtures && cd .. && npm run prepare-publication -- --fixtures --require-quarto",
     "validate": "npm run fixtures && for v in scripts/validate-*.sh; do echo \"--- $v\"; \"$v\" || exit 1; done",
-    "validate-publication-prep": "./scripts/validate-publication-prep.sh",
     "test": "node --experimental-strip-types --test scripts/*.test.ts",
-    "design-tokens": "node --experimental-strip-types scripts/generate-design-tokens.ts",
-    "site-fast": "npm run prepare-publication -- --keep-quarto && npm run site",
-    "fixtures": "npm run prepare-publication -- --fixtures && cd vault && uv run quarto render --profile fixtures && cd .. && npm run prepare-publication -- --fixtures --require-quarto && cd site && QUARTO_ARTIFACTS=../generated/fixture-quarto node quartz/bootstrap-cli.mjs build --directory fixture-content --output ../generated/fixture-site"
+    "design-tokens": "node --experimental-strip-types scripts/generate-design-tokens.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"

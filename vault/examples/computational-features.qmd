@@ -1,8 +1,6 @@
 ---
 title: Computational Features
 description: A consolidated Quarto check for Python output, tables, and figures.
-aliases:
-  - Quarto Features
 tags:
   - examples/computation
 publish: false
@@ -14,8 +12,8 @@ execute:
 ---
 
 This temporary page checks the computational side of the publishing boundary. It combines the
-distinct behaviours previously spread across several research fixtures. See [Markdown Features](examples/markdown-features.md)
-for the Quartz-rendered half of the system.
+distinct behaviours previously spread across several research fixtures. See [Markdown Features](markdown-features.md)
+for the prose half of the system.
 
 ```{python}
 #| label: computation-setup
@@ -76,6 +74,6 @@ figure = px.line(
 figure
 ```
 
-Browser-side reactive components continue in [Interactive Features](examples/interactive-features.qmd).
+Browser-side reactive components continue in [Interactive Features](interactive-features.qmd).
 
-Return to [Publishing Examples](examples/index.md).
+Return to [Publishing Examples](index.md).

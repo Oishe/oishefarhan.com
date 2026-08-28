@@ -20,15 +20,11 @@ ignored. The leading underscore keeps Quarto from rendering it as a page.
 // gets a scrollbar. Measure the content element instead; Generators.observe
 // also makes this reactive to a window resize.
 //
-// The two selectors are the published and the preview DOM: Quartz hosts the
-// fragment inside .quarto-page .quarto-content, and `quarto preview` renders a
-// full Bootstrap page whose body is main#quarto-document-content. Falling
-// straight through to document.body would silently measure the viewport.
+// main#quarto-document-content is the reading column. Falling straight through
+// to document.body would silently measure the viewport, so the fallback is a
+// last resort rather than a normal path.
 contentWidth = Generators.observe((notify) => {
-  const el =
-    document.querySelector(".quarto-page .quarto-content") ??
-    document.querySelector("main#quarto-document-content") ??
-    document.body
+  const el = document.querySelector("main#quarto-document-content") ?? document.body
   const read = () => notify(el.getBoundingClientRect().width)
   read()
   const observer = new ResizeObserver(read)

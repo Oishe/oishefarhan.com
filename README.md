@@ -1,62 +1,73 @@
 # Knowledge Publishing System
 
-This repository is implementing the architecture in [Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md](./Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md).
-[AUTHORING.md](./AUTHORING.md) is the day-to-day writing reference: frontmatter, the `.md`/`.qmd`
-syntax differences, links and attachments, and the build commands.
-
-Phases 9 and 10 are in place: the public site is fully derived from the vault, and the Quarto bridge
-is packaged in `site/bridge/` rather than scattered through the vendored Quartz tree.
+An Obsidian vault published as a Quarto website. [AUTHORING.md](./AUTHORING.md) is the day-to-day
+writing reference: frontmatter, `.md` vs `.qmd`, links, and the build commands.
+[REDESIGN.md](./REDESIGN.md) records why the system is shaped this way.
 
 ```text
 vault/                      source of truth: notes, Quarto documents, attachments
+  _theme/                   tokens.yaml and the stylesheets generated from it
+  _hidden/                  private; never rendered, never published
 generated/                  disposable derivatives (git-ignored)
-  quartz-content/           staged public tree Quartz reads through site/content
-  quarto/                   rendered Quarto HTML and dependencies
+  site/                     the built site
+  fixture-site/             the validation build
   link-map.json             title/alias/slug/path -> canonical URL
-site/                       pinned Quartz v5 source and configuration
-  bridge/                   the Quarto bridge: Page Type, body extraction, artifact emitter
-scripts/                    publication prep, stub generation, validation
+scripts/                    publication prep, design tokens, validation
 ```
 
-Nothing under `generated/` is edited by hand or committed. `scripts/prepare-publication.ts` rebuilds it.
+Nothing under `generated/` is edited by hand or committed.
+
+Quarto renders every page, prose and computational alike. There is no staging step: it reads the
+vault in place, which is why a link that works while drafting works on the site.
 
 ## Build
 
 ```bash
 npm install
 npm run build
+npm run serve      # then http://localhost:8080
 ```
 
-That runs the section 28 pipeline in order:
+`npm run build` is four steps:
 
 ```text
-prepare-publication      select publish:true sources, stage them, write the link map, validate
-quarto render            render published .qmd into generated/quarto/
-prepare-publication      re-verify with --require-quarto (stub slug == Quarto URL)
-quartz build             emit site/public/
+design-tokens --check    are the generated theme files current?
+prepare-publication      validate the vault, write the render allowlist, clear generated/site
+quarto render            render the allowlist
+prepare-publication      re-verify with --require-quarto
 ```
 
-Individual stages are available as `npm run prepare-publication`, `npm run render`, and `npm run site`.
-Prep clears `generated/quarto/` when it stages, because Quarto will not remove stale dependency
-directories from an output tree outside its own project; re-run `npm run render` after it.
+Individual stages: `npm run design-tokens`, `npm run prepare-publication`, `npm run render`.
+To draft one document with live reload: `npm run preview articles/one-note.qmd`.
 
 ## Publishing a note
 
 Publication is opt-in. A note reaches the site only with `publish: true` in its frontmatter, and an
-attachment only when published content references it. The build fails rather than leaking: a link
-from a published note to an unpublished one, a stale Quarto artifact for a private document, or
-frozen output for a document that is not published all stop the pipeline.
+attachment only when published content references it. The build fails rather than leaking:
+
+- a link from a published note to an unpublished one
+- an unpublished draft inside a folder that has a `listing:` — Quarto listings glob the filesystem,
+  not the render allowlist
+- a rendered page with no published document behind it
+- frozen output belonging to a document that is not published
+- Obsidian-only syntax (`%%…%%`, `> [!note]`, `==highlight==`, wikilinks) that would publish
+  verbatim
 
 ## Validation
 
 ```bash
-npm test                     # publication prep and stub generation
-(cd site && npm test)        # Quartz and the Quarto bridge
-./scripts/validate-publication-prep.sh
-./scripts/validate-qmd-stub.sh
-./scripts/validate-qmd-stub-suppression.sh
-./scripts/validate-quarto-emitter.sh
-./scripts/validate-interactive-components.sh
+npm test          # 52 unit tests
+npm run validate  # build the fixtures, then run the three validators
 ```
 
-The rendered-output validators read artifacts produced by `npm run build`.
+`npm run validate` is the one that matters in CI: it builds `vault/examples/` — the fixtures that
+exercise Python, Jupyter widgets, Observable and Plotly — and then checks the built HTML.
+`npm run build` alone does not, because fixtures never reach the production site.
+
+## History
+
+The site previously rendered `.md` through a vendored Quartz v5 and `.qmd` through Quarto, with a
+bridge hosting Quarto body fragments inside Quartz pages. Tag `quartz-final` is the last commit with
+that arrangement; `git checkout quartz-final -- site/` restores it.
+`Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md` is the original architecture note for
+that design and is kept as history — it does not describe the current system.

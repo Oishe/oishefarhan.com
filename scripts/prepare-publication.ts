@@ -1,8 +1,7 @@
-import { copyFile, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises"
+import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse as parseYaml } from "yaml"
-import { generateQmdStub } from "./generate-qmd-stub.ts"
 
 // Publication prep (section 15). Deliberately narrower than a content compiler:
 // it selects publishable sources, stages them, and fails the build on metadata,
@@ -44,14 +43,11 @@ export type PrepareOptions = {
    */
   includeFixtures: boolean
   vaultDir: string
-  contentDir: string
   linkMapPath: string
   quartoDir: string
   /** Profile name `quarto render --profile <name>` activates. */
   quartoProfile: string
   attachmentRoot: string
-  bibliographySource: string
-  bibliographyTarget: string
   /** Fail when a published .qmd has no rendered Quarto artifact yet. */
   requireQuarto: boolean
   /**
@@ -72,13 +68,10 @@ export type PrepareResult = {
 export const defaultOptions: PrepareOptions = {
   includeFixtures: false,
   vaultDir: "vault",
-  contentDir: "generated/quartz-content",
   linkMapPath: "generated/link-map.json",
-  quartoDir: "generated/quarto",
+  quartoDir: "generated/site",
   quartoProfile: "publish",
   attachmentRoot: "attachments",
-  bibliographySource: "vault/references.bib",
-  bibliographyTarget: "generated/quartz-content/bibliography.bib",
   requireQuarto: false,
   // Off by default so importing this module never deletes anything unexpected;
   // the CLI turns it on for the stage pass.
@@ -187,24 +180,6 @@ export async function collectFiles(root: string): Promise<string[]> {
 
   await walk("")
   return found
-}
-
-/**
- * Force `publish: true` on a staged copy.
- *
- * Staging already decided what belongs in this tree; the frontmatter flag is
- * the vault's opinion, and for a fixture it says `false`. Quartz reads only the
- * staged tree, and `@quartz-community/explicit-publish` would drop every
- * fixture on sight. Rewriting keeps the staged tree's own invariant honest --
- * everything here is published, within this build -- while the vault source
- * keeps saying `publish: false`, which is what stops it reaching the site.
- */
-export function markStagedAsPublished(contents: string): string {
-  const { frontmatter } = parseFrontmatter(contents)
-  if (!frontmatter) return contents
-  return /^publish:.*$/m.test(contents)
-    ? contents.replace(/^publish:.*$/m, "publish: true")
-    : contents.replace(/^---\n/, "---\npublish: true\n")
 }
 
 export function slugForSourcePath(sourcePath: string): string {
@@ -340,38 +315,59 @@ export function extractReferences(body: string): Reference[] {
 /**
  * Quarto renders Pandoc Markdown, not Obsidian Markdown, so a handful of
  * Obsidian constructs reach the page verbatim instead of being interpreted.
+ * Quarto now renders both halves of the vault, so these apply to .md as well.
+ *
  * The comment case is the dangerous one: `%%...%%` is a note-to-self in
- * Obsidian and publishes as visible body text from a .qmd.
+ * Obsidian and publishes as visible body text.
  */
 const quartoUnsupported: { pattern: RegExp; message: string }[] = [
   {
     pattern: /%%[\s\S]*?%%/,
     message:
-      "Obsidian comment syntax (%%...%%) publishes as visible text from a .qmd; use an HTML comment instead",
+      "Obsidian comment syntax (%%...%%) publishes as visible text. There is no stripping step and " +
+      "an HTML comment still ships in the page source, which is public. Keep notes-to-self in _hidden/",
   },
   {
     pattern: /^\s*>\s*\[!\w+\]/m,
     message:
-      "Obsidian callout syntax renders as a plain blockquote from a .qmd, keeping the [!note] marker as literal text. Quarto callouts are not an alternative here: Quarto only emits callout markup when Bootstrap is present, and this site renders a body fragment without it. Use a blockquote or a section heading",
-  },
-  {
-    // Not Obsidian syntax but the same failure mode: it looks supported and
-    // degrades silently. Quarto emits callout markup only when Bootstrap is
-    // present, and a published .qmd here is a body fragment without it, so the
-    // div collapses to a blockquote and the callout type is discarded.
-    pattern: /^\s*:::+\s*\{[^}]*\.callout-\w+/m,
-    message:
-      "Quarto callouts (::: {.callout-note}) need Bootstrap, which a published .qmd here does not load; the div degrades to a plain blockquote and the callout type is lost. Use a blockquote or a section heading",
+      "Obsidian callout syntax renders as a plain blockquote, keeping the [!note] marker as " +
+      "literal text. Use a Quarto callout: ::: {.callout-note}",
   },
   {
     pattern: /==(?![\s=])[^=\n]+(?<![\s=])==/,
-    message: "Obsidian highlights (==text==) render literally from a .qmd; use <mark>text</mark>",
+    message: "Obsidian highlights (==text==) render literally; use <mark>text</mark>",
   },
 ]
 
-/** Reports Obsidian-only syntax in a published Quarto document. */
+/**
+ * Reports an alias that is not site-absolute.
+ *
+ * `aliases:` means two different things to the two tools that read it.
+ * Obsidian treats an entry as another *name* for the note, for the quick
+ * switcher; Quarto treats it as another *URL*, and emits a redirect page at
+ * that path -- resolved against the aliasing document's own directory. So a
+ * display alias like `Knowledge Notes` on articles/index.md published a
+ * redirect at `articles/Knowledge Notes/index.html`, and a URL alias meant to
+ * preserve `/knowledge/index` landed at `articles/knowledge/index/` instead.
+ *
+ * Requiring a leading slash makes the key mean one thing here: a URL this page
+ * used to live at. Names for the quick switcher are not worth a junk page.
+ */
+export function checkAliases(document: SourceDocument): Problem[] {
+  return document.aliases
+    .filter((alias) => !alias.startsWith("/"))
+    .map((alias) => ({
+      file: document.repoPath,
+      message:
+        `alias "${alias}" is not site-absolute. Quarto publishes a redirect page for every ` +
+        `alias, resolved against this document's directory, so this one would land at ` +
+        `"${documentDir(document)}/${alias}". Write it as "/${alias}", or drop it if it was ` +
+        "only a display name for Obsidian's quick switcher",
+    }))
+}
+
+/** Reports Obsidian-only syntax in a published document. */
 export function checkQuartoSyntax(document: SourceDocument): Problem[] {
-  if (document.sourceType !== "quarto") return []
   const body = stripCode(document.body)
   return quartoUnsupported
     .filter(({ pattern }) => pattern.test(body))
@@ -381,10 +377,9 @@ export function checkQuartoSyntax(document: SourceDocument): Problem[] {
 /**
  * Reports leftover wikilinks anywhere in the vault.
  *
- * This system links with Markdown syntax only. Nothing resolves `[[...]]` any
- * more -- not Quarto, not Quartz -- so a surviving one publishes as literal
- * text (or, for `![[...]]`, as a silently missing embed) rather than failing
- * loudly on its own.
+ * This system links with Markdown syntax only. Quarto does not resolve
+ * `[[...]]`, so a surviving one publishes as literal text (or, for `![[...]]`,
+ * as a silently missing embed) rather than failing loudly on its own.
  */
 export function checkWikilinks(document: SourceDocument): Problem[] {
   const body = stripCode(document.body)
@@ -394,10 +389,52 @@ export function checkWikilinks(document: SourceDocument): Problem[] {
     {
       file: document.repoPath,
       message:
-        `wikilink syntax is no longer supported (${match[0]}); ` +
-        "use a Markdown link, e.g. [Title](../section/note.md)",
+        `wikilink syntax is not supported (${match[0]}); ` +
+        "use a Markdown link relative to this document, e.g. [Title](../section/note.md)",
     },
   ]
+}
+
+/**
+ * Reports unpublished documents sitting in a folder whose index page carries a
+ * Quarto `listing:`.
+ *
+ * Quarto listings glob the filesystem, not the project render list. Measured: a
+ * `publish: false` draft left in `articles/` was linked from the published
+ * articles/index.html *and* had its raw .qmd source copied into the output tree
+ * as a listing resource. Both are leaks, and neither shows up as an error --
+ * the render reports "contains no metadata" and carries on.
+ *
+ * Quartz's folder-page could not do this because it only ever saw the staged
+ * published tree; there is no staged tree any more, so the check has to be
+ * here. Drafts belong in _hidden/, which is where they already live.
+ */
+export function checkListingLeaks(
+  published: SourceDocument[],
+  documents: SourceDocument[],
+): Problem[] {
+  const listingDirs = new Map<string, SourceDocument>()
+  for (const document of published) {
+    if (document.frontmatter.listing !== undefined) {
+      listingDirs.set(documentDir(document), document)
+    }
+  }
+
+  const problems: Problem[] = []
+  for (const document of documents) {
+    if (document.publish) continue
+    const owner = listingDirs.get(documentDir(document))
+    if (!owner) continue
+    problems.push({
+      file: document.repoPath,
+      message:
+        `unpublished, but sits in a folder listed by ${owner.repoPath}. Quarto listings glob ` +
+        "the filesystem rather than the render list, so this would be linked from the published " +
+        "listing and its source copied into the site. Move it to _hidden/ until it is ready",
+    })
+  }
+
+  return problems
 }
 
 // ---------------------------------------------------------------------------
@@ -427,8 +464,33 @@ export type Resolution =
   | { kind: "attachment"; path: string }
   | { kind: "unresolved"; reason: string }
 
-function normalizeTarget(target: string): string {
-  return target.replace(/^\.\//, "").replace(/^\//, "")
+/**
+ * Joins a document-relative target onto the directory that wrote it, and
+ * normalises the `..` segments away. A target that climbs past the vault root
+ * is left as-is so it fails resolution and gets reported, rather than being
+ * silently clamped to something that happens to exist.
+ */
+function resolveFromDir(target: string, fromDir: string): string {
+  const cleaned = target.replace(/^\//, "")
+  const segments = fromDir ? fromDir.split("/").filter(Boolean) : []
+
+  for (const segment of cleaned.split("/")) {
+    if (segment === "" || segment === ".") continue
+    if (segment === "..") {
+      if (segments.length === 0) return cleaned
+      segments.pop()
+      continue
+    }
+    segments.push(segment)
+  }
+
+  return segments.join("/")
+}
+
+/** The vault-relative directory a document's links resolve against. */
+export function documentDir(document: SourceDocument): string {
+  const separator = document.sourcePath.lastIndexOf("/")
+  return separator === -1 ? "" : document.sourcePath.slice(0, separator)
 }
 
 function resolveAttachment(candidate: string, index: DocumentIndex): Resolution | undefined {
@@ -436,18 +498,25 @@ function resolveAttachment(candidate: string, index: DocumentIndex): Resolution 
 }
 
 /**
- * Resolves a link target, which is always a path from the vault folder.
+ * Resolves a link target, which is always relative to the document that wrote it.
  *
  * There is deliberately one interpretation and no fallbacks. Obsidian is set to
- * `newLinkFormat: absolute` and Quartz to `markdownLinkResolution: absolute`,
- * so author, validator, and renderer all read a target the same way. The
- * alternatives are what make link resolution subtle: a relative or shortest
- * target has two plausible readings, and a bare `index.md` in a section means
- * that section's index to Obsidian but the site root to Quartz. Requiring the
- * unambiguous form removes the question instead of answering it three times.
+ * `newLinkFormat: relative` and Quarto resolves a relative target against the
+ * document's own directory, so author, validator and renderer read a target the
+ * same way and nothing has to rewrite it in between.
+ *
+ * This was vault-root-absolute while Quartz rendered the .md half, because
+ * Quartz collapsed a bare `index.md` to the site root regardless of the
+ * directory it was written in -- so `index.md` in a section meant that section
+ * to Obsidian and the root to Quartz. That ambiguity was a Quartz artifact and
+ * left with it.
  */
-export function resolveReference(reference: Reference, index: DocumentIndex): Resolution {
-  const target = normalizeTarget(reference.target)
+export function resolveReference(
+  reference: Reference,
+  index: DocumentIndex,
+  fromDir: string,
+): Resolution {
+  const target = resolveFromDir(reference.target, fromDir)
   const withoutExtension = target.replace(/\.(md|qmd)$/, "")
   const looksLikeFile = /\.[a-z0-9]+$/i.test(target) && !/\.(md|qmd)$/.test(target)
 
@@ -469,46 +538,6 @@ export function resolveReference(reference: Reference, index: DocumentIndex): Re
     kind: "unresolved",
     reason: "no published note or attachment matches (link paths are from the vault folder)",
   }
-}
-
-/**
- * Rewrites every internal link target to its resolved, vault-root-relative path.
- *
- * Prep already decides where each link goes in order to validate it. Writing
- * that decision into the staged file is what keeps prep and the renderer from
- * disagreeing, and it closes two real traps:
- *
- *   - Quartz slugification strips `.md` and `.html` but no other extension, so
- *     a surviving `.qmd` target would publish as a broken link.
- *   - Quartz collapses a bare `index.md` to the site root regardless of the
- *     directory it was written in, so a link to a sibling section index would
- *     silently leave the section. The explicit `section/index.md` form that
- *     resolution produces has no such ambiguity.
- *
- * Authors keep writing whatever Obsidian writes; this normalises it.
- */
-export function rewriteLinkTargets(raw: string, index: DocumentIndex): string {
-  return raw.replace(
-    /(!?\[[^\]\n]*\]\(\s*<?)([^)>\s]+)(>?(?:\s+"[^"\n]*")?\s*\))/g,
-    (match, prefix: string, target: string, suffix: string) => {
-      const separator = target.indexOf("#")
-      const pathPart = separator === -1 ? target : target.slice(0, separator)
-      const anchor = separator === -1 ? "" : target.slice(separator)
-      if (!pathPart || externalLink.test(pathPart)) return match
-
-      const resolution = resolveReference(
-        { raw: match, target: decodeURI(pathPart), embed: match.startsWith("!") },
-        index,
-      )
-      if (resolution.kind === "document") {
-        return `${prefix}${resolution.document.slug}.md${anchor}${suffix}`
-      }
-      if (resolution.kind === "attachment") {
-        return `${prefix}${resolution.path}${anchor}${suffix}`
-      }
-      return match
-    },
-  )
 }
 
 // ---------------------------------------------------------------------------
@@ -588,8 +617,19 @@ async function checkQuartoArtifacts(
   options: PrepareOptions,
   problems: Problem[],
 ): Promise<void> {
-  const quartoDocuments = published.filter((document) => document.sourceType === "quarto")
-  const expected = new Set(quartoDocuments.map((document) => `${document.slug}.html`))
+  // Every published document renders, not only the computational ones: Quarto
+  // renders the whole vault now.
+  const expected = new Set(published.map((document) => `${document.slug}.html`))
+
+  // Quarto turns each `aliases:` entry into a redirect page, and it is the
+  // native replacement for the alias-redirects plugin. Aliases are required to
+  // be site-absolute (see checkAliases), so the redirect lands where written
+  // rather than under the aliasing document's own directory.
+  for (const document of published) {
+    for (const alias of document.aliases) {
+      expected.add(`${alias.replace(/^\/+/, "")}/index.html`)
+    }
+  }
 
   let rendered: string[]
   try {
@@ -605,18 +645,18 @@ async function checkQuartoArtifacts(
   }
 
   // A stale artifact for a document that is no longer public is a leak: the
-  // bridge emitter copies the whole tree to canonical URLs (section 22.2).
+  // output tree is what gets deployed (section 22.2).
   for (const file of rendered) {
     if (!expected.has(file)) {
       problems.push({
         file: `${options.quartoDir}/${file}`,
-        message: "rendered artifact has no matching published .qmd; delete it and re-render",
+        message: "rendered artifact has no matching published document; delete it and re-render",
       })
     }
   }
 
   if (options.requireQuarto) {
-    for (const document of quartoDocuments) {
+    for (const document of published) {
       if (!rendered.includes(`${document.slug}.html`)) {
         problems.push({
           file: document.repoPath,
@@ -654,6 +694,11 @@ async function checkFreezeTree(
   // document itself was never published (section 22.2).
   const seen = new Set<string>()
   for (const file of frozen) {
+    // A website project caches its shared script/style bundle under the freeze
+    // directory. It belongs to no document and carries no execution output.
+    if (file === "site_libs" || file.startsWith("site_libs/")) {
+      continue
+    }
     const owner = file.split("/").slice(0, -2).join("/")
     if (!owner || seen.has(owner)) {
       continue
@@ -727,11 +772,15 @@ export async function preparePublication(
   const allIndex = buildIndex(documents, attachments)
   const referencedAttachments = new Set<string>()
 
+  problems.push(...checkListingLeaks(published, documents))
+
   for (const document of published) {
     problems.push(...checkQuartoSyntax(document))
+    problems.push(...checkAliases(document))
     problems.push(...checkWikilinks(document))
+    const fromDir = documentDir(document)
     for (const reference of extractReferences(document.body)) {
-      const resolution = resolveReference(reference, publishedIndex)
+      const resolution = resolveReference(reference, publishedIndex, fromDir)
       if (resolution.kind === "attachment") {
         referencedAttachments.add(resolution.path)
         continue
@@ -742,7 +791,7 @@ export async function preparePublication(
 
       // Distinguish "broken" from "private": the second is a leak in the
       // making, and the message has to say so.
-      const private_ = resolveReference(reference, allIndex)
+      const private_ = resolveReference(reference, allIndex, fromDir)
       if (private_.kind === "document" && !private_.document.publish) {
         problems.push({
           file: document.repoPath,
@@ -768,48 +817,12 @@ export async function preparePublication(
     throw new ValidationFailure(problems)
   }
 
-  // The staged tree is fully derivable, so it is rebuilt rather than patched.
-  await rm(options.contentDir, { recursive: true, force: true })
-  await mkdir(options.contentDir, { recursive: true })
-
-  // The staged tree is untracked and rebuilt from scratch, so Quartz can only
-  // date a page from the filesystem. Carry the source timestamps across.
-  const carryTimestamps = async (source: string, target: string): Promise<void> => {
-    const { atime, mtime } = await stat(source)
-    await utimes(target, atime, mtime)
-  }
-
-  for (const document of staged) {
-    const source = path.join(options.vaultDir, document.sourcePath)
-    const target = path.join(options.contentDir, `${document.slug}.md`)
-    await mkdir(path.dirname(target), { recursive: true })
-    const contents = markStagedAsPublished(
-      rewriteLinkTargets(
-        document.sourceType === "quarto"
-          ? generateQmdStub(document.raw, document.repoPath)
-          : document.raw,
-        publishedIndex,
-      ),
-    )
-    await writeFile(target, contents, "utf8")
-    await carryTimestamps(source, target)
-  }
-
-  for (const attachment of stagedAttachments) {
-    const source = path.join(options.vaultDir, attachment)
-    const target = path.join(options.contentDir, attachment)
-    await mkdir(path.dirname(target), { recursive: true })
-    await copyFile(source, target)
-    await carryTimestamps(source, target)
-  }
-
-  try {
-    await copyFile(options.bibliographySource, options.bibliographyTarget)
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error
-    }
-  }
+  // No staging pass. Quarto renders the vault in place, so the only thing that
+  // has to reach it is the allowlist below; copying sources somewhere first
+  // existed to feed Quartz a tree it could glob, and to rewrite links into the
+  // form its slugifier understood. Both left with Quartz -- and a link that is
+  // correct in the vault is now correct in the render, which is what makes
+  // `quarto preview` show the real page.
 
   if (options.clearQuartoOutput) {
     await rm(options.quartoDir, { recursive: true, force: true })
@@ -819,13 +832,13 @@ export async function preparePublication(
   await writeFile(options.linkMapPath, `${JSON.stringify(linkMap, null, 2)}\n`, "utf8")
 
   // Quarto cannot select documents by arbitrary frontmatter. Generate a
-  // profile containing the exact published QMD allowlist so computational
-  // notes can live anywhere without rendering public-source drafts. The base
-  // config contributes the *_hidden exclusion as defense in depth.
-  const quartoTargets = published
-    .filter((document) => document.sourceType === "quarto")
-    .map((document) => document.sourcePath)
-    .sort()
+  // profile containing the exact published allowlist so drafts can live
+  // anywhere without being rendered. The base config contributes the *_hidden
+  // exclusion as defense in depth.
+  //
+  // Both source types are listed. While Quartz rendered the .md half this was
+  // .qmd only; now Quarto renders everything.
+  const quartoTargets = published.map((document) => document.sourcePath).sort()
   // A null/empty render field can fall back to project discovery. An exclusion
   // target makes the zero-QMD case explicitly render nothing.
   const profileTargets = quartoTargets.length > 0 ? quartoTargets : ["!**/*"]
@@ -857,21 +870,18 @@ async function main(): Promise<void> {
   // before Quarto and clears its output tree; --require-quarto runs after and
   // only verifies, so it must leave that tree alone.
   const requireQuarto = process.argv.includes("--require-quarto")
-  // --keep-quarto stages without clearing the rendered tree, so a prose-only
-  // edit can reach the site with `prepare-publication --keep-quarto && site`
-  // instead of a full Quarto re-render.
+  // --keep-quarto leaves the rendered tree alone, so a prose-only edit can be
+  // re-checked without a full Quarto re-render.
   const keepQuarto = process.argv.includes("--keep-quarto")
-  // --fixtures stages the validation fixtures alongside real content, into a
-  // separate tree. Only `npm run validate` passes it; the production build
-  // never does, so nothing under examples/ can reach the public site.
+  // --fixtures admits the validation fixtures to the allowlist and renders them
+  // into a separate tree. Only `npm run validate` passes it; the production
+  // build never does, so nothing under examples/ can reach the public site.
   const includeFixtures = process.argv.includes("--fixtures")
   const fixtureDirs = includeFixtures
     ? {
-        contentDir: "generated/fixture-content",
         linkMapPath: "generated/fixture-link-map.json",
-        quartoDir: "generated/fixture-quarto",
+        quartoDir: "generated/fixture-site",
         quartoProfile: "fixtures",
-        bibliographyTarget: "generated/fixture-content/bibliography.bib",
       }
     : {}
   try {
@@ -881,10 +891,10 @@ async function main(): Promise<void> {
       requireQuarto,
       clearQuartoOutput: !requireQuarto && !keepQuarto,
     })
-    const stubs = result.published.filter((document) => document.sourceType === "quarto").length
+    const computational = result.published.filter((d) => d.sourceType === "quarto").length
     console.log(
-      `Staged ${result.published.length} of ${result.documents.length} documents ` +
-        `(${stubs} QMD stub(s)), ${result.attachments.length} attachment(s).`,
+      `Published ${result.published.length} of ${result.documents.length} documents ` +
+        `(${computational} computational), ${result.attachments.length} attachment(s).`,
     )
   } catch (error) {
     if (error instanceof ValidationFailure) {

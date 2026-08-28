@@ -1,16 +1,14 @@
 project:
-  type: default
-  output-dir: ../generated/quarto
+  type: website
+  output-dir: ../generated/site
   # Deliberately contains no positive targets. Publication prep generates the
   # publish:true allowlist in _quarto-publish.yml; `npm run render` activates it.
   # NOTE: keep it that way. Profile config is merged by concatenating arrays,
   # so a positive glob here would join the generated publish allowlist and push
   # unpublished drafts to the public site.
-  # A render list of pure negations resolves to zero inputs, and `quarto
-  # preview <file>` honours that list rather than bypassing it, so single-file
-  # preview fails with "No output created". `quarto render <file>` takes an
-  # explicit CLI target and works; for live reload use `quarto preview
-  # --profile publish` with no file argument.
+  # A render list of pure negations resolves to zero inputs, so single-file
+  # drafting goes through `--profile preview`, which adds the one positive glob
+  # and changes nothing else. See _quarto-preview.yml.
   render:
     - "!**/*_hidden/**"
     # Per-file privacy boundary, the single-note equivalent of `*_hidden/`.
@@ -20,6 +18,27 @@ project:
     # and an executable cell that must never run as part of a project render.
     - "!templates/**"
 
+website:
+  title: "Oishe Farhan"
+  navbar:
+    left:
+      - href: articles/index.md
+        text: Articles
+      - href: notes/index.md
+        text: Notes
+      - href: projects/index.md
+        text: Projects
+      - href: about/index.md
+        text: About
+    right:
+      - icon: github
+        href: https://github.com/oishe
+        aria-label: GitHub
+  search:
+    location: navbar
+    type: overlay
+  page-navigation: false
+
 # Pin the kernel by name. Without this, Quarto falls back to discovering a
 # python-language kernelspec, and ~/Library/Jupyter/kernels holds stale VS Code
 # specs pointing at long-deleted virtualenvs -- those hardcode their own env
@@ -28,25 +47,33 @@ project:
 jupyter: python3
 
 execute:
-  freeze: true
+  # `auto`, not `true`. Under `true` the frozen result is restored unconditionally
+  # and edits to a rendered .qmd are silently dropped on a green build -- an hour
+  # of "why is my fixture not updating". `auto` re-executes when the source
+  # changes, which is what freeze was always assumed to do.
+  freeze: auto
   cache: true
 
 format:
   html:
-    minimal: true
-    toc: false
-    title-block-style: none
+    toc: true
+    toc-location: right
     code-copy: true
     # Source is available but not in the way: an article should read as prose,
-    # with the code one click away. Set in the base config so it applies to
-    # preview and publish alike.
+    # with the code one click away.
     code-fold: true
-    # Matches renderEngine: mathjax on the Quartz side. tex-svg-full, not
-    # tex-chtml-full: rehype-mathjax's SVG output and this runtime are the same
-    # renderer, so equations are glyph-identical across .md and .qmd. CHTML
-    # would use webfonts and visibly differ. The version is pinned because an
-    # unpinned CDN URL is a deployment that can change under us.
+    theme:
+      light: [cosmo, _theme/site-light.scss]
+      dark: [cosmo, _theme/site-dark.scss]
+    # Quarto compiles one Bootstrap bundle per mode and switches them by
+    # toggling `rel` on link#quarto-bootstrap. `embed-resources: true` inlines
+    # both as <style>, so the toggle has nothing to switch and dark mode stops
+    # working. It is also what made an artifact 4.9 MB.
+    embed-resources: false
+    # The version is pinned because an unpinned CDN URL is a deployment that can
+    # change under us. Note that a page carrying both maths and a Plotly figure
+    # is broken whatever is chosen here -- Plotly nests its own MathJax 2 loader
+    # and claims `window.MathJax`. See REDESIGN.md, gotcha 4.
     html-math-method:
       method: mathjax
       url: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js"
-    embed-resources: false

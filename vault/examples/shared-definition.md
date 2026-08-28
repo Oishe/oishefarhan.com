@@ -11,4 +11,4 @@ fixture: true
 
 > A knowledge graph represents entities as nodes and relationships as edges.
 
-This definition is referenced from [Markdown Features](examples/markdown-features.md).
+This definition is referenced from [Markdown Features](markdown-features.md).

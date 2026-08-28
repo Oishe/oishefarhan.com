@@ -1,109 +1,95 @@
 #!/bin/sh
-set -eu
-
-# Phase 11. The claim under test is that one set of design tokens reaches both
-# renderers, and that the Quarto half of the site derives its colours from
-# Quartz's theme variables rather than carrying its own.
+# One set of design tokens paints the whole site.
 #
-# Run after `npm run build`.
+# vault/_theme/tokens.yaml is the only place a colour, font, or chart value is
+# written down. `npm run design-tokens -- --check` proves the generated files
+# are reproducible from it; this checks the other half -- that the generated
+# files are what the built page and the Python plots actually use, and that
+# nothing hand-written has smuggled in a second palette.
+#
+# The claim used to be "one palette reaches *both* renderers", and most of this
+# file was reconciling them. There is one renderer now, so what is left is the
+# part that was always the point.
+set -eu
+cd "$(dirname "$0")/.."
 
-quarto_page="generated/fixture-site/examples/computational-features.html"
-plain_page="generated/fixture-site/examples/markdown-features.html"
+page="generated/fixture-site/examples/computational-features.html"
+test -f "$page" || { echo "no fixture site; run npm run fixtures" >&2; exit 1; }
 
-test -f "$quarto_page"
-test -f "$plain_page"
+# 1. The generated stylesheets are current. This is the whole drift argument in
+#    one command: if tokens.yaml moved and nobody regenerated, fail here rather
+#    than shipping two palettes.
+npm run design-tokens --silent -- --check >/dev/null
 
-# --- One source of truth ----------------------------------------------------
-# Every generated projection must still match vault/_theme/tokens.yaml. A colour
-# changed in quartz.config.yaml alone, or an .mplstyle edited by hand, fails
-# here rather than drifting quietly.
-npm run --silent design-tokens -- --check
+# 2. The compiled Bootstrap bundle carries the tokens, in both modes. Quarto
+#    compiles one bundle per mode and switches them by toggling `rel`, so a
+#    token missing from one bundle is a mode that silently falls back.
+for bundle in generated/fixture-site/site_libs/bootstrap/bootstrap*.min.css; do
+  grep -Fq -- '--qmd-syntax-keyword' "$bundle"
+  grep -Fq -- '--qmd-chart-series-1' "$bundle"
+done
+test "$(ls generated/fixture-site/site_libs/bootstrap/bootstrap*.min.css | wc -l)" -ge 2
 
-# --- Tokens reach the page --------------------------------------------------
-token_css=$(grep -l -- '--qmd-syntax-keyword' generated/fixture-site/component-*.css)
-test -n "$token_css"
-grep -Fq "$(basename "$token_css")" "$quarto_page"
+# 3. Both mode stylesheets are generated from the same source and say so, and
+#    each paints exactly one mode. A dark-mode selector inside the light sheet
+#    would mean the two bundles disagree about which one is in charge.
+for mode in light dark; do
+  sheet="vault/_theme/site-$mode.scss"
+  grep -Fq 'Generated from vault/_theme/tokens.yaml' "$sheet"
+  grep -Fq "color-scheme: $mode;" "$sheet"
+  ! grep -q "prefers-color-scheme" "$sheet"
+done
 
-# Both themes are defined, or the toggle has nothing to switch to. (The
-# minifier drops the attribute-value quotes the source writes.)
-grep -Eq ':root\[saved-theme="?dark"?\]' "$token_css"
+# 3b. The top bar is painted from the palette in both modes. Left unset it keeps
+#     Bootswatch's own $gray-100 in both bundles, so the bar stays light on a
+#     dark page -- and because Quarto hardcodes data-bs-theme="dark" on the
+#     <nav> and one HTML serves both stylesheets, the foreground has to be
+#     explicit too or the light bundle gets light text on a light bar.
+for mode in light dark; do
+  sheet="vault/_theme/site-$mode.scss"
+  for var in navbar-bg navbar-fg navbar-hl; do
+    grep -q "^\$$var: #[0-9a-fA-F]\{6\};$" "$sheet"
+  done
+  # The bar shares the page ground, so it needs an edge rather than a fill.
+  grep -q 'border-bottom: 1px solid #' "$sheet"
+done
+# The bar and the page must be the same colour, or "shares the page ground" is
+# just a claim.
+for mode in light dark; do
+  sheet="vault/_theme/site-$mode.scss"
+  body=$(sed -n 's/^\$body-bg: \(#[0-9a-fA-F]*\);$/\1/p' "$sheet")
+  navbar=$(sed -n 's/^\$navbar-bg: \(#[0-9a-fA-F]*\);$/\1/p' "$sheet")
+  test "$body" = "$navbar"
+done
 
-# --- Quarto styling stays scoped --------------------------------------------
-# Section 24: the Quarto frame may not restyle the Quartz shell around it.
-# Everything except the custom-property definitions themselves must sit under
-# .quarto-page.
-selectors() {
-  grep -o '[^{}]*{' "$token_css" | grep -v 'quarto-page' | grep -v '^:root' | grep -v '^@'
-}
-if selectors | grep -q .; then
-  printf '%s\n' 'A Quarto rule escaped the .quarto-page scope:' >&2
-  selectors >&2
-  exit 1
-fi
+# 4. The Python plotting style derives from the same tokens rather than a second
+#    hand-kept copy, and paints no background of its own -- the page supplies it,
+#    so a figure follows the mode instead of pinning one.
+grep -Fq 'Generated from vault/_theme/tokens.yaml' vault/_theme/knowledge_theme/knowledge.mplstyle
+grep -Fq 'Generated from vault/_theme/tokens.yaml' vault/_theme/knowledge_theme/tokens.json
+grep -q '^figure.facecolor: *none' vault/_theme/knowledge_theme/knowledge.mplstyle
+grep -q '^axes.facecolor: *none' vault/_theme/knowledge_theme/knowledge.mplstyle
 
-# --- Code reads the same on both sides of the boundary ----------------------
-# Quartz highlights Markdown code with shiki; pandoc emits bare token classes.
-# Colouring those classes from the shared tokens is what makes a Python cell in
-# a .qmd look like a fenced block in a .md.
-grep -Fq 'span.kw' "$token_css"
-grep -Fq 'var(--qmd-syntax-keyword)' "$token_css"
-# `im` is pandoc's import token; the page's first cell is an import.
-grep -Fq 'class="im"' "$quarto_page"
-grep -Fq 'span.im' "$token_css"
-
-# --- No literal colours in the Quarto stylesheet ----------------------------
-# Anything that is not a var() cannot follow the theme toggle. The --qmd-* and
-# :root definitions are the values themselves and are exempt.
-if grep -oq '[a-z-]*: *#[0-9a-fA-F]\{3,8\}' site/bridge/styles/quartoPage.scss 2>/dev/null; then
-  printf '%s\n' 'quartoPage.scss names a colour instead of a theme variable.' >&2
-  exit 1
-fi
-
-# --- The runtime pass for output CSS cannot reach ---------------------------
-# Plotly writes its surface colours into the figure JSON, so the bridge rewrites
-# them from the same theme variables on load and on every theme change.
-theme_script=$(grep -rl 'js-plotly-plot' generated/fixture-site/static/scripts/)
-test -n "$theme_script"
-grep -Fq 'themechange' "$theme_script"
-grep -Fq 'paper_bgcolor' "$theme_script"
-grep -Fq "$(basename "$theme_script" | sed 's/\.js$//')" generated/fixture-site/postscript-*.js
-
-# --- Figures carry no baked-in white ----------------------------------------
-# Plotly's default template paints white paper and a #E5ECF6 plot area into the
-# payload; the shared Plotly template in vault/_theme replaces both.
-for page in "$quarto_page"; do
-  if grep -Fq '"paper_bgcolor":"white"' "$page" ||
-    grep -Fq '"plot_bgcolor":"#E5ECF6"' "$page" ||
-    grep -Fq '"gridcolor":"white"' "$page"; then
-    printf '%s\n' "Plotly default surfaces survived into $page." >&2
+# 5. No hand-written stylesheet may carry a literal colour. Every .scss in the
+#    theme is generated; a hand-edited one is how a second palette gets in, and
+#    it would survive --check because --check only compares generated files to
+#    their source.
+for sheet in vault/_theme/*.scss; do
+  case "$sheet" in
+    */site-light.scss|*/site-dark.scss) continue ;;
+  esac
+  if grep -oq '#[0-9a-fA-F]\{3,8\}' "$sheet"; then
+    echo "hand-written colour in $sheet; put it in tokens.yaml" >&2
     exit 1
   fi
 done
 
-# --- One reading measure, two renderers -------------------------------------
-# The published page gets its measure from --measure in the Quartz stylesheet;
-# quarto preview gets it from $grid-body-width in the generated preview theme,
-# because Quarto sizes a figure from the column width and the OJS preamble
-# measures the column it is actually in. If the two drift, every figure is a
-# different width on the two sides and nothing fails -- it just stops
-# converging, which is the whole point of the exercise.
-measure_rem=$(sed -n 's/^ *--measure: \([0-9.]*\)rem;.*/\1/p' site/quartz/styles/custom.scss)
-preview_px=$(sed -n 's/^\$grid-body-width: \([0-9.]*\)px;.*/\1/p' vault/_theme/quarto-preview-light.scss)
-if [ -z "$measure_rem" ] || [ -z "$preview_px" ]; then
-  printf '%s\n' 'Could not read the reading measure from both stylesheets.' >&2
-  exit 1
-fi
-measure_px=$(awk -v r="$measure_rem" 'BEGIN { printf "%d", r * 16 }')
-if [ "$measure_px" != "$preview_px" ]; then
-  printf '%s\n' \
-    "Reading measure differs: --measure is ${measure_px}px, \$grid-body-width is ${preview_px}px." >&2
-  exit 1
-fi
+# 6. The reading measure is one number. It is set in the generated theme as a
+#    Bootstrap grid variable, and a figure sized from the column width is sized
+#    from the same value.
+grep -q '^\$grid-body-width: [0-9]*px;$' vault/_theme/site-light.scss
+light_measure=$(sed -n 's/^\$grid-body-width: \([0-9]*\)px;$/\1/p' vault/_theme/site-light.scss)
+dark_measure=$(sed -n 's/^\$grid-body-width: \([0-9]*\)px;$/\1/p' vault/_theme/site-dark.scss)
+test "$light_measure" = "$dark_measure"
 
-# --- The plain Quartz pages are untouched -----------------------------------
-if grep -Fq 'quarto-content' "$plain_page"; then
-  printf '%s\n' 'A plain Quartz page picked up Quarto content markup.' >&2
-  exit 1
-fi
-
-printf '%s\n' 'Shared visual language: tokens current, Quarto styling scoped and derived.'
+echo "shared visual language: ok (measure ${light_measure}px)"

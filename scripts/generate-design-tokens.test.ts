@@ -2,9 +2,7 @@ import assert from "node:assert/strict"
 import { readdir, readFile } from "node:fs/promises"
 import test from "node:test"
 import {
-  applyGeneratedBlock,
   assertChartLegibility,
-  blockMarkers,
   contrastRatio,
   deriveSyntaxTokens,
   generateDesignTokens,
@@ -13,9 +11,7 @@ import {
   loadSyntaxTheme,
   parseTokens,
   renderMplStyle,
-  renderQuartoPreviewScss,
-  renderQuartoTokensScss,
-  renderQuartzThemeBlock,
+  renderSiteScss,
   SYNTAX_CLASSES,
   SYNTAX_SCOPES,
   type DesignTokens,
@@ -44,7 +40,7 @@ test("the committed token file parses and passes its own legibility rule", () =>
 
 const paletteSource = await readFile(`vault/_theme/palettes/${parseTokens(tokensSource).palette}.yaml`, "utf8")
 
-test("rejects a colour key Quartz would silently ignore", () => {
+test("rejects an unknown colour key", () => {
   const broken = paletteSource.replace("  light:\n    light:", "  light:\n    accent: \"#ff0000\"\n    light:")
   assert.throws(() => parsePalette(broken, "p"), /p\.colors\.light has keys Quartz does not consume: accent/)
 })
@@ -108,15 +104,6 @@ test("every semantic token has a scope to resolve from", () => {
   assert.deepEqual(Object.keys(SYNTAX_SCOPES).sort(), Object.keys(SYNTAX_CLASSES).sort())
 })
 
-// Guards the drift this replaced: quartz.config.yaml named github-light while
-// the hand-written hexes came from github-light-default, so Markdown and Quarto
-// code blocks rendered in two different GitHub palettes.
-test("the Quartz syntax plugin names the same themes the tokens derive from", async () => {
-  const config = await readFile("site/quartz.config.yaml", "utf8")
-  assert.match(config, new RegExp(`light: ${tokens.syntaxThemes.light}\\b`))
-  assert.match(config, new RegExp(`dark: ${tokens.syntaxThemes.dark}\\b`))
-})
-
 // A figure is rasterised once and served to both themes, so a chart colour that
 // disappears against one of the two backgrounds has to fail the build rather
 // than ship. This is the rule that stops someone "fixing" a chart for light
@@ -143,47 +130,25 @@ test("contrast ratio matches the WCAG reference values", () => {
 })
 
 test("every pandoc highlight class resolves to a token", () => {
-  const scss = renderQuartoTokensScss(tokens)
-  for (const [token, classes] of Object.entries(SYNTAX_CLASSES)) {
-    assert.match(scss, new RegExp(`--qmd-syntax-${token}:`))
-    for (const name of classes) {
-      assert.match(scss, new RegExp(`span\\.${name}[,\\s]`))
-    }
-  }
-})
-
-test("the dark override redefines every token the light block defines", () => {
-  const scss = renderQuartoTokensScss(tokens)
-  const [, light, dark] = scss.split(/:root(?:\[saved-theme="dark"\])? \{/)
-  const names = (block: string) => [...block.matchAll(/--(qmd-syntax-[a-z]+):/g)].map((m) => m[1])
-
-  assert.deepEqual(names(dark).sort(), names(light).sort())
-})
-
-test("replaces only the marked region of the Quartz config", () => {
-  const { begin, end } = blockMarkers("theme")
-  const config = `before\n${begin}\nold\n${end}\nafter\n`
-
-  assert.equal(applyGeneratedBlock(config, "theme", `${begin}\nnew\n${end}`), "before\n" + begin + "\nnew\n" + end + "\nafter\n")
-})
-
-test("fails loudly when the markers are gone rather than appending a second theme", () => {
-  assert.throws(
-    () => applyGeneratedBlock("configuration:\n  theme: {}\n", "theme", "x"),
-    /missing the generated "theme" markers/,
-  )
-})
-
-test("the Quartz theme block carries every colour and font from the source", () => {
-  const block = renderQuartzThemeBlock(tokens)
   for (const mode of ["light", "dark"] as const) {
-    for (const value of Object.values(tokens.colors[mode])) {
-      assert.ok(block.includes(value), `${value} missing from the theme block`)
+    const scss = renderSiteScss(tokens, mode)
+    for (const [token, classes] of Object.entries(SYNTAX_CLASSES)) {
+      assert.match(scss, new RegExp(`--qmd-syntax-${token}:`))
+      for (const name of classes) {
+        assert.match(scss, new RegExp(`span\\.${name}[,\\s]`))
+      }
     }
   }
-  for (const font of Object.values(tokens.typography)) {
-    assert.ok(block.includes(font), `${font} missing from the theme block`)
-  }
+})
+
+// The two modes are separate stylesheets now rather than a block and an
+// override, so nothing structural stops one from defining a token the other
+// leaves unset -- which would read as the light value bleeding into dark.
+test("both site themes define exactly the same token set", () => {
+  const names = (mode: "light" | "dark") =>
+    [...renderSiteScss(tokens, mode).matchAll(/--(qmd-syntax-[a-z]+):/g)].map((m) => m[1]).sort()
+
+  assert.deepEqual(names("dark"), names("light"))
 })
 
 test("the matplotlib style paints no background of its own", () => {
@@ -198,28 +163,12 @@ test("the matplotlib style paints no background of its own", () => {
   }
 })
 
-// The preview theme exists so `quarto preview` shows the published palette.
-// If a token reached one side and not the other, drafting would go back to
-// happening against a page that lies about how the result will look.
-test("the preview theme carries the same tokens as the site stylesheet", () => {
-  for (const mode of ["light", "dark"] as const) {
-    const scss = renderQuartoPreviewScss(tokens, mode)
-    for (const [token, value] of Object.entries(tokens.syntax[mode])) {
-      assert.ok(scss.includes(`--qmd-syntax-${token}: ${value};`), `${mode}/${token} missing`)
-    }
-    assert.ok(scss.includes(`--qmd-chart-ink: ${tokens.chart.ink};`))
-    for (const [name, value] of Object.entries(tokens.colors[mode])) {
-      assert.ok(scss.includes(`--${name}: ${value};`), `${mode}/--${name} missing`)
-    }
-  }
-})
-
 // One Bootstrap bundle is compiled per mode and only one is ever enabled, so
 // each file must state its own mode unconditionally -- no dark-mode selector.
 // That is what lets a cell read a token off :root and get the right answer.
-test("each preview theme paints one mode with no dark-mode selector", () => {
-  const light = renderQuartoPreviewScss(tokens, "light")
-  const dark = renderQuartoPreviewScss(tokens, "dark")
+test("each site theme paints one mode with no dark-mode selector", () => {
+  const light = renderSiteScss(tokens, "light")
+  const dark = renderSiteScss(tokens, "dark")
 
   assert.ok(light.includes(`$body-bg: ${tokens.colors.light.light};`))
   assert.ok(dark.includes(`$body-bg: ${tokens.colors.dark.light};`))
@@ -234,8 +183,8 @@ test("each preview theme paints one mode with no dark-mode selector", () => {
 
 // Quarto ships its own colours for pandoc's classes from a stylesheet that
 // loads before the theme bundle. Same selector shape, so ours wins on order.
-test("the preview theme repaints every pandoc highlight class", () => {
-  const scss = renderQuartoPreviewScss(tokens, "light")
+test("the site theme repaints every pandoc highlight class", () => {
+  const scss = renderSiteScss(tokens, "light")
   for (const [token, classes] of Object.entries(SYNTAX_CLASSES)) {
     for (const name of classes) {
       assert.ok(scss.includes(`code span.${name}`), `span.${name} unstyled in preview`)
@@ -246,8 +195,25 @@ test("the preview theme repaints every pandoc highlight class", () => {
 
 test("every generated file is current", async () => {
   const files = await generateDesignTokens()
-  assert.ok(files.length === 6)
+  assert.equal(files.length, 4)
   for (const file of files) {
     assert.equal(await readFile(file.path, "utf8"), file.contents, `${file.path} is stale`)
+  }
+})
+
+// Bootswatch paints the navbar $gray-100 in both bundles if nothing overrides
+// it, so the bar stayed light on a dark page. And Quarto hardcodes
+// data-bs-theme="dark" on the <nav> while one HTML serves both stylesheets, so
+// the foreground cannot be left to Bootstrap's context defaults either.
+test("the top bar is painted from the palette, and shares the page ground", () => {
+  for (const mode of ["light", "dark"] as const) {
+    const scss = renderSiteScss(tokens, mode)
+    const value = (name: string) =>
+      scss.match(new RegExp(`^\\$${name}: (#[0-9a-fA-F]{6});$`, "m"))?.[1]
+
+    assert.equal(value("navbar-bg"), value("body-bg"))
+    assert.equal(value("navbar-fg"), tokens.colors[mode].darkgray)
+    assert.equal(value("navbar-hl"), tokens.colors[mode].secondary)
+    assert.match(scss, /border-bottom: 1px solid #[0-9a-fA-F]{6};/)
   }
 })

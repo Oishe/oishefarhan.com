@@ -1,10 +1,10 @@
-# The palette Quartz ships with: a warm off-white and a near-black, with a
+# A warm off-white and a near-black, with a
 # slate blue for links. Highest prose contrast of the set (7.86:1 light,
 # 12.19:1 dark) and the most conventional-looking.
 
 name: Neutral
-description: Quartz's stock warm neutral, with GitHub code colours.
-# Quartz names these by role, not by luminance: `light` is the page background
+description: A warm neutral, with GitHub code colours.
+# These are named by role, not by luminance: `light` is the page background
 # in *both* schemes, `darkgray` is body text, `dark` is headings.
 colors:
   light:
