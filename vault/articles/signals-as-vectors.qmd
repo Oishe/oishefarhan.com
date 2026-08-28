@@ -1,6 +1,8 @@
 ---
 title: Signals as Vectors
 description: See how sampling turns a signal into a vector, and how the right basis can reveal a compact representation.
+aliases:
+  - knowledge/signals-as-vectors
 tags:
   - ml/signal-processing
   - ml/linear-algebra
@@ -31,7 +33,7 @@ by the note.
 flute = {
   const context = new OfflineAudioContext(1, 1, 11025)
   const audio = await context.decodeAudioData(
-    await FileAttachment("flute-a4.wav").arrayBuffer()
+    await FileAttachment("data/flute-a4.wav").arrayBuffer()
   )
   return {
     sampleRate: audio.sampleRate,

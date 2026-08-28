@@ -1,20 +1,37 @@
 ---
 title: About
-description: The background and intent behind this digital garden.
+description: Background, and what this site is for.
 tags:
   - site/about
 publish: true
+enableToc: false
 ---
 
-# About
+%% TODO(oishe): two or three paragraphs of narrative. Not a summary of the
+skills list below -- the story that connects electrical and computer
+engineering, data and software engineering, and machine learning into one line
+of work. What you were doing, what pulled you toward the next thing, what you
+are aiming at now. %%
 
-I use this site to turn ongoing work and study into durable, connected explanations. My background
-spans electrical and computer engineering, data and software engineering, and machine learning.
+**TODO — narrative.**
 
-The garden will grow iteratively around three kinds of evidence:
+This site is where ongoing work and study turn into durable explanations. Three
+kinds of evidence, each with its own section: [Articles](articles/index.md) for
+writing worked through start to finish, [Notes](notes/index.md) for coursework
+and reading kept in the open, and [Projects](projects/index.md) for things
+built.
 
-- projects that show what I can build;
-- professional practices that show how I approach engineering work;
-- course and knowledge notes that show the foundations behind that work.
+## Skills
 
-Return to [Home](index.md).
+%% TODO(oishe): an explicit, scannable list. This exists for a recruiter running
+a keyword search, so name the actual tools and methods rather than describing
+them: languages, ML and data frameworks, infrastructure, domains. Group them
+under a few bold labels. %%
+
+**TODO — skills list.**
+
+## Contact
+
+- [farhanoishe@gmail.com](mailto:farhanoishe@gmail.com)
+
+%% TODO(oishe): GitHub and LinkedIn, matching the home page and the footer. %%

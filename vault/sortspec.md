@@ -11,10 +11,8 @@ sorting-spec: |
   _hidden
   index
   about
-  examples
-  experience
-  writing
-  knowledge
-  courses
+  articles
+  notes
   projects
+  examples
 ---
