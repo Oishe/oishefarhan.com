@@ -11,11 +11,13 @@
 #           resolve inside that environment
 name: Deploy site
 
+# No path filter. A filter here saves one short build at the cost of silently
+# not deploying -- which it already did once, on the force-push that replaced
+# the Quartz history, where GitHub could not diff against a non-ancestor
+# `before` commit. Deploying a no-op is cheaper than not deploying a real one.
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "*.md"
   workflow_dispatch:
 
 concurrency:
