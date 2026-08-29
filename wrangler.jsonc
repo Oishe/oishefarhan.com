@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oishefarhan-com",
+  "compatibility_date": "2026-08-20",
+
+  // Assets-only Worker: there is no `main` script, because there is no server.
+  // Every page here is a file on disk, built by `npm run build`.
+  "assets": {
+    // Quarto's output-dir. vault/_quarto.yml sets `output-dir: ../generated/site`,
+    // so this path and that one have to move together.
+    "directory": "./generated/site",
+
+    // Quarto emits directory-style pages -- about.qmd becomes about/index.html --
+    // and links to them with an explicit ./about/index.html. The default
+    // auto-trailing-slash handling serves those at /about/ and redirects the
+    // explicit form onto it, which is what we want.
+    //
+    // not_found_handling stays at its "none" default because the site has no
+    // 404.html. Pointing this at "404-page" without one gets you Cloudflare's
+    // generic error rather than a page in the site's own design; if a 404 page
+    // is ever added to the vault, set this to "404-page" in the same commit.
+    "html_handling": "auto-trailing-slash"
+  },
+
+  "routes": [
+    { "pattern": "oishefarhan.com", "custom_domain": true },
+    { "pattern": "www.oishefarhan.com", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}

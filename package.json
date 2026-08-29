@@ -18,6 +18,7 @@
     "yaml": "^2.8.1"
   },
   "devDependencies": {
-    "@shikijs/themes": "^4.4.3"
+    "@shikijs/themes": "^4.4.3",
+    "wrangler": "^4.125.0"
   }
 }

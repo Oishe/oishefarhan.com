@@ -1,0 +1,66 @@
+# Builds oishefarhan.com and deploys it to Cloudflare Workers static assets.
+#
+# The build is `npm run build` -- the same command you run by hand. Its four
+# stages are in README.md; what matters here is that all three toolchains have
+# to be present before it runs:
+#
+#   node    the publication-prep and design-token scripts, which use
+#           --experimental-strip-types and so need the version in .node-version
+#   uv      the Python environment published computational documents render in
+#   quarto  the renderer itself, invoked as `uv run quarto` so document kernels
+#           resolve inside that environment
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: site-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          # The vault is its own uv project; without this the cache key is
+          # computed from a lockfile that is not the one the build resolves.
+          cache-dependency-glob: vault/uv.lock
+
+      # vault/_freeze/ is committed for every published computational document,
+      # so this environment exists for Quarto to resolve against rather than to
+      # execute cells in. It is still a real sync -- torch is in the dependency
+      # set -- which is why the cache above is not optional.
+      - name: Sync the vault environment
+        run: uv sync --frozen
+        working-directory: vault
+
+      - run: npm ci
+
+      # design-tokens --check, prepare-publication, quarto render, then
+      # prepare-publication --require-quarto. Any of the four can fail the
+      # build, which is the point: publication is opt-in and the gates refuse
+      # to leak unpublished notes.
+      - run: npm run build
+
+      - name: Deploy
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

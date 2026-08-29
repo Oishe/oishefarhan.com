@@ -53,6 +53,20 @@ attachment only when published content references it. The build fails rather tha
 - Obsidian-only syntax (`%%…%%`, `> [!note]`, `==highlight==`, wikilinks) that would publish
   verbatim
 
+## Deploy
+
+The site is an assets-only Cloudflare Worker: no server, every page a file on disk.
+
+```bash
+npm run build
+npx wrangler deploy
+```
+
+Pushing to `main` does the same through `.github/workflows/deploy-site.yml`. `wrangler.jsonc`
+serves `generated/site`, which is the `output-dir` set in `vault/_quarto.yml` — change one and you
+change the other. The site has no 404 page; `not_found_handling` is left at its default until it
+does.
+
 ## Validation
 
 ```bash

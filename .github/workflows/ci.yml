@@ -1,0 +1,43 @@
+# The gate. `npm test` and `npm run validate` are the same commands you run
+# locally; README.md's Validation section describes what each covers.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      # Pure Node, no Python needed -- so it runs before the toolchain setup
+      # below and fails fast when the failure is in the scripts themselves.
+      - run: npm test
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: vault/uv.lock
+
+      - run: uv sync --frozen
+        working-directory: vault
+
+      # Builds vault/examples/ -- the fixtures exercising Python, Jupyter
+      # widgets, Observable and Plotly -- then runs the three validators over
+      # the built HTML. `npm run build` does not cover this, because fixtures
+      # never reach the production site.
+      - run: npm run validate
