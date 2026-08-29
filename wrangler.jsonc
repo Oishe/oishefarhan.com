@@ -15,11 +15,13 @@
     // auto-trailing-slash handling serves those at /about/ and redirects the
     // explicit form onto it, which is what we want.
     //
-    // not_found_handling stays at its "none" default because the site has no
-    // 404.html. Pointing this at "404-page" without one gets you Cloudflare's
-    // generic error rather than a page in the site's own design; if a 404 page
-    // is ever added to the vault, set this to "404-page" in the same commit.
-    "html_handling": "auto-trailing-slash"
+    "html_handling": "auto-trailing-slash",
+
+    // Serves generated/site/404.html, from vault/404.md, with a 404 status at
+    // whatever path was missed. Quarto writes that page's URLs site-absolute
+    // because it is named 404 -- which is what makes it safe to serve from a
+    // path it was not built at. Renaming the source breaks that silently.
+    "not_found_handling": "404-page"
   },
 
   "routes": [
