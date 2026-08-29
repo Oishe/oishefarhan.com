@@ -1,5 +1,7 @@
-import { LitElement, html, svg, nothing, type TemplateResult } from "lit"
+import { LitElement, html, svg, type PropertyValues, type TemplateResult } from "lit"
+import katex from "katex"
 import { customElement, property, state } from "lit/decorators.js"
+import type { LabSpec } from "../lab-spec.ts"
 
 /**
  * The change-of-basis figure from post 01, made draggable.
@@ -9,10 +11,15 @@ import { customElement, property, state } from "lit/decorators.js"
  * check whether the interactive part is closed-form before reaching for a
  * runtime. Nothing here imports `src/dsp/`, because nothing here needs to.
  *
- * The matrix equation is drawn with CSS rather than typeset with KaTeX. KaTeX is
- * ~78 KB gzipped, which would be eight times the rest of this widget and blow
- * §11's per-post JS budget on its own, to typeset eight numbers that change and
- * a structure that never does.
+ * The matrix equation is typeset with KaTeX, and deliberately uses the same
+ * LaTeX as `rotate_equation` in notebooks/01_signal_is_a_vector.py, so the
+ * live widget and the notebook render the same expression.
+ *
+ * KaTeX's stylesheet is NOT imported here. Quartz's latex plugin already loads
+ * katex@0.16.11's CSS on every page of the site, math or not, so importing it
+ * again would ship a second copy. The dependency is pinned to that same version
+ * for exactly this reason: the CSS on the page and the JS in this bundle have
+ * to agree. The lab loads its own <link> for the same stylesheet.
  */
 
 const SCALE = 60 // px per unit
@@ -36,18 +43,8 @@ const SHEET = `
   gap: 0.5rem 0.75rem; width: 100%; max-width: 26rem; font-size: 0.9rem; }
 .br-control input[type="range"] { flex: 1 1 12rem; min-width: 8rem; accent-color: ${ROT}; }
 .br-control output { font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: right; }
-.br-eq { display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 0.35rem; font-size: 0.85rem; line-height: 1.15; }
-.br-term { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
-.br-mat { position: relative; display: grid; grid-template-rows: repeat(2, 1fr);
-  grid-auto-flow: column; gap: 0.1em 0.5em; padding: 0.2em 0.5em;
-  font-variant-numeric: tabular-nums; }
-.br-mat > span { text-align: right; }
-.br-mat::before, .br-mat::after { content: ""; position: absolute; top: 0; bottom: 0;
-  width: 0.28em; border: 1.5px solid currentColor; }
-.br-mat::before { left: 0; border-right: 0; }
-.br-mat::after { right: 0; border-left: 0; }
-.br-label { font-size: 0.75rem; opacity: 0.75; }
+.br-eq { max-width: 100%; overflow-x: auto; overflow-y: hidden; font-size: 0.95rem; }
+.br-eq .katex-display { margin: 0; }
 .br-std { color: ${STD}; }
 .br-rot { color: ${ROT}; }
 @media (prefers-reduced-motion: no-preference) { .br-svg line, .br-svg text { transition: none; } }
@@ -68,6 +65,27 @@ export class BasisRotation extends LitElement {
   // variables both need to reach inside. Scoped by the `br-` prefix instead.
   protected override createRenderRoot(): HTMLElement {
     return this
+  }
+
+  /**
+   * Describes this widget to `just lab`. Ranges are the ones the figure was
+   * designed for: theta spans a quarter turn each way, and the vector stays
+   * inside the 2.2-unit axes.
+   */
+  static lab: LabSpec = {
+    about: "Change of basis as a 2x2 rotation. The vector never moves; the axes do.",
+    fallback: {
+      src: "/basis-rotation-30.svg",
+      alt:
+        "A vector measured against a standard basis in blue and a basis rotated 30 " +
+        "degrees in red, with dashed lines dropping to each basis to show the two " +
+        "sets of coordinates.",
+    },
+    controls: {
+      theta: { min: -90, max: 90, step: 1, label: "theta (deg)" },
+      vx: { min: -2, max: 2, step: 0.05 },
+      vy: { min: -2, max: 2, step: 0.05 },
+    },
   }
 
   @property({ type: Number }) vx = 1.0
@@ -92,6 +110,16 @@ export class BasisRotation extends LitElement {
     const fallback = this.querySelector("img")
     if (fallback) this.description = fallback.getAttribute("alt") ?? ""
     this.replaceChildren()
+  }
+
+  /**
+   * `theta` is the starting angle; `live` is what the slider drives. Without
+   * this, `theta` would be read once at connect and then ignored, so setting
+   * the attribute from outside — the lab, or a post that re-renders the tag —
+   * would silently do nothing. A declared reactive property should react.
+   */
+  protected override willUpdate(changed: PropertyValues<this>): void {
+    if (changed.has("theta")) this.live = this.theta
   }
 
   override disconnectedCallback(): void {
@@ -195,29 +223,57 @@ export class BasisRotation extends LitElement {
           <output>${this.live.toFixed(0)}°</output>
         </label>
 
-        <div class="br-eq">
-          ${this.term(["1.00", "0.00", "0.00", "1.00"], "[ê₁ ê₂]", "br-std")}
-          ${this.term([this.vx.toFixed(2), this.vy.toFixed(2)], "x", "br-std")}
-          <span>=</span>
-          ${this.term(
-            [c.toFixed(2), s.toFixed(2), (-s).toFixed(2), c.toFixed(2)],
-            "[ê₁′ ê₂′]",
-            "br-rot",
-          )}
-          ${this.term([ax.toFixed(2), ay.toFixed(2)], "x′", "br-rot")}
-        </div>
+        <div class="br-eq" .innerHTML=${BasisRotation.equation(c, s, this.vx, this.vy, ax, ay)}></div>
       </figure>
     `
   }
 
-  /** One bracketed matrix with its caption. Values are column-major. */
-  private term(values: string[], caption: string, tone: string): TemplateResult {
-    return html`
-      <span class="br-term ${tone}">
-        <span class="br-mat">${values.map((v) => html`<span>${v}</span>`)}</span>
-        <span class="br-label">${caption}</span>
-      </span>
-      ${nothing}
-    `
+  /**
+   * The same equation `rotate_equation` typesets in the notebook: the vector is
+   * one object, written in two bases. Colour matches the axes in the figure.
+   *
+   * Cached because a slider drag re-renders at 60 Hz and only two of the six
+   * numbers actually change per frame; re-typesetting identical LaTeX is pure
+   * waste. The key is the LaTeX itself, so correctness does not depend on
+   * guessing which inputs matter.
+   */
+  private static eqCache = new Map<string, string>()
+
+  private static equation(
+    c: number,
+    s: number,
+    vx: number,
+    vy: number,
+    ax: number,
+    ay: number,
+  ): string {
+    const f = (n: number): string => n.toFixed(2)
+    // -0.00 reads as a typo rather than a number.
+    const g = (n: number): string => f(Object.is(n, -0) || f(n) === "-0.00" ? 0 : n)
+
+    const tex =
+      String.raw`\textcolor{${STD}}{` +
+      String.raw`\underbrace{\begin{bmatrix}1.00 & 0.00\\ 0.00 & 1.00\end{bmatrix}}_{[\,\hat{e}_1\ \hat{e}_2\,]}` +
+      String.raw`\underbrace{\begin{bmatrix}${g(vx)}\\ ${g(vy)}\end{bmatrix}}_{\mathbf{x}}}` +
+      String.raw`\;=\;` +
+      String.raw`\textcolor{${ROT}}{` +
+      String.raw`\underbrace{\begin{bmatrix}${g(c)} & ${g(-s)}\\ ${g(s)} & ${g(c)}\end{bmatrix}}_{[\,\hat{e}_1'\ \hat{e}_2'\,]}` +
+      String.raw`\underbrace{\begin{bmatrix}${g(ax)}\\ ${g(ay)}\end{bmatrix}}_{\mathbf{x}'}}`
+
+    const hit = BasisRotation.eqCache.get(tex)
+    if (hit !== undefined) return hit
+
+    const out = katex.renderToString(tex, {
+      displayMode: true,
+      throwOnError: false,
+      // Default output, i.e. HTML *and* MathML. The MathML annotation is what a
+      // screen reader reads; dropping it to save a few bytes would make the
+      // equation announce as a run of loose digits.
+    })
+    // 181 distinct integer angles times a handful of vectors; bounded, but not
+    // unbounded. Drop the oldest when it gets silly.
+    if (BasisRotation.eqCache.size > 400) BasisRotation.eqCache.clear()
+    BasisRotation.eqCache.set(tex, out)
+    return out
   }
 }

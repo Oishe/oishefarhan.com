@@ -1,0 +1,36 @@
+# The Python toolchain for this repo — and nothing more.
+#
+# Read this before adding a dependency here, because the answer is almost
+# always "no":
+#
+#   Notebook dependencies live in each notebook's PEP 723 header, not here.
+#   `marimo edit --sandbox` re-execs itself into a `uv run --isolated
+#   --no-project` environment built from exactly that header, so the notebook
+#   kernel never sees this project's environment. That is what keeps one
+#   notebook on pywavelets and another on nothing, with no shared venv to drift.
+#   `scripts/*.py` carry their own headers for the same reason and are run with
+#   `uv run --script`.
+#
+# So this project exists for one job: pin the marimo *launcher*, so `just edit`,
+# `just notebooks` and CI all drive the same marimo version. numpy, scipy,
+# matplotlib and friends belong in a `# /// script` block, never below.
+#
+# No [build-system] on purpose: uv then treats this as a virtual project and
+# never tries to build or install the repo itself as a package.
+
+[project]
+name = "oishefarhan-com"
+version = "0"
+description = "Explorable explanations for signals, systems, and linear algebra."
+requires-python = ">=3.14"
+dependencies = []
+
+[dependency-groups]
+# Installed by default on `uv run`, which is the point — `uv run marimo ...`
+# must work in a fresh clone with no explicit sync step.
+dev = ["marimo>=0.24.0"]
+
+[tool.marimo.runtime]
+# Editing a notebook while an agent or Obsidian rewrites the same file is
+# normal here, so `--watch` reloads rather than warns.
+watcher_on_save = "autorun"

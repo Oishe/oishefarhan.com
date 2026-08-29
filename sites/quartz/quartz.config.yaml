@@ -4,18 +4,17 @@ configuration:
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
-  analytics: null
+  analytics: {}
   locale: en-US
   baseUrl: oishefarhan.com
   ignorePatterns:
     - private
     - templates
+    - projects
     - .obsidian
-    - figures          # figure SOURCES (.typ/.d2/.tex/.py) — only attachments/ is published
+    - figures
     - .trash
   theme:
-    # Self-hosted. googleFonts costs two render-blocking requests to a second
-    # origin before any text can paint.
     fontOrigin: local
     cdnCaching: true
     typography:
@@ -26,7 +25,7 @@ configuration:
       lightMode:
         light: "#faf8f8"
         lightgray: "#e5e5e5"
-        gray: "#6e6e6e"   # was #b8b8b8 — 1.9:1 on #faf8f8, under AA
+        gray: "#6e6e6e" # was #b8b8b8 — 1.9:1 on #faf8f8, under AA
         darkgray: "#4e4e4e"
         dark: "#2b2b2b"
         secondary: "#284b63"
@@ -36,7 +35,7 @@ configuration:
       darkMode:
         light: "#161618"
         lightgray: "#393639"
-        gray: "#8f8f8f"   # was #646464 — 3.05:1 on #161618, under AA
+        gray: "#8f8f8f" # was #646464 — 3.05:1 on #161618, under AA
         darkgray: "#d4d4d4"
         dark: "#ebebec"
         secondary: "#7b97aa"
@@ -76,6 +75,7 @@ plugins:
     layout:
       position: right
       priority: 30
+      condition: not-index
   - source: "@quartz-community/crawl-links"
     enabled: true
     options:
@@ -94,18 +94,18 @@ plugins:
     options:
       renderEngine: katex
     order: 80
-  - source: "@quartz-community/citations"
-    enabled: false
-    order: 85
-  - source: "@quartz-community/hard-line-breaks"
-    enabled: false
-    order: 90
-  - source: "@quartz-community/ox-hugo"
-    enabled: false
-    order: 91
-  - source: "@quartz-community/roam"
-    enabled: false
-    order: 92
+  # - source: "@quartz-community/citations"
+  #   enabled: false
+  #   order: 85
+  # - source: "@quartz-community/hard-line-breaks"
+  #   enabled: false
+  #   order: 90
+  # - source: "@quartz-community/ox-hugo"
+  #   enabled: false
+  #   order: 91
+  # - source: "@quartz-community/roam"
+  #   enabled: false
+  #   order: 92
   # System fonts. The emitter does not actually self-host despite its name, so
   # webfonts here mean two render-blocking requests to a second origin plus
   # ~250 KB before any text paints. The stacks in theme.typography still name
@@ -115,15 +115,15 @@ plugins:
     enabled: true
     options:
       fontOrigin: local
-  - source: "@quartz-themes/core"
-    enabled: false
-    options:
-      theme: tokyo-night
-      mode: both
+  # - source: "@quartz-themes/core"
+  #   enabled: false
+  #   options:
+  #     theme: tokyo-night
+  #     mode: both
   - source: "@quartz-community/remove-draft"
     enabled: true
-  - source: "@quartz-community/explicit-publish"
-    enabled: false
+  # - source: "@quartz-community/explicit-publish"
+  #   enabled: false
   - source: "@quartz-community/alias-redirects"
     enabled: true
   - source: "@quartz-community/content-index"
@@ -155,11 +155,11 @@ plugins:
   # to draw a graph of a handful of notes. The plugin has no lazy option.
   # Backlinks and wikilinks cover the wiki behaviour that actually earns its
   # keep. Revisit if the plugin ever defers its renderer.
-  - source: "@quartz-community/graph"
-    enabled: false
-    layout:
-      position: right
-      priority: 10
+  # - source: "@quartz-community/graph"
+  #   enabled: false
+  #   layout:
+  #     position: right
+  #     priority: 10
   - source: "@quartz-community/search"
     enabled: true
     layout:
@@ -173,6 +173,7 @@ plugins:
     layout:
       position: right
       priority: 50
+      condition: not-index
   - source: "@quartz-community/article-title"
     enabled: true
     layout:
@@ -183,11 +184,12 @@ plugins:
     layout:
       position: beforeBody
       priority: 20
-  - source: "@quartz-community/tag-list"
-    enabled: false
-    layout:
-      position: beforeBody
-      priority: 30
+      condition: not-index
+  # - source: "@quartz-community/tag-list"
+  #   enabled: false
+  #   layout:
+  #     position: beforeBody
+  #     priority: 30
   - source: "@quartz-community/page-title"
     enabled: true
     layout:
@@ -205,20 +207,21 @@ plugins:
       position: left
       priority: 35
       group: toolbar
+      condition: not-index
   - source: "@quartz-community/breadcrumbs"
     enabled: true
     layout:
       position: beforeBody
       priority: 5
       condition: not-index
-  - source: "@quartz-community/comments"
-    enabled: false
-    options:
-      provider: giscus
-      options: {}
-    layout:
-      position: afterBody
-      priority: 10
+  # - source: "@quartz-community/comments"
+  #   enabled: false
+  #   options:
+  #     provider: giscus
+  #     options: {}
+  #   layout:
+  #     position: afterBody
+  #     priority: 10
   - source: "@quartz-community/footer"
     enabled: true
     options:
@@ -227,8 +230,8 @@ plugins:
     layout:
       position: footer
       priority: 50
-  - source: "@quartz-community/recent-notes"
-    enabled: false
+  # - source: "@quartz-community/recent-notes"
+  #   enabled: false
   - source: "@quartz-community/spacer"
     enabled: true
     options: {}
@@ -258,6 +261,8 @@ plugins:
       position: beforeBody
       priority: 15
       display: all
+      # The landing page is not a note; a frontmatter table reads as debug output.
+      condition: not-index
   - source: "@quartz-community/unlisted-pages"
     enabled: true
     options: {}
@@ -270,12 +275,12 @@ plugins:
       unlistWhenEncrypted: false
       outputPath: static/encryptedContentIndex.json
     order: 900
-  - source: "@quartz-community/stacked-pages"
-    enabled: false
-    layout:
-      position: afterBody
-      priority: 50
-      display: all
+  # - source: "@quartz-community/stacked-pages"
+  #   enabled: false
+  #   layout:
+  #     position: afterBody
+  #     priority: 50
+  #     display: all
 layout:
   groups:
     toolbar:

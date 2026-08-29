@@ -1,0 +1,46 @@
+# Builds oishefarhan.com and deploys it to Cloudflare Workers static assets.
+#
+# The live notebooks are a separate Worker on a separate origin and deploy
+# from their own workflow; see deploy-notebooks.yml.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    # Notebook-only changes do not rebuild the site. Note scripts/ and vault/
+    # DO, because export_figures.py writes committed SVGs into the vault.
+    paths-ignore:
+      - "notebooks/**"
+      - ".github/workflows/deploy-notebooks.yml"
+      - "*.md"
+  workflow_dispatch:
+
+concurrency:
+  group: site-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - uses: extractions/setup-just@v3
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix packages/explorables
+          npm ci --prefix sites/quartz
+
+      # check + build + wrangler deploy — the same recipe you run by hand.
+      - name: Publish
+        run: just publish
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

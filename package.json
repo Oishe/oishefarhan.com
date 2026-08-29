@@ -2,13 +2,7 @@
   "name": "oishefarhan.com",
   "private": true,
   "type": "module",
-  "description": "Root build entrypoint. `npm run build` produces sites/quartz/public, which wrangler deploys as a Workers static-assets site.",
-  "scripts": {
-    "build:widgets": "npm --prefix packages/explorables ci && npm --prefix packages/explorables run build",
-    "build:site": "npm --prefix sites/quartz ci && npm --prefix sites/quartz run install-plugins && npm --prefix sites/quartz exec -- quartz build -d ../../vault -o public",
-    "build": "npm run build:widgets && npm run build:site",
-    "deploy": "npm run build && wrangler deploy"
-  },
+  "description": "Wrangler lives here so `npx wrangler deploy` works from the repo root. The build is `just publish` — see WORKFLOW.md. There are deliberately no build scripts in this file; two ways to build is how they drift.",
   "devDependencies": {
     "wrangler": "^4.125.0"
   }

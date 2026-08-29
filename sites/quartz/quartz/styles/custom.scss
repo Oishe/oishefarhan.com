@@ -1,3 +1,66 @@
 @use "./variables.scss" as *;
 
-// put your custom CSS here!
+// Site styles on top of Quartz's. Kept small on purpose: the sidebar chrome is
+// removed from the landing page in quartz.config.yaml (`condition: not-index`),
+// so what's left here is typography for the front page and the about page.
+
+// The one-line positioning statement under the name on the front page.
+.lede {
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: var(--darkgray);
+  margin-bottom: 1.5rem;
+}
+
+// Front-page navigation. Auto-fit rather than a fixed column count, so it
+// collapses to one column on a phone without a media query.
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin: 2rem 0;
+}
+
+// Quartz's crawl-links plugin rewrites these into `.internal.internal-link` or
+// `.external.external-link` and styles them as inline links. `&.internal` and
+// `&.external` are here to out-specify that, not for decoration.
+.card,
+.card.internal,
+.card.external {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--lightgray);
+  border-radius: 8px;
+  text-decoration: none;
+  background: none;
+  background-color: transparent;
+  color: inherit;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--secondary);
+    background: none;
+    background-color: transparent;
+  }
+
+  // The plugin appends an "opens in a new tab" glyph to every external link.
+  // In a column-flex card it lands on its own line under the description.
+  .external-icon {
+    display: none;
+  }
+
+  strong {
+    color: var(--secondary);
+    font-weight: 600;
+  }
+
+  span {
+    font-size: 0.88rem;
+    // Quartz gives .internal-link a heavier weight; these are body text.
+    font-weight: 400;
+    color: var(--gray);
+    line-height: 1.45;
+  }
+}

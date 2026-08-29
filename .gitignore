@@ -6,17 +6,22 @@ node_modules/
 
 # quartz build output + plugin cache
 sites/quartz/public/
-sites/quartz/.quartz/
-sites/quartz/.quartz-cache/
+sites/quartz/**/.quartz/
+sites/quartz/**/.quartz-cache/
 sites/quartz/prof/
 
 # NOTE: do NOT gitignore anything under sites/quartz/quartz/static/ or vault/.
 # Quartz globs both with `gitignore: true`, so an ignored file is silently
 # dropped from the build. Generated-but-published assets are committed instead.
 
+# WASM notebook exports — built in CI, deployed to notebooks.oishefarhan.com,
+# never committed. See .github/workflows/deploy-notebooks.yml.
+notebooks-dist/
+
 # python
 __pycache__/
 .venv/
+__marimo__/
 .pytest_cache/
 .ruff_cache/
 

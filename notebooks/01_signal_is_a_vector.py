@@ -59,6 +59,18 @@ def compute_signal():
     return n, x
 
 
+@app.cell(hide_code=True)
+def md_samples():
+    mo.md(r"""
+    ## 1. A signal is a list of numbers
+
+    Sample a continuous waveform and you get $n$ numbers. Nothing about that list says
+    which numbers matter — that only becomes visible once you measure it against the
+    right axes.
+    """)
+    return
+
+
 @app.cell
 def demo_signal(n, x):
     plot_signal(x, n)
@@ -68,6 +80,17 @@ def demo_signal(n, x):
 @app.cell
 def demo_signal_samples(n, x):
     plot_signal_samples(x, n)
+    return
+
+
+@app.cell(hide_code=True)
+def md_rotation():
+    mo.md(r"""
+    ## 2. A change of basis is a rotation
+
+    Start in two dimensions, where you can see it. The vector never moves; only the axes
+    you measure it against do, and the coordinates change to match.
+    """)
     return
 
 
@@ -84,6 +107,17 @@ def ui_rotate():
 @app.cell
 def demo_rotate(rotate):
     mo.vstack([theme(plot_rotate_coords(rotate.value)), rotate_equation(rotate.value)], align="center")
+    return
+
+
+@app.cell(hide_code=True)
+def md_ndim():
+    mo.md(r"""
+    ## 3. The same move, in $n$ dimensions
+
+    A basis for $\mathbb{R}^{64}$ is 64 vectors. Stack them as the columns of $\Psi$ and
+    the coordinates are $s = \Psi^{\mathsf{T}} x$ — one dot product per axis.
+    """)
     return
 
 
@@ -105,6 +139,17 @@ def demo_matrix_equation(n, x):
     return
 
 
+@app.cell(hide_code=True)
+def md_sparsity():
+    mo.md(r"""
+    ## 4. In the right basis, almost everything vanishes
+
+    The same signal, measured three ways. Sparsity is not a property of the signal — it is
+    a property of the signal *and the basis you chose*.
+    """)
+    return
+
+
 @app.cell
 def demo_sparsity(n, x):
     plot_sparsity(x, n)
@@ -114,6 +159,17 @@ def demo_sparsity(n, x):
 @app.cell
 def demo_partial_sums(n, x):
     plot_partial_sums(x, n)
+    return
+
+
+@app.cell(hide_code=True)
+def md_keep():
+    mo.md(r"""
+    ## 5. Keep the largest $r$ terms
+
+    Throw away every coordinate but the biggest $r$ and invert. Drag $r$ and watch how few
+    terms it takes before the reconstruction is indistinguishable.
+    """)
     return
 
 
@@ -128,6 +184,21 @@ def ui_controls(n):
 @app.cell
 def demo_keep(basis_pick, keep_r, n, x):
     plot_keep(x, n, basis_pick.value, keep_r.value)
+    return
+
+
+@app.cell
+def out_keep_stats(basis_pick, keep_r, n, x):
+    # compress() already computes both of these; plot_keep just discards them.
+    _, _, _, error, energy = compress(x, n, basis_pick.value, keep_r.value)
+    mo.hstack(
+        [
+            mo.stat(label="terms kept", value=f"{keep_r.value} of {n}"),
+            mo.stat(label="energy retained", value=f"{100 * energy:.2f}%"),
+            mo.stat(label="reconstruction error", value=f"{100 * error:.2f}%"),
+        ],
+        widths="equal",
+    )
     return
 
 

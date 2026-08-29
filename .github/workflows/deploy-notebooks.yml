@@ -1,0 +1,53 @@
+# Builds the live marimo notebooks and deploys them to
+# notebooks.oishefarhan.com — a separate Worker on a separate origin, so
+# oishefarhan.com itself still ships zero Pyodide.
+#
+# The export is slow (a uv sandbox resolve per notebook), so this runs only
+# when the notebooks actually change.
+name: Deploy notebooks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "notebooks/**"
+      - "scripts/build_notebooks.py"
+      - "wrangler.notebooks.jsonc"
+      - ".github/workflows/deploy-notebooks.yml"
+  workflow_dispatch:
+
+# Two deploys targeting the same Worker would race.
+concurrency:
+  group: notebooks-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # Also enforces the Cloudflare asset limits; see scripts/build_notebooks.py.
+      - name: Export notebooks to WASM
+        run: uv run --script scripts/build_notebooks.py
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - run: npm ci
+
+      # custom_domain: true creates a DNS record, so the token needs
+      # DNS:Edit and Zone:Read on the oishefarhan.com zone, on top of
+      # Workers Scripts:Edit and Workers Routes:Edit.
+      - name: Deploy
+        run: npx wrangler deploy -c wrangler.notebooks.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

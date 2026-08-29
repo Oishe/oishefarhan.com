@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "oishefarhan-notebooks",
+  "compatibility_date": "2026-08-20",
+
+  // The live marimo notebooks, on their OWN origin. This is what keeps
+  // "never ship a language runtime" honest: oishefarhan.com ships zero
+  // Pyodide, and this host is one click away from a post.
+  //
+  // Assets-only Worker, like wrangler.jsonc — no `main`, no server.
+  "assets": {
+    // Built in CI, never committed. See .github/workflows/deploy-notebooks.yml
+    // and `just notebooks` for the local equivalent.
+    "directory": "./notebooks-dist",
+    // Each export is <name>/index.html with relative ./assets/ references, so
+    // the default trailing-slash handling resolves /01_foo/ correctly. There is
+    // no 404 page to serve.
+    "not_found_handling": "none"
+  },
+
+  "routes": [{ "pattern": "notebooks.oishefarhan.com", "custom_domain": true }],
+
+  "observability": { "enabled": true }
+}

@@ -4,7 +4,7 @@
   "compatibility_date": "2026-08-20",
 
   // Assets-only Worker: there is no `main` script, because there is no server.
-  // Every page here is a file on disk, built by `just site`.
+  // Every page here is a file on disk, built by `just publish`.
   "assets": {
     "directory": "./sites/quartz/public",
     // Quartz links to extensionless paths (/posts/hello-world) and emits

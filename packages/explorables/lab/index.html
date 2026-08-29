@@ -2,30 +2,115 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Explorables lab</title>
+<!-- The site gets this from Quartz's latex plugin on every page. Same
+     version as the pinned `katex` dependency: the CSS and the JS have to
+     agree, so bump them together. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
 <style>
-  body {
-    font: 16px/1.6 system-ui, sans-serif;
-    max-width: 42rem;
-    margin: 4rem auto;
-    padding: 0 1.5rem;
+  :root {
+    color-scheme: light dark;
+    --bg: #faf8f8;
+    --fg: #2b2b2b;
+    --line: #e5e5e5;
+    --dim: #6e6e6e;
+    --accent: #284b63;
   }
-  h1 { font-size: 1.4rem; }
-  li { margin: 0.35rem 0; }
-  .empty { color: #666; font-style: italic; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161618; --fg: #ebebec; --line: #393639; --dim: #8f8f8f; --accent: #7b97aa; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.6 system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    display: grid;
+    grid-template-columns: minmax(9rem, 13rem) 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 40rem) { body { grid-template-columns: 1fr; } }
+
+  #nav {
+    border-right: 1px solid var(--line);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  #nav::before {
+    content: "widgets";
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 0.5rem;
+  }
+  #nav a {
+    color: inherit;
+    text-decoration: none;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: ui-monospace, monospace;
+  }
+  #nav a:hover { background: var(--line); }
+  #nav a.on { background: var(--accent); color: var(--bg); }
+
+  #stage { padding: 2rem clamp(1rem, 4vw, 3rem); max-width: 52rem; }
+  h1 { font-size: 1.2rem; margin: 0; font-weight: 600; }
+  .about { color: var(--dim); margin: 0.4rem 0 0; font-size: 0.9rem; }
+  .frame { margin: 1.5rem 0; }
+
+  .panel {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .ctl { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; }
+  .ctl-name {
+    font-family: ui-monospace, monospace;
+    color: var(--dim);
+    min-width: 5rem;
+  }
+  .ctl input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .ctl output {
+    font-variant-numeric: tabular-nums;
+    min-width: 3.5em;
+    text-align: right;
+    font-family: ui-monospace, monospace;
+  }
+
+  .fallback { margin-top: 1.5rem; font-size: 0.85rem; color: var(--dim); }
+  .fallback summary { cursor: pointer; }
+  .fallback img { max-width: 100%; margin-top: 0.75rem; }
+  .alt { font-style: italic; }
+  .empty { color: var(--dim); font-style: italic; }
+
+  footer {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--line);
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    font-size: 0.8rem;
+    color: var(--dim);
+  }
+  code { font-family: ui-monospace, monospace; }
 </style>
 
-<h1>Explorables lab</h1>
+<nav id="nav"></nav>
+<main id="stage"></main>
+<footer>
+  Widgets are discovered from <code>src/components/*.ts</code> by filename, and
+  controls from each element's Lit properties — adding a widget here takes no
+  files. Bounds come from an optional <code>static lab</code> block on the
+  component.
+  <br />
+  Open this on a phone using the LAN URL Vite printed at startup. Lazy loading
+  is <em>not</em> testable here — this page imports every widget eagerly to read
+  its properties. Check that on a real post with <code>just serve</code>, where
+  the built loader fetches the built chunk.
+</footer>
 
-<p>
-  One page per widget. Save a component and HMR swaps it in without a reload —
-  slider state survives, because there is no kernel to round-trip through.
-</p>
-
-<ul id="widgets">
-  <li><a href="./basis-rotation.html">basis-rotation</a> — change of basis as a 2&times;2 rotation</li>
-</ul>
-
-<p>
-  Open this page on a phone using the LAN URL Vite prints on startup; this index
-  doubles as the manual mobile QA sweep before a release.
-</p>
+<script type="module" src="./main.ts"></script>

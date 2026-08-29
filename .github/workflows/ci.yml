@@ -1,0 +1,49 @@
+# The gate. `just check` is the same command you run locally; the fixture-drift
+# check lives here rather than in `just check` so that verifying TypeScript
+# does not require a Python toolchain on your machine.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: packages/explorables/package-lock.json
+
+      - uses: extractions/setup-just@v3
+
+      - run: npm ci
+        working-directory: packages/explorables
+
+      # typecheck + vitest, including the numpy/scipy parity tests against the
+      # committed fixtures.
+      - run: just check
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # Regenerate the fixtures from the Python reference. A diff means the
+      # notebook's numerics changed and someone has to say why — the committed
+      # fixtures are what the TypeScript port is tested against.
+      - name: Fixtures match the Python reference
+        run: |
+          just fixtures
+          if ! git diff --quiet -- packages/explorables/test/fixtures; then
+            echo "::error::fixtures drifted from the Python reference"
+            git --no-pager diff --stat -- packages/explorables/test/fixtures
+            exit 1
+          fi
+          echo "fixtures match"
