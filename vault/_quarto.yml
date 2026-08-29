@@ -20,20 +20,43 @@ project:
 
 website:
   title: "Oishe Farhan"
+  # Absolute URLs for the social cards below. Without this the og:image and
+  # og:url tags are relative, and a relative og:image does not render on
+  # LinkedIn or Slack -- which is where a link to this site actually gets
+  # posted.
+  site-url: https://oishefarhan.com
+  description: >-
+    Data and ML platform engineering: sensor ingest, warehouses shaped for model
+    training, and the serving path from a model to a person.
+  # The link preview is the first impression on LinkedIn, and it is generated
+  # from these tags rather than from the page. `open-graph` also picks up each
+  # page's own title and description, so every page gets its own card.
+  open-graph: true
+  twitter-card: true
   navbar:
     left:
+      # Work and Notes are written but parked: their folders were renamed to
+      # `work_hidden/` and `notes_hidden/`, which the render list excludes and
+      # `.gitignore` covers. Uncomment an entry when its folder comes back --
+      # a navbar href to a page that is not published is a 404, not a warning.
+      # - href: work/index.md
+      #   text: Work
       - href: articles/index.md
         text: Articles
-      - href: notes/index.md
-        text: Notes
-      - href: projects/index.md
-        text: Projects
+      # - href: notes/index.md
+      #   text: Notes
       - href: about/index.md
         text: About
     right:
       - icon: github
         href: https://github.com/oishe
         aria-label: GitHub
+      - icon: linkedin
+        href: https://www.linkedin.com/in/oishe
+        aria-label: LinkedIn
+      - icon: envelope
+        href: mailto:farhanoishe@gmail.com
+        aria-label: Email
   search:
     location: navbar
     type: overlay
@@ -62,9 +85,13 @@ format:
     # Source is available but not in the way: an article should read as prose,
     # with the code one click away.
     code-fold: true
+    # site-*.scss are generated from tokens.yaml and must not be hand-edited.
+    # site-custom.scss is the hand-written layer that sits after them: the page
+    # furniture the published pages ask for, built only out of the custom
+    # properties both generated bundles define, so one copy serves both modes.
     theme:
-      light: [cosmo, _theme/site-light.scss]
-      dark: [cosmo, _theme/site-dark.scss]
+      light: [cosmo, _theme/site-light.scss, _theme/site-custom.scss]
+      dark: [cosmo, _theme/site-dark.scss, _theme/site-custom.scss]
     # Quarto compiles one Bootstrap bundle per mode and switches them by
     # toggling `rel` on link#quarto-bootstrap. `embed-resources: true` inlines
     # both as <style>, so the toggle has nothing to switch and dark mode stops

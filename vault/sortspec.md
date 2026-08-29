@@ -12,7 +12,8 @@ sorting-spec: |
   index
   about
   articles
-  notes
-  projects
+  work_hidden
+  notes_hidden
+  projects_hidden
   examples
 ---

@@ -265,6 +265,14 @@ which rewrites the four files it feeds: the light and dark site stylesheets
 (`_theme/site-{light,dark}.scss`) and the two files the vault's Python environment reads. Never edit
 a generated file by hand; `npm run build` fails on a stale one.
 
+**`_theme/site-custom.scss` is the exception, and is hand-written.** It is loaded into *both* theme
+bundles after the generated pair, and holds the page furniture the site's own pages ask for — the
+home hero, the capability cards, the role timeline, the stack and jump chips. `npm run
+design-tokens` neither writes nor checks it, so edit it directly. Because one copy serves both
+modes, every colour in it has to come from a custom property the generated bundles define
+(`--light`, `--lightgray`, `--gray`, `--darkgray`, `--dark`, `--secondary`); a literal hex there
+paints the same colour onto both grounds and breaks one of them.
+
 ### Swapping the palette
 
 The colours live in **`vault/_theme/palettes/`**, one file per palette, each carrying the nine colour

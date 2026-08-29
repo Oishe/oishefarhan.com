@@ -1,24 +1,23 @@
 ---
 title: About
-description: Background, and what this site is for.
+description: Who I am, and what this site is for.
 tags:
   - site/about
 publish: true
-
 ---
 
-**TODO — narrative.**
+Data and ML platform engineer in neurotech, with a background in electrical and
+computer engineering from the University of Toronto. I work with EEG and
+biosignals, and build the data platforms that carry them from the sensor to the
+model.
 
-This site is where ongoing work and study turn into durable explanations. Three
-kinds of evidence, each with its own section: [Articles](../articles/index.md) for
-writing worked through start to finish, [Notes](../notes/index.md) for coursework
-and reading kept in the open, and [Projects](../projects/index.md) for things
-built.
-
-## Skills
-
-**TODO — skills list.**
+This site is where that work gets written up. It is an Obsidian vault published
+through Quarto, and the [source is on GitHub](https://github.com/oishe).
 
 ## Contact
 
 - [farhanoishe@gmail.com](mailto:farhanoishe@gmail.com)
+- [github.com/oishe](https://github.com/oishe)
+- [linkedin.com/in/oishe](https://www.linkedin.com/in/oishe)
+
+Toronto, Ontario.

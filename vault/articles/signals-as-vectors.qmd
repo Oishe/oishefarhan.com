@@ -1,6 +1,7 @@
 ---
 title: Signals as Vectors
 description: See how sampling turns a signal into a vector, and how the right basis can reveal a compact representation.
+date: 2026-08-20
 aliases:
   - /knowledge/signals-as-vectors
 tags:

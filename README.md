@@ -6,7 +6,7 @@ writing reference: frontmatter, `.md` vs `.qmd`, links, and the build commands.
 
 ```text
 vault/                      source of truth: notes, Quarto documents, attachments
-  _theme/                   tokens.yaml and the stylesheets generated from it
+  _theme/                   tokens.yaml, the stylesheets generated from it, and site-custom.scss
   _hidden/                  private; never rendered, never published
 generated/                  disposable derivatives (git-ignored)
   site/                     the built site

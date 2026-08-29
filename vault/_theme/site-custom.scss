@@ -1,0 +1,105 @@
+// Hand-written. Unlike site-light.scss and site-dark.scss, this file is NOT
+// generated from tokens.yaml -- `npm run design-tokens` neither writes nor
+// checks it, so edit it directly.
+//
+// One copy is loaded into both theme bundles (see vault/_quarto.yml). That is
+// only safe because every colour below comes from a custom property that both
+// generated bundles define with mode-appropriate values -- --light, --lightgray,
+// --gray, --darkgray, --dark, --secondary. Introducing a literal hex here would
+// paint the same colour onto both grounds and break one of them; reach for a
+// token instead, and add it to tokens.yaml if it does not exist.
+//
+// Scope: page furniture the site's own pages ask for. Right now that is the
+// home hero and one overflow fix, because most of the site is unpublished --
+// the cards, role timeline, chips and skills block that go with those pages are
+// parked in `vault/_hidden/parked/site-furniture.scss` rather than shipped here
+// as dead CSS. Nothing here restyles prose; an article should look the way the
+// theme says it looks.
+
+/*-- scss:rules --*/
+
+// ---------------------------------------------------------------------------
+// Title blocks
+//
+// Quarto renders `subtitle:` and `description:` under the H1 in the default
+// title block, which gives a three-line hero -- name, role, positioning -- with
+// no custom HTML in the page source. Both are unstyled by default and land at
+// body size, so the hierarchy has to be drawn here.
+// ---------------------------------------------------------------------------
+#title-block-header {
+  .subtitle {
+    margin-top: 0.35rem;
+    color: var(--secondary);
+    font-family: var(--bs-font-sans-serif);
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .description {
+    margin-top: 0.75rem;
+    max-width: 46rem;
+    color: var(--darkgray);
+    font-size: 1.075rem;
+    line-height: 1.55;
+  }
+}
+
+// The home page asks for more air than a document header. `:has()` is the seam:
+// the page marks itself by including a `.landing` div, and the title block --
+// which is a *preceding* sibling inside <main>, so no combinator reaches it --
+// is styled through the shared ancestor.
+main.content:has(.landing) {
+  #title-block-header {
+    margin-bottom: 2.5rem;
+
+    .title {
+      margin-bottom: 0;
+      font-size: clamp(2.4rem, 6vw, 3.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 1.15rem;
+    }
+
+    .description {
+      // The base value assumes a subtitle sits between the name and this line.
+      // With no subtitle the description lands against the H1's descenders, so
+      // it opens the gap itself.
+      margin-top: 1.15rem;
+      font-size: 1.15rem;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The rule that closes the home page.
+// ---------------------------------------------------------------------------
+.landing .next-steps {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--lightgray);
+}
+
+// ---------------------------------------------------------------------------
+// Maths that is wider than the column
+//
+// Code blocks already scroll inside themselves -- `div.sourceCode` carries
+// `overflow-x: auto`, so a long line never reaches the page box. MathJax
+// containers do not, and an equation too wide for a phone pushes its paragraph,
+// then its section, then the whole document sideways: measured at 390px, one
+// inline expression in `signals-as-vectors` took the page to 541px and gave
+// every page on the site a horizontal scrollbar.
+//
+// `auto` means the scrollbar appears only when it is needed, so nothing changes
+// at the widths where the maths already fits. The padding is because a scroll
+// container clips at its box edge and SVG maths sits right on that edge.
+// ---------------------------------------------------------------------------
+mjx-container {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.15em;
+}
