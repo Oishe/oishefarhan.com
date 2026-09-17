@@ -1,15 +1,13 @@
 ---
 title: About
-subtitle: "From the sensor to the model"
+subtitle: "Data & ML Platform Engineer"
 description: >-
-  Data and ML platform engineer.
+  I build data and ML platforms, specializing in sensor time series.
 tags:
   - site/about
 publish: true
 toc: false
 ---
-
-I build data and ML platforms, specializing in sensor time series.
 
 I studied Electrical and Computer Engineering at the University of Toronto
 and began my career at Muse, a consumer EEG wearable company. As a biosignal
