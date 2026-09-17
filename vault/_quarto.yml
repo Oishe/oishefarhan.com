@@ -32,7 +32,19 @@ website:
   # from these tags rather than from the page. `open-graph` also picks up each
   # page's own title and description, so every page gets its own card.
   open-graph: true
-  twitter-card: true
+  # `twitter-card: true` emits card-style "summary", which is the small square
+  # thumbnail. LinkedIn and Slack both read the Twitter tags when they are
+  # present, so that one word decided how a link to this site renders anywhere
+  # it gets posted. summary_large_image is the full-width card.
+  twitter-card:
+    card-style: summary_large_image
+  # Site-wide fallback preview image. A page that sets its own `image:` in
+  # frontmatter overrides it; everything else inherits this one. Without it the
+  # og:image tag is absent entirely and the card renders as bare grey text.
+  # Regenerate with scripts/social-card/build-card.py; that file carries the
+  # copy, the palette and the screenshot command.
+  image: assets/social-card.png
+  favicon: assets/favicon.svg
   navbar:
     left:
       # Work and Notes are written but parked: their folders were renamed to
@@ -61,6 +73,18 @@ website:
     location: navbar
     type: overlay
   page-navigation: false
+  # The pages used to end into blank ground. The footer is the last thing a
+  # recruiter scrolls to, so it carries the contact route rather than only a
+  # copyright line.
+  page-footer:
+    left: "&copy; 2026 Oishe Farhan"
+    right:
+      - text: Email
+        href: mailto:farhanoishe@gmail.com
+      - text: GitHub
+        href: https://github.com/oishe
+      - text: LinkedIn
+        href: https://www.linkedin.com/in/oishe
 
 # Pin the kernel by name. Without this, Quarto falls back to discovering a
 # python-language kernelspec, and ~/Library/Jupyter/kernels holds stale VS Code

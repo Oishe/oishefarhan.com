@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Oishe Farhan">
+  <!--
+    A filled tile rather than a bare glyph. The tab strip is light in one theme
+    and dark in the other, and a solid ground keeps the mark readable against
+    both. The accent is $link-color from tokens.yaml (Catppuccin Latte blue),
+    the one colour the site already uses to mean "this is mine". The wave is
+    the site's subject, a sampled signal, at a stroke weight that survives 16px.
+    Double hyphens are illegal inside an XML comment, so this file uses none.
+  -->
+  <rect width="64" height="64" rx="14" fill="#1a5ee0"/>
+  <path d="M10 34 C 15 14, 21 14, 26 34 S 37 54, 42 34 S 51 20, 54 28"
+        fill="none" stroke="#ffffff" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

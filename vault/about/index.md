@@ -1,18 +1,29 @@
 ---
 title: About
-description: Who I am, and what this site is for.
+subtitle: "From the sensor to the model"
+description: >-
+  Data and ML platform engineer.
 tags:
   - site/about
 publish: true
+toc: false
 ---
 
-Data and ML platform engineer in neurotech, with a background in electrical and
-computer engineering from the University of Toronto. I work with EEG and
-biosignals, and build the data platforms that carry them from the sensor to the
-model.
+I build data and ML platforms, specializing in sensor time series.
 
-This site is where that work gets written up. It is an Obsidian vault published
-through Quarto, and the [source is on GitHub](https://github.com/oishe).
+I studied Electrical and Computer Engineering at the University of Toronto
+and began my career at Muse, a consumer EEG wearable company. As a biosignal
+engineer on the research team, I developed real-time signal-processing
+algorithms and brought them to iOS and Android in C++.
+
+Slow access to data kept holding up research, so I moved to the cloud team to
+help remove that bottleneck. As a backend engineer, my responsibilities grew to
+include the authentication, subscription, and purchase services behind our apps.
+
+Bringing together my experience in research and backend engineering, I led the
+development of Muse’s data platform. As a senior data engineer, I build the
+pipelines that turn sensor recordings into datasets for researchers and
+clinical partners, and help bring research models into production.
 
 ## Contact
 

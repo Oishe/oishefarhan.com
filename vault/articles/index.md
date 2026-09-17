@@ -1,11 +1,12 @@
 ---
 title: Articles
-description: Long-form technical writing, worked through far enough to be useful to someone else.
+description: Technical writing on science and engineering.
 aliases:
   - /knowledge/index
 tags:
   - site/section
 publish: true
+toc: false
 listing:
   id: section-listing
   contents:
@@ -18,5 +19,5 @@ listing:
   sort-ui: false
 ---
 
-Pieces written to be read start to finish: each one develops a single idea far
-enough that the reasoning, not just the conclusion, survives.
+These articles explore topics I find interesting. My current focus is on data-driven
+science and engineering. I combine explanations with interactive explorations.

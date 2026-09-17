@@ -510,8 +510,13 @@ $grid-body-width: ${BODY_WIDTH};
 // against.
 $font-size-root: 16px;
 $font-size-base: 1rem;
+// There is no left sidebar -- navigation is the navbar -- so that gutter is
+// zero. The right one is not: toc-location: right puts the table of contents
+// in the margin column, and at 0px it rendered into a zero-width box. The
+// markup was in every article and none of it was visible. 300px is Quarto's
+// own default and the width the sticky TOC was designed against.
 $grid-sidebar-width: 0px;
-$grid-margin-width: 0px;
+$grid-margin-width: 300px;
 
 $callout-color-note: ${colors.secondary};
 $callout-color-tip: ${colors.tertiary};
