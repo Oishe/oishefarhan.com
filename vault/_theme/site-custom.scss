@@ -89,35 +89,6 @@ main.content:has(.landing) {
 }
 
 // ---------------------------------------------------------------------------
-// Listing rows
-//
-// Quarto's default listing splits each row into a body and a metadata column
-// and sizes them for a layout carrying a thumbnail. With no thumbnail and only
-// a date in the metadata, that split measured 233px of column for a
-// twelve-character string against 441px for the title and description -- a
-// third of the row spent on "Aug 20, 2026". These rows are scanned by title, so
-// the date gets only the width it needs and the body takes the remainder.
-// ---------------------------------------------------------------------------
-.quarto-listing-default .quarto-post {
-  gap: 1.5rem;
-
-  .metadata {
-    flex: 0 0 auto;
-    width: 6rem;
-    color: var(--gray);
-    font-variant-numeric: tabular-nums;
-  }
-
-  .body {
-    flex: 1 1 auto;
-  }
-
-  .listing-title {
-    margin-top: 0;
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Page footer
 //
 // Quarto gives the footer no separation from the page, so on a short page it
@@ -143,7 +114,7 @@ main.content:has(.landing) {
 }
 
 // ---------------------------------------------------------------------------
-// Featured article card
+// Featured article card, and the listing rows that match it
 //
 //   ::: {.feature}
 //   [Featured writing]{.feature-kicker}
@@ -156,8 +127,14 @@ main.content:has(.landing) {
 // transparent ::after over the card, which is the one way to do that without
 // either a click handler on a div or nesting block content inside an <a>. There
 // is still exactly one link in the accessibility tree, and it is the title.
+//
+// The listing rows are the same object one size down, so they share this rule
+// rather than restating it. Quarto emits them as a flex row -- body first, then
+// a metadata column holding the date -- which is why the listing block below is
+// mostly about stacking that row and moving the date into the kicker slot.
 // ---------------------------------------------------------------------------
-.feature {
+.feature,
+.quarto-listing-default .quarto-post {
   position: relative;
   margin: 0 0 2.25rem;
   padding: 1.85rem 1.95rem 1.9rem;
@@ -180,10 +157,10 @@ main.content:has(.landing) {
     line-height: 1.6;
   }
 
-  h2 {
+  h2,
+  h3 {
     margin: 0 0 0.7rem;
     border: 0;
-    font-size: 1.75rem;
     letter-spacing: -0.015em;
 
     a {
@@ -202,13 +179,23 @@ main.content:has(.landing) {
   &:focus-within {
     border-color: var(--secondary);
 
-    h2 a {
+    h2 a,
+    h3 a {
       color: var(--secondary);
     }
   }
 }
 
-.feature-kicker {
+// The featured card is the only thing on its page; a listing row is one of
+// many, so its title steps down rather than matching 1.75rem.
+.feature h2 {
+  font-size: 1.75rem;
+}
+
+// The listing date sits in the same slot as the card's kicker, so it gets the
+// same treatment; the only difference is that Quarto authors that markup.
+.feature-kicker,
+.quarto-listing-default .listing-date {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--gray);
@@ -229,6 +216,59 @@ main.content:has(.landing) {
   border-radius: inherit;
   content: "";
   inset: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Listing rows
+//
+// The card shell comes from the rule above; what is left is the shape. Quarto
+// lays each row out as a flex row with the date in a column of its own, which
+// spent 233px of the 736px measure on "Aug 20, 2026". Stacked, that column
+// becomes the kicker line and the date costs nothing.
+//
+// The repeated class is not a typo. Quarto ships
+// `.quarto-post.image-right { flex-direction: row-reverse }` in the same
+// compiled bundle at (0,2,0); naming the class twice takes this rule to (0,3,0)
+// so the stack wins on specificity rather than on source order.
+// ---------------------------------------------------------------------------
+.quarto-listing-default .quarto-post.quarto-post {
+  flex-direction: column;
+  gap: 0;
+
+  // Quarto sizes this column with `flex-basis: 33%`, which means a third of the
+  // width in its row layout and a third of the height in this one.
+  .metadata {
+    order: -1;
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .listing-title {
+    font-size: 1.4rem;
+  }
+
+  .listing-description p:last-child {
+    margin-bottom: 0;
+  }
+
+  // Quarto gives the date and the description their own <a>s, both pointing at
+  // the href the title already carries. Three links to one place should not
+  // look like three links. They still *are* three -- that count is Quarto's
+  // markup and CSS cannot collapse it, so unlike .feature-link above this card
+  // is three tab stops, not one. Fixing it needs a custom listing template.
+  .metadata a,
+  .listing-description a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  // Whole card is the hit area, as on the feature card.
+  .listing-title a::after {
+    position: absolute;
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+  }
 }
 
 // ---------------------------------------------------------------------------
