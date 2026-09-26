@@ -28,6 +28,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Skip the `lab` dependency group (torch and friends): only private
+      # scripts use it. Applies to `uv sync` and to `uv run` inside the build.
+      UV_NO_DEFAULT_GROUPS: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -47,8 +51,7 @@ jobs:
 
       # vault/_freeze/ is committed for every published computational document,
       # so this environment exists for Quarto to resolve against rather than to
-      # execute cells in. It is still a real sync -- torch is in the dependency
-      # set -- which is why the cache above is not optional.
+      # execute cells in.
       - name: Sync the vault environment
         run: uv sync --frozen
         working-directory: vault

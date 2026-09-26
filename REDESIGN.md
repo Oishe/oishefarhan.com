@@ -125,8 +125,11 @@ Two defects that only exist because Quarto owns the chrome. Both are now guarded
 `articles/` was linked from the published `articles/index.html` *and* had its raw `.qmd` source
 copied into the output tree as a listing resource. The render reports `contains no metadata` and
 carries on. Quartz's folder-page could not do this because it only ever saw the staged published
-tree; there is no staged tree now, so `checkListingLeaks` enforces it — an unpublished document in
-a listed folder fails the build. Verified with a deliberate probe file, which the guard caught.
+tree; there is no staged tree now. The fix is on the listing, not the draft: `include: { publish:
+true }` drops an unpublished neighbour from the listing *and* stops the source copy (measured in a
+scratch project; a link from any page to an unrendered file also copies it, which the dead-link check
+already catches). `checkListingFilter` fails the build on a published listing without that filter,
+so drafts can stay beside their data instead of moving to `_hidden/`.
 
 **`aliases:` means two different things.** Obsidian reads an entry as another *name* for the note,
 for the quick switcher. Quarto reads it as another *URL* and emits a redirect page — resolved

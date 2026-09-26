@@ -12,6 +12,11 @@ listing:
   contents:
     - "*.qmd"
     - "*.md"
+  # Listings glob the filesystem, not the render list. Without this a draft
+  # beside a published article is linked here and its source is copied into the
+  # site. Prep fails the build if a listing drops it.
+  include:
+    publish: true
   type: default
   sort: "date desc"
   fields: [title, description, date]

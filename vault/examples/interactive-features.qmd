@@ -5,7 +5,6 @@ tags:
   - examples/computation
   - examples/interactive
 publish: false
-fixture: true
 format: html
 execute:
   freeze: true

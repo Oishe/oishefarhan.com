@@ -4,7 +4,6 @@ description: A consolidated Quarto check for Python output, tables, and figures.
 tags:
   - examples/computation
 publish: false
-fixture: true
 format: html
 execute:
   freeze: true

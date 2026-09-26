@@ -4,7 +4,6 @@ description: A Quarto check for column layouts and cross-references, which survi
 tags:
   - examples/layout
 publish: false
-fixture: true
 format: html
 ---
 

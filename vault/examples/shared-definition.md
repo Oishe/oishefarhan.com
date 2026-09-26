@@ -4,7 +4,6 @@ description: A shared definition linked from the temporary Markdown feature page
 tags:
   - examples/markdown
 publish: false
-fixture: true
 ---
 
 # Shared Definition

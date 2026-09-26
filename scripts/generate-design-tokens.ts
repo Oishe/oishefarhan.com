@@ -3,7 +3,7 @@ import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse as parseYaml } from "yaml"
 
-// Shared visual language (Phase 11). vault/_theme/tokens.yaml is the
+// Shared visual language. vault/_theme/tokens.yaml is the
 // only place a colour, font, or chart value is written down; this projects it
 // into the four consumers that cannot read it directly. Every projection is
 // reproducible from the source, so `--check` can prove none has drifted.
@@ -306,7 +306,7 @@ export function parsePalette(source: string, where: string): Palette {
       (key) => !(COLOR_KEYS as readonly string[]).includes(key),
     )
     if (unknown.length > 0) {
-      fail(`${where}.colors.${mode} has keys Quartz does not consume: ${unknown.join(", ")}`)
+      fail(`${where}.colors.${mode} has unknown keys: ${unknown.join(", ")}`)
     }
     colors[mode] = resolved
   }
@@ -414,10 +414,7 @@ function rgba(hex: string, alpha: number): string {
 }
 
 /**
- * The two halves of the --qmd-* surface, shared by both consumers: the Quartz
- * stylesheet that styles the embedded Quarto fragment, and the Quarto theme
- * that makes `quarto preview` show the same colours. One emitter means the two
- * cannot drift.
+ * The --qmd-* custom properties, emitted into both mode stylesheets.
  */
 function qmdSyntaxDeclarations(tokens: DesignTokens, mode: Mode): string[] {
   return Object.entries(tokens.syntax[mode]).map(
@@ -435,14 +432,7 @@ function qmdChartDeclarations(tokens: DesignTokens): string[] {
 }
 
 /**
- * A Quarto theme for `quarto preview`, one file per mode.
- *
- * The published page is a body fragment: `minimal: true` means Quarto compiles
- * no theme at all and Quartz supplies every colour. That leaves `quarto
- * preview` with nothing to look at, so the preview profile turns the chrome
- * back on -- and until this file existed it turned on *bootswatch* chrome,
- * which is why drafting happened against a page that looked nothing like the
- * published one.
+ * The site's Quarto theme, one file per mode.
  *
  * Two files rather than one because Quarto compiles a separate Bootstrap
  * bundle per mode and switches them by toggling `rel` on link#quarto-bootstrap.
@@ -574,7 +564,7 @@ export function renderVaultTokensJson(tokens: DesignTokens): string {
 }
 
 /**
- * matplotlib rc. Backgrounds are transparent so the Quartz surface shows
+ * matplotlib rc. Backgrounds are transparent so the page shows
  * through in either theme, and every colour comes from chart tokens, which the
  * generator has already proven legible against both.
  */
