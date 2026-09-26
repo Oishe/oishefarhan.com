@@ -2,6 +2,8 @@
 .tools/
 .serena/
 .playwright-mcp/
+# `wrangler dev` local state (the local Cloudflare simulator's cache and storage)
+.wrangler/
 .DS_Store
 
 # Generated publishing artifacts. Everything under generated/ is derivable:
