@@ -3,8 +3,8 @@
   "clickableIcons": "off",
   "showAllFileIcons": true,
   "showAllFolderIcons": false,
-  "minimalFolderIcons": true,
-  "showMarkdownTabIcons": false,
+  "minimalFolderIcons": false,
+  "showMarkdownTabIcons": true,
   "showTitleIcons": false,
   "showTagPillIcons": false,
   "showMenuActions": true,
@@ -32,6 +32,13 @@
     "about": {
       "icon": "lucide-user",
       "color": "green"
+    },
+    "articles": {
+      "icon": "lucide-newspaper",
+      "color": "blue"
+    },
+    "assets": {
+      "icon": "lucide-paperclip"
     },
     "attachments": {
       "icon": "lucide-paperclip"

@@ -24,7 +24,7 @@ Expect "failed to load plugin" notices on that first launch, before the install:
 | Omnisearch | Full-text search over prose, and the only search here that indexes `.qmd` |
 | Tag Wrangler | Safe tag renaming — tags reach the published site |
 | Quiet Outline | Outline pane for long documents |
-| Custom File Explorer sorting | File explorer order, driven by `vault/sortspec.md` |
+| Custom File Explorer sorting | File explorer order and hidden items, driven by `vault/sortspec.md` |
 | Data Files Editor | Opens `.yaml`/`.json` in place, so `_theme/tokens.yaml` is editable without leaving Obsidian. File *creation* is off, deliberately |
 | Style Settings | Theme configuration UI for Catppuccin |
 | Hider | Hides UI chrome |

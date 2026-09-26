@@ -6,10 +6,8 @@ tags: []
 publish: false
 ---
 
-```{python}
-#| include: false
-import knowledge_theme
-knowledge_theme.apply()
-```
+{{< include ../_theme/_ojs-setup.qmd >}}
+
+## Introduction
 
 <% tp.file.cursor() %>

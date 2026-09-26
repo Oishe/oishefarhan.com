@@ -1,325 +1,176 @@
 # Authoring
 
-The writing reference for this vault. Why the system is shaped this way lives in `REDESIGN.md`;
-Obsidian install and plugin detail lives in `vault/.obsidian/PLUGINS.md`.
+Quick reference for writing pages. Obsidian setup is in `vault/.obsidian/PLUGINS.md`.
 
-```text
-vault/            you edit here, and only here
-generated/site/   the built site
-generated/        everything else here is derived, gitignored, never edited
-```
+## New article
 
-Nothing in `generated/` survives a rebuild. Fix problems in `vault/`.
+1. Create `vault/articles/<slug>.qmd`. Use a lowercase, hyphenated filename; it becomes the URL.
+   Use `.md` instead if the page has no code cells.
+2. Start from this skeleton:
 
-One renderer: Quarto renders every page, prose and computational alike. There is no staging step
-and no second Markdown dialect.
+   ````markdown
+   ---
+   title: Compression via Sparsity
+   description: One sentence for the listing, search, and link previews.
+   date: 2026-09-17
+   tags:
+     - ml/signal-processing
+   publish: false
+   ---
+
+   {{< include ../_theme/_ojs-setup.qmd >}}
+
+   ## Introduction
+   ````
+
+   The include line is only needed for Observable figures.
+
+   In Obsidian, run Templater's *Insert template* in the new file instead. It fills in the title
+   from the filename (edit it into a proper title) and today's date:
+
+   | Template | For |
+   |---|---|
+   | `tpl-article.qmd` | an article with Observable figures (the skeleton above) |
+   | `tpl-computational.qmd` | a page with Python cells, with the theme setup cell included |
+   | `tpl-note.md` | a prose page; also applied to any new `.md` in `about/` or `articles/` |
+3. Put data files in `vault/articles/data/` and load them with a relative path.
+4. Preview while you write: `npm run preview articles/<slug>.qmd`
+5. Commit the draft whenever you like. With `publish: false` it stays off the site and out of the
+   Articles listing. The repo is public, though, so anything that must stay private goes in
+   `_hidden/` instead.
+6. To publish, set `publish: true`, run `npm run build`, and push to `main`.
 
 ## Frontmatter
 
 ```yaml
----
-title: Convergence Diagnostics       # falls back to the filename
-description: One line.               # used for listings, search, and previews
-aliases: [/old/url]                  # URLs this page also answers on; must start with /
-tags: [research/computation]
-publish: true                        # WITHOUT THIS THE PAGE IS NOT PUBLISHED
----
+title: Required. Needs quotes if it contains a colon.
+description: One line, for listings, search, and link previews. Also quote it if it has a colon.
+date: 2026-09-17            # sorts the Articles listing, newest first
+tags: [ml/linear-algebra]
+aliases: [/old/url]         # old URLs that redirect here; must start with /
+image: data/card.png        # optional link-preview image; defaults to the site card
+publish: true               # without this, the page is not published
 ```
 
-Templater scaffolds this: new notes in `about/ articles/ notes/ projects/` get it automatically, and
-`templates/tpl-computational.qmd` adds the hidden theme-setup cell.
-
-**Aliases are URLs, not names.** Obsidian treats `aliases:` as extra names for the quick switcher;
-Quarto treats each one as a URL and publishes a redirect page there. Prep requires the leading
-slash so the key means one thing — see the note in `REDESIGN.md`. A display-only alias is not worth
-a junk page; drop it.
-
-A colon inside an unquoted `description:` breaks the YAML parse. Use an em dash.
+`aliases` are URLs, not names. Quarto publishes a redirect page for each one, so a display-only
+alias creates a junk page. The build rejects any alias without a leading `/`.
 
 ## Visibility
 
-| State | Convention | GitHub | Website |
-|---|---|---:|---:|
-| Private | any path under a `*_hidden/` folder, or a `*.hidden.md` / `*.hidden.qmd` file | no | no |
-| Unpublished | normal path, `publish: false` | yes | no |
-| Published | normal path, `publish: true` | yes | yes |
+| Where it lives | GitHub | Site |
+|---|:---:|:---:|
+| `*_hidden/` folder, or a `*.hidden.md` / `*.hidden.qmd` file | no | no |
+| anywhere else, `publish: false` or no `publish` | yes | no |
+| anywhere else, `publish: true` | yes | yes |
 
-Path is the privacy boundary; frontmatter is the publication switch.
+- A published page cannot link to an unpublished one. The build fails and names the file.
+- Comments are not private. `%%…%%` fails the build, and an HTML comment ships in the page source.
+  Notes to yourself go in `_hidden/`.
+- A section index with a `listing:` must keep `include: { publish: true }`, or drafts beside it get
+  listed and their source is copied into the site. The build enforces this.
 
-```text
-*_hidden/          a folder -- `_hidden/`, `drafts_hidden/`, `research_hidden/`
-*.hidden.md/qmd    a single file, when one note in an otherwise public folder must stay local
-```
+## Syntax
 
-Both are invisible to publication prep, so `publish: true` inside them does nothing. Private
-attachments and private frozen output must also sit below a `*_hidden/` folder.
+Quarto renders Pandoc Markdown, not Obsidian Markdown. The build rejects the Obsidian-only forms:
 
-A published page may not link to an unpublished one — that fails the build with the file named.
-That is the boundary working.
-
-**The repo is public.** A comment is not a privacy mechanism: `%%…%%` is rejected outright (it
-publishes as visible text, and Quarto has no Obsidian comment), and an HTML comment still ships in
-the page source. Notes-to-self go in `_hidden/`. `vault/_hidden/todo-site-prose.md` holds the ones
-for the pages that are still placeholders.
-
-**Draft in place.** A `publish: false` article can sit in `articles/` beside its `data/` folder,
-committed. A Quarto listing globs the filesystem rather than the render allowlist, so every published
-`listing:` must carry `include: { publish: true }` — without it a draft is linked from the listing
-*and* its raw source is copied into the site. Prep fails the build on a listing that drops the
-filter. The repo is public, so a committed draft is visible on GitHub; use `_hidden/` for anything
-that must not be.
-
-### Examples
-
-`vault/examples/` is an unpublished feature reference: a Python cell, a Jupyter widget, an Observable
-cell, a Plotly figure, callouts and layouts. Preview a page to see a feature render before using it in
-an article.
-
-## `.md` or `.qmd`
-
-The rule is only about execution: use `.qmd` when a page computes something, `.md` otherwise. A
-`.qmd` with no executable cell is just a slower `.md`. An executable cell in a `.md` is a Quarto
-error, not a silent no-op.
-
-Both are rendered by the same engine, so there is one dialect. Quarto is Pandoc Markdown, not
-Obsidian Markdown, and prep rejects the Obsidian-only constructs in **both** file types rather than
-letting them publish verbatim:
-
-| Obsidian writes | Write instead |
+| Instead of | Write |
 |---|---|
-| `> [!note]` | `::: {.callout-note}` |
+| `> [!note]` | `::: {.callout-note}` … `:::` |
 | `==highlight==` | `<mark>highlight</mark>` |
-| `%%comment%%` | nothing — put it in `_hidden/` |
-| `[[Note]]`, `![[figure.png]]` | a Markdown link or image |
-| `#tag/inline` | put tags in frontmatter |
-| single newline as a line break | a blank line; Pandoc joins single newlines into one paragraph |
+| `%%comment%%` | nothing; put it in `_hidden/` |
+| `[[Note]]`, `![[figure.png]]` | `[Note](note.md)`, `![](figure.png)` |
+| `#inline/tag` | `tags:` in frontmatter |
+| a single newline as a line break | a blank line |
 
-Callouts, cross-references, column layouts and code folding all work, because Quarto owns the page
-and Bootstrap is loaded. Maths is MathJax 3, pinned in `_quarto.yml`, and identical in both file
-types.
+Callouts, cross-references, columns, code folding and MathJax maths all work.
 
-## Links and attachments
+## Links and files
 
-Link with Markdown syntax, **relative to the document doing the linking**:
+Every link is **relative to the page doing the linking**, and uses the source extension:
 
 ```markdown
-[Two](two.md)                       a sibling
-[Home](../index.md)                 up a level
-[Examples](index.md)                this section's index
+[Signals as Vectors](signals-as-vectors.qmd)
+[About](../about/index.md)
 ![Convergence](../attachments/convergence.svg)
 ```
 
-Obsidian is set to `newLinkFormat: relative`, so it writes this form, resolves it, follows it, and
-rewrites it when a note moves. Quarto resolves it the same way. Nothing rewrites a link in between —
-which is why a link that works while drafting works on the site.
+Obsidian writes links in this form (`newLinkFormat: relative`), so a link that works in Obsidian
+works on the site. The build fails on a link that resolves to nothing.
 
-Write the real source extension (`.qmd` or `.md`); Quarto maps it to `.html`. Linking to an
-unpublished note fails the build, as does a target that resolves to nothing.
+Files that code reads, such as `FileAttachment("data/x.csv")` or `<audio src="data/x.wav">`, are
+copied by Quarto automatically. **Nothing validates these paths**: a renamed data file breaks in the
+browser, not in the build.
 
-An attachment can live anywhere in the vault; `vault/attachments/` is a convention for shared ones.
-Only those a published page references are copied.
+## Figures
 
-### Data a document computes over
+**Observable (interactive).** The `_ojs-setup.qmd` include defines three things:
 
-An attachment is something a page *displays*, and prep finds it by reading Markdown image and link
-syntax. A recording an `{ojs}` cell decodes, or a CSV a `{python}` cell loads, is neither — prep
-cannot see it, because `FileAttachment("…")` and a raw `<audio src>` are not Markdown references.
+- `figW`: the reading-column width, capped at 720px, reactive to resizes
+- `col.ink`: the chart ink colour
+- `col.series[0..5]`: six series colours
 
-Put those beside the note that reads them, in a `data/` folder inside the section:
-
-```markdown
-<audio controls src="data/flute-a4.wav"></audio>
-FileAttachment("data/flute-a4.wav")
+```ojs
+Plot.plot({
+  width: figW,
+  marks: [Plot.line(data, { x: "t", y: "v", stroke: col.series[0] })],
+})
 ```
 
-Quarto's own resource discovery copies the file next to the rendered page, and the relative URL
-resolves against the page's address. Prep is not involved.
+Axes and grid lines need no colour; Plot draws them in `currentColor`. Hand-built SVG can use
+`style="stroke: var(--qmd-chart-series-1)"` directly.
 
-The consequence worth remembering: **nothing validates these paths.** A renamed or deleted data file
-does not fail the build the way a broken Markdown link does. It fails in the browser, on the figures
-that needed it.
-
-## Building
-
-```bash
-npm run build          # the whole pipeline -> generated/site
-npm run serve          # serve what was built, on :8080
-npm run preview <f>    # live-reload one document while drafting
-npm run validate       # build, then check the built site
-npm test               # unit tests
-```
-
-`npm run build` is four steps, and knowing them tells you which one broke:
-
-```text
-1  design-tokens --check    are the generated theme files current?
-2  prepare-publication      validate the vault, write the render allowlist, clear generated/site
-3  quarto render            render the allowlist
-4  prepare-publication      re-check, now requiring a rendered page per published document
-```
-
-To re-render one document anywhere in the vault, including a private draft:
-
-```bash
-cd vault && uv run quarto render path/to/one-note.qmd
-```
-
-### Drafting
-
-```bash
-npm run preview articles/new-signal.qmd     # path relative to vault/
-```
-
-**What you draft against is the published page.** Same theme, same measure, same maths, live links.
-The preview profile adds one thing — a positive render glob, because the base render list is
-negations-only and a bare `quarto preview <file>` would fail with "No output created". It overrides
-no format option, and it must stay that way.
-
-**Always pass a file.** A bare `npm run preview` renders every document in the vault, drafts
-included. Nothing leaks — it writes to its own output directory and the site is built from the
-allowlist — but it is slow and not what you meant.
-
-### Unpublishing a computational `.qmd`
-
-Set `publish: false` and delete its frozen output, `rm -rf vault/_freeze/<section>/<note>`. Prep
-rejects a tree under `vault/_freeze/` whose document is not published: a frozen result can carry
-output derived from private data, so a stale one counts as a leak rather than a cache. Publishing it
-again re-executes it once.
-
-## Things that will bite you
-
-**Freeze can still serve a stale page, but only in one way now.** `_quarto.yml` sets `freeze: auto`,
-which re-executes when the source changes — that closes the old trap where editing a frozen `.qmd`
-was silently dropped on a green build. What `auto` does *not* notice is a change to the
-*environment*: a new package, an edited `.mplstyle`, a changed token. If a rendered page disagrees
-with its inputs, delete its freeze entry and re-render.
-
-```bash
-rm -rf vault/_freeze/<section>/<note>
-cd vault && uv run quarto render <section>/<note>.qmd
-```
-
-`vault/_freeze/` is committed on purpose; commit the churn with the change that caused it. An
-OJS-only document needs no freeze at all — OJS runs in the browser.
-
-**Plotly and maths do not coexist.** Quarto nests a MathJax 2.7.5 loader inside Plotly's cell output
-which claims `window.MathJax`; MathJax 3 then aborts with `Cannot read properties of undefined
-(reading 'loader')` and the page's equations do not render. Switching to KaTeX makes it worse, not
-better — MathJax 2 reaches inside KaTeX's MathML annotation and renders the equation a second time.
-Use Observable Plot for interactive figures and matplotlib for static ones.
-`npm run validate` fails if a published page carries Plotly.
-
-**Observable JS cells share one namespace.** Every `{ojs}` cell in a document, plus every name from
-`ojs_define`, lives in one scope. Defining a name twice is a runtime error visible only in the
-browser console — the build stays green. If an OJS chart renders blank, open the console first.
-
-**Maths inside an `{ojs}` cell** — an `md` template literal interpolating a reactive value — is
-rendered by Observable's own bundled KaTeX, which no configuration here reaches. It looks close to
-the page's MathJax but not identical. Keep equations in prose when you want them to match.
-
-**An include shifts OJS source lines**, so every render of a document using `_ojs-setup.qmd` prints
-`WARN: OJS block count mismatch` once per included cell. It degrades line numbers in OJS *runtime*
-errors and nothing else. Accepted cost, not a regression.
-
-**Never write `{{< include … >}}` verbatim inside a file that can itself be included**, not even in
-a comment. Quarto resolves includes in a pre-engine text pass that ignores HTML comments, so the
-file includes itself until `RangeError: Maximum call stack size exceeded`. The trace is a thousand
-identical `retrieveInclude` frames and names no file; `grep -v retrieveInclude` is what makes the
-real error visible.
-
-**Obsidian's search cannot see `.qmd`.** The `qmd as md` plugin registers the extension but does not
-patch Obsidian's index. Use Omnisearch (`Cmd+Shift+O`), which is configured to index `.qmd`. The
-quick switcher sees them; core search does not.
-
-## Changing how it looks
-
-Every colour, font, and chart value comes from **`vault/_theme/tokens.yaml`**. Edit it, then:
-
-```bash
-npm run design-tokens
-```
-
-which rewrites the four files it feeds: the light and dark site stylesheets
-(`_theme/site-{light,dark}.scss`) and the two files the vault's Python environment reads. Never edit
-a generated file by hand; `npm run build` fails on a stale one.
-
-**`_theme/site-custom.scss` is the exception, and is hand-written.** It is loaded into *both* theme
-bundles after the generated pair, and holds the page furniture the site's own pages ask for — the
-home hero, the capability cards, the role timeline, the stack and jump chips. `npm run
-design-tokens` neither writes nor checks it, so edit it directly. Because one copy serves both
-modes, every colour in it has to come from a custom property the generated bundles define
-(`--light`, `--lightgray`, `--gray`, `--darkgray`, `--dark`, `--secondary`); a literal hex there
-paints the same colour onto both grounds and breaks one of them.
-
-### Swapping the palette
-
-The colours live in **`vault/_theme/palettes/`**, one file per palette, each carrying the nine colour
-roles for both modes *and* the shiki theme its code blocks derive from. Those travel together on
-purpose: a page palette and a code palette that disagree is the drift this prevents.
-
-Switching the whole site is one line in `tokens.yaml`:
-
-```yaml
-palette: catppuccin
-```
-
-then `npm run design-tokens`. To add one, copy `catppuccin.yaml`; the test suite checks every file
-in that directory for completeness and chart legibility. The retired alternatives (`catppuccin-warm`,
-`neutral`, `neutral-catppuccin-code`) are in git history.
-
-One caveat that is not a matter of taste:
-
-- **Figures are drawn once for both themes.** A matplotlib PNG cannot follow the light/dark toggle,
-  so `chart.ink` and `chart.series` stay legible against both page backgrounds; the generator
-  refuses colours below 3:1 on either. Live output — Observable Plot — is rethemed in the browser.
-
-For a Python figure, one hidden setup cell picks up the shared styling:
+**Python (static).** Put a hidden setup cell first, then use matplotlib normally:
 
 ````markdown
 ```{python}
-#| label: theme-setup
 #| include: false
 import knowledge_theme
 knowledge_theme.apply()
 ```
 ````
 
-In Observable, read the palette from the page rather than naming a colour. Hand-built SVG can hold a
-`var(--…)` reference directly, in an inline `style` rather than a presentation attribute:
+Figures have transparent backgrounds and colours that work on both themes. Frozen output under
+`vault/_freeze/` is committed so CI never runs Python. Commit it with the change that caused it.
 
-````markdown
-```{ojs}
-htl.svg`<line style="stroke: var(--qmd-chart-series-1); stroke-width: 2"/>`
+## Commands
+
+```bash
+npm run preview <file>   # live-reload one page (path relative to vault/); always pass a file
+npm run build            # full build -> generated/site
+npm run serve            # serve the build on :8080
+npm run validate         # build, then check the built site
+npm run design-tokens    # after editing vault/_theme/tokens.yaml
 ```
-````
 
-Observable Plot cannot: it writes its marks as SVG attributes, which take a literal colour. Reading
-one at cell time would freeze the chart in whichever theme was active at load. Quarto's dark-mode
-toggle swaps the stylesheet and then fires a `resize` event on `window` — it dispatches no theme
-event of its own — so that is the hook to re-read on:
+When `npm run build` fails, the error names the file and the rule it broke. The build runs in four
+stages: token check, prep, `quarto render`, and prep again to verify the output.
 
-````markdown
-```{ojs}
-theme = Generators.observe((notify) => {
-  const read = () => {
-    const cs = getComputedStyle(document.documentElement)
-    const v = (k) => cs.getPropertyValue(k).trim()
-    return { ink: v("--qmd-chart-ink"), series: [1, 2, 3].map((i) => v(`--qmd-chart-series-${i}`)) }
-  }
-  notify(read())
-  const onChange = () => notify(read())
-  window.addEventListener("resize", onChange)
-  return () => window.removeEventListener("resize", onChange)
-})
-```
-````
+## Gotchas
 
-Plot needs no help with axes, ticks, or grid lines: it draws them in `currentColor`, and the site
-stylesheet binds that to the chart-ink token.
+- **OJS cells share one namespace** per page. Defining a name twice is an error visible only in the
+  browser console; the build stays green. If a chart is blank, open the console first.
+- **No Plotly on a page with maths.** Quarto nests a MathJax 2 loader inside Plotly output, and it
+  breaks the page's MathJax 3; KaTeX double-renders instead. Use Observable Plot or matplotlib.
+  `npm run validate` fails on a published page with Plotly. A fix would be a Lua filter that drops the
+  nested loader from inside the figure output.
+- **Maths inside an OJS `md` template** is rendered by Observable's KaTeX, which looks slightly
+  different from the page's MathJax. Keep equations in prose.
+- **Stale frozen output.** `freeze: auto` re-runs a `.qmd` when its source changes, but not when a
+  package, `.mplstyle` or token changes. Delete `vault/_freeze/<section>/<page>/` and re-render.
+- **Unpublishing a Python `.qmd`**: also delete its `vault/_freeze/<section>/<page>/`. The build
+  treats frozen output of an unpublished page as a leak.
+- **Never spell out an include shortcode inside a file that can be included**, even in a comment.
+  Quarto expands it anyway, and the file includes itself until the stack overflows. The error is a
+  wall of `retrieveInclude` frames; `grep -v retrieveInclude` finds the real message.
+- `WARN: OJS block count mismatch` on pages using the include is expected and harmless.
+- **Obsidian's core search skips `.qmd`.** Use Omnisearch (`Cmd+Shift+O`).
 
-## Not built yet
+## Changing the look
 
-- **Backlinks.** Prep already parses every link; persisting the edges and inverting them is the
-  work. Worth doing when there are enough notes to link.
-- **One unpinned CDN reference**, `@jupyter-widgets/html-manager@*`, emitted by Quarto on any page
-  with a Jupyter widget. No published page has one yet.
+All colours, fonts and chart values come from `vault/_theme/tokens.yaml`, with the palette itself in
+`vault/_theme/palettes/`. Edit, then run `npm run design-tokens`. The build fails if the generated
+files are stale.
+
+`vault/_theme/site-custom.scss` is hand-written page furniture (home hero, cards, timeline). It must
+use CSS variables such as `var(--secondary)` rather than hex colours, because one copy serves both
+themes. `npm run validate` rejects a literal colour there.

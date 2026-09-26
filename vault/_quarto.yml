@@ -47,16 +47,16 @@ website:
   favicon: assets/favicon.svg
   navbar:
     left:
-      # Work and Notes are written but parked: their folders were renamed to
-      # `work_hidden/` and `notes_hidden/`, which the render list excludes and
+      # Work and Knowledge are written but parked: their folders were renamed to
+      # `work_hidden/` and `knowledge_hidden/`, which the render list excludes and
       # `.gitignore` covers. Uncomment an entry when its folder comes back --
       # a navbar href to a page that is not published is a 404, not a warning.
       # - href: work/index.md
       #   text: Work
       - href: articles/index.md
         text: Articles
-      # - href: notes/index.md
-      #   text: Notes
+      # - href: knowledge/index.md
+      #   text: Knowledge
       - href: about/index.md
         text: About
     right:
@@ -124,7 +124,7 @@ format:
     # The version is pinned because an unpinned CDN URL is a deployment that can
     # change under us. Note that a page carrying both maths and a Plotly figure
     # is broken whatever is chosen here -- Plotly nests its own MathJax 2 loader
-    # and claims `window.MathJax`. See REDESIGN.md, gotcha 4.
+    # and claims `window.MathJax`. See AUTHORING.md, Gotchas.
     html-math-method:
       method: mathjax
       url: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg-full.js"

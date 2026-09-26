@@ -14,23 +14,7 @@
       "template": "templates/tpl-note.md"
     },
     {
-      "folder": "projects",
-      "template": "templates/tpl-note.md"
-    },
-    {
-      "folder": "experience",
-      "template": "templates/tpl-note.md"
-    },
-    {
-      "folder": "courses",
-      "template": "templates/tpl-note.md"
-    },
-    {
-      "folder": "knowledge",
-      "template": "templates/tpl-note.md"
-    },
-    {
-      "folder": "writing",
+      "folder": "articles",
       "template": "templates/tpl-note.md"
     }
   ],

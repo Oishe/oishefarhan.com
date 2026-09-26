@@ -1,8 +1,6 @@
 ---
 title: Articles
 description: Technical writing on science and engineering.
-aliases:
-  - /knowledge/index
 tags:
   - site/section
 publish: true
