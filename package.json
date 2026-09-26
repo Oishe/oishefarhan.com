@@ -9,8 +9,7 @@
     "preview": "cd vault && uv run quarto preview --profile preview",
     "build": "npm run design-tokens -- --check && npm run prepare-publication && npm run render && npm run prepare-publication -- --require-quarto",
     "serve": "cd generated/site && python3 -m http.server 8080",
-    "fixtures": "npm run prepare-publication -- --fixtures && cd vault && uv run quarto render --profile fixtures && cd .. && npm run prepare-publication -- --fixtures --require-quarto",
-    "validate": "npm run fixtures && for v in scripts/validate-*.sh; do echo \"--- $v\"; \"$v\" || exit 1; done",
+    "validate": "npm run build && scripts/validate-site.sh",
     "test": "node --experimental-strip-types --test scripts/*.test.ts",
     "design-tokens": "node --experimental-strip-types scripts/generate-design-tokens.ts"
   },

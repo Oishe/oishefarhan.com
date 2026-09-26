@@ -12,13 +12,22 @@ dependencies = [
   "ipywidgets>=8.1,<9",
   "ipyleaflet>=0.19,<1",
   "knowledge-theme",
+]
+
+# Only the private lab scripts use these. A default group, so a local `uv sync`
+# still installs them; CI sets UV_NO_DEFAULT_GROUPS and skips torch entirely.
+[dependency-groups]
+lab = [
   "torch>=2.13.0",
   "tqdm>=4.70.0",
   "seaborn>=0.13.2",
   "celluloid>=0.2.0",
 ]
 
-# knowledge-theme is this vault's own design-token package (Phase 11), not a
+[tool.uv]
+default-groups = ["lab"]
+
+# knowledge-theme is this vault's own design-token package, not a
 # published one, so it is pointed at the local _theme/ directory rather than
 # an index. Editable so document renders pick up a rebuilt tokens.json or
 # knowledge.mplstyle without a reinstall.

@@ -4,7 +4,6 @@ description: A compact publishing check for prose Markdown — callouts, tasks, 
 tags:
   - examples/markdown
 publish: false
-fixture: true
 ---
 
 # Markdown Features

@@ -10,8 +10,6 @@ vault/                      source of truth: notes, Quarto documents, attachment
   _hidden/                  private; never rendered, never published
 generated/                  disposable derivatives (git-ignored)
   site/                     the built site
-  fixture-site/             the validation build
-  link-map.json             title/alias/slug/path -> canonical URL
 scripts/                    publication prep, design tokens, validation
 ```
 
@@ -46,8 +44,8 @@ Publication is opt-in. A note reaches the site only with `publish: true` in its 
 attachment only when published content references it. The build fails rather than leaking:
 
 - a link from a published note to an unpublished one
-- an unpublished draft inside a folder that has a `listing:` — Quarto listings glob the filesystem,
-  not the render allowlist
+- a `listing:` without `include: { publish: true }` — Quarto listings glob the filesystem, not the
+  render allowlist, so an unfiltered one links drafts beside it
 - a rendered page with no published document behind it
 - frozen output belonging to a document that is not published
 - Obsidian-only syntax (`%%…%%`, `> [!note]`, `==highlight==`, wikilinks) that would publish
@@ -70,18 +68,18 @@ because of its name, so keep the name.
 ## Validation
 
 ```bash
-npm test          # 52 unit tests
-npm run validate  # build the fixtures, then run the three validators
+npm test          # unit tests
+npm run validate  # build, then scripts/validate-site.sh over the output
 ```
 
-`npm run validate` is the one that matters in CI: it builds `vault/examples/` — the fixtures that
-exercise Python, Jupyter widgets, Observable and Plotly — and then checks the built HTML.
-`npm run build` alone does not, because fixtures never reach the production site.
+`npm run validate` is what CI runs. It checks the built site from the outside: no private or raw
+source in the tree, the Observable runtime present where cells are, no Plotly on a published page,
+and the design tokens in both compiled theme bundles.
 
 ## History
 
 The site previously rendered `.md` through a vendored Quartz v5 and `.qmd` through Quarto, with a
 bridge hosting Quarto body fragments inside Quartz pages. Tag `quartz-final` is the last commit with
-that arrangement; `git checkout quartz-final -- site/` restores it.
-`Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md` is the original architecture note for
-that design and is kept as history — it does not describe the current system.
+that arrangement; `git checkout quartz-final -- site/` restores it, and
+`Obsidian-Quarto-Quartz-v5-Knowledge-Publishing-System.md` at that tag is the original architecture
+note for that design.

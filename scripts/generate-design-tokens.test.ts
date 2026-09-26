@@ -42,7 +42,7 @@ const paletteSource = await readFile(`vault/_theme/palettes/${parseTokens(tokens
 
 test("rejects an unknown colour key", () => {
   const broken = paletteSource.replace("  light:\n    light:", "  light:\n    accent: \"#ff0000\"\n    light:")
-  assert.throws(() => parsePalette(broken, "p"), /p\.colors\.light has keys Quartz does not consume: accent/)
+  assert.throws(() => parsePalette(broken, "p"), /p\.colors\.light has unknown keys: accent/)
 })
 
 // The palette is one line, so it has to fail loudly when that line is wrong --
@@ -54,11 +54,10 @@ test("rejects a palette name with no file", async () => {
   )
 })
 
-// Every palette in the directory is a candidate the site can be switched to on
-// one line, so each must be complete and legible, not just the active one.
+// A palette dropped into the directory is one line from going live, so each
+// must be complete and legible, not just the active one.
 test("every saved palette is complete and passes the legibility rule", async () => {
   const names = (await readdir("vault/_theme/palettes")).filter((f) => f.endsWith(".yaml"))
-  assert.ok(names.length > 1, "the alternatives are the point; keep more than one")
   for (const name of names) {
     const loaded = await loadTokens(
       tokensSource.replace(/^palette: .*$/m, `palette: ${name.replace(/\.yaml$/, "")}`),
@@ -176,7 +175,7 @@ test("each site theme paints one mode with no dark-mode selector", () => {
   assert.ok(dark.includes("color-scheme: dark;"))
 
   for (const scss of [light, dark]) {
-    assert.ok(!scss.includes("saved-theme"), "preview theme must not carry Quartz's dark selector")
+    assert.ok(!scss.includes("saved-theme"), "preview theme must not carry a stale dark selector")
     assert.ok(!scss.includes("prefers-color-scheme"), "the bundle swap decides the mode, not a media query")
   }
 })

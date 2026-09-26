@@ -12,6 +12,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Skip the `lab` dependency group (torch and friends): only private
+      # scripts use it. Applies to `uv sync` and to `uv run` inside the build.
+      UV_NO_DEFAULT_GROUPS: "1"
     steps:
       - uses: actions/checkout@v5
 
@@ -36,8 +40,5 @@ jobs:
       - run: uv sync --frozen
         working-directory: vault
 
-      # Builds vault/examples/ -- the fixtures exercising Python, Jupyter
-      # widgets, Observable and Plotly -- then runs the three validators over
-      # the built HTML. `npm run build` does not cover this, because fixtures
-      # never reach the production site.
+      # The production build, then scripts/validate-site.sh over its output.
       - run: npm run validate

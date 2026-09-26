@@ -42,7 +42,6 @@ A colon inside an unquoted `description:` breaks the YAML parse. Use an em dash.
 |---|---|---:|---:|
 | Private | any path under a `*_hidden/` folder, or a `*.hidden.md` / `*.hidden.qmd` file | no | no |
 | Unpublished | normal path, `publish: false` | yes | no |
-| Fixture | normal path, `publish: false` and `fixture: true` | yes | no |
 | Published | normal path, `publish: true` | yes | yes |
 
 Path is the privacy boundary; frontmatter is the publication switch.
@@ -63,25 +62,18 @@ publishes as visible text, and Quarto has no Obsidian comment), and an HTML comm
 the page source. Notes-to-self go in `_hidden/`. `vault/_hidden/todo-site-prose.md` holds the ones
 for the pages that are still placeholders.
 
-**Drafts may not sit in a listed folder.** `articles/`, `notes/` and `projects/` are Quarto
-`listing:` pages, and a Quarto listing globs the filesystem rather than the render allowlist — so an
-unpublished draft there gets linked from the public listing *and* has its raw source copied into the
-site. Prep fails the build on it. Draft in `_hidden/` and move the file in when it is ready.
+**Draft in place.** A `publish: false` article can sit in `articles/` beside its `data/` folder,
+committed. A Quarto listing globs the filesystem rather than the render allowlist, so every published
+`listing:` must carry `include: { publish: true }` — without it a draft is linked from the listing
+*and* its raw source is copied into the site. Prep fails the build on a listing that drops the
+filter. The repo is public, so a committed draft is visible on GitHub; use `_hidden/` for anything
+that must not be.
 
-### Fixtures
+### Examples
 
-`vault/examples/` holds pages that exist to be tested, not read: a Python cell, a Jupyter widget, an
-Observable cell, a Plotly figure. The validators inspect the built HTML.
-
-They must still be built, and never reach the site. `fixture: true` is that seam:
-
-```text
-npm run build       renders publish:true only            -> generated/site
-npm run validate    renders publish:true + fixture:true  -> generated/fixture-site, then validates
-```
-
-A document that sets both `fixture: true` and `publish: true` fails the build rather than resolving
-the contradiction quietly.
+`vault/examples/` is an unpublished feature reference: a Python cell, a Jupyter widget, an Observable
+cell, a Plotly figure, callouts and layouts. Preview a page to see a feature render before using it in
+an article.
 
 ## `.md` or `.qmd`
 
@@ -124,7 +116,8 @@ which is why a link that works while drafting works on the site.
 Write the real source extension (`.qmd` or `.md`); Quarto maps it to `.html`. Linking to an
 unpublished note fails the build, as does a target that resolves to nothing.
 
-Attachments live in `vault/attachments/`. Only those a published page references are copied.
+An attachment can live anywhere in the vault; `vault/attachments/` is a convention for shared ones.
+Only those a published page references are copied.
 
 ### Data a document computes over
 
@@ -152,8 +145,8 @@ that needed it.
 npm run build          # the whole pipeline -> generated/site
 npm run serve          # serve what was built, on :8080
 npm run preview <f>    # live-reload one document while drafting
-npm run validate       # build the fixtures, then run the three validators
-npm test               # 52 unit tests
+npm run validate       # build, then check the built site
+npm test               # unit tests
 ```
 
 `npm run build` is four steps, and knowing them tells you which one broke:
@@ -186,27 +179,12 @@ no format option, and it must stay that way.
 included. Nothing leaks — it writes to its own output directory and the site is built from the
 allowlist — but it is slow and not what you meant.
 
-### Parking a `.qmd` you are not working on
+### Unpublishing a computational `.qmd`
 
-Quarto's project startup costs about five seconds whatever the render list holds, so trimming that
-list buys less than it looks like. Park a document to cut noise from the build, not to make it fast.
-
-Set `publish: false` and move its frozen output aside:
-
-```bash
-mv vault/_freeze/<section>/<note> vault/_freeze-parked/<section>/<note>
-```
-
-The second step is not optional. Prep rejects a tree under `vault/_freeze/` whose owning document is
-not published — a frozen result can carry output derived from private data, so a stale one counts as
-a leak rather than a cache. `vault/_freeze-parked/` is skipped by both the source walk and the
-freeze check, so the render stays in version control and restoring is a directory move.
-
-Do **not** park by renaming to `*.hidden.qmd`. That is the privacy boundary, and `.gitignore` drops
-those files from version control entirely.
-
-If the document lives in a listed folder, parking it is not enough — move it to `_hidden/`, or the
-listing guard will fail the build.
+Set `publish: false` and delete its frozen output, `rm -rf vault/_freeze/<section>/<note>`. Prep
+rejects a tree under `vault/_freeze/` whose document is not published: a frozen result can carry
+output derived from private data, so a stale one counts as a leak rather than a cache. Publishing it
+again re-executes it once.
 
 ## Things that will bite you
 
@@ -229,7 +207,7 @@ which claims `window.MathJax`; MathJax 3 then aborts with `Cannot read propertie
 (reading 'loader')` and the page's equations do not render. Switching to KaTeX makes it worse, not
 better — MathJax 2 reaches inside KaTeX's MathML annotation and renders the equation a second time.
 Use Observable Plot for interactive figures and matplotlib for static ones.
-`validate-interactive-components.sh` fails the build if Plotly appears outside the one fixture.
+`npm run validate` fails if a published page carries Plotly.
 
 **Observable JS cells share one namespace.** Every `{ojs}` cell in a document, plus every name from
 `ojs_define`, lives in one scope. Defining a name twice is a runtime error visible only in the
@@ -282,12 +260,12 @@ purpose: a page palette and a code palette that disagree is the drift this preve
 Switching the whole site is one line in `tokens.yaml`:
 
 ```yaml
-palette: catppuccin          # or catppuccin-warm, neutral, neutral-catppuccin-code
+palette: catppuccin
 ```
 
-then `npm run design-tokens`. To add one, copy an existing file. Every palette in that directory is
-checked by the test suite for completeness and chart legibility, not just the active one, so an
-unused alternative cannot rot.
+then `npm run design-tokens`. To add one, copy `catppuccin.yaml`; the test suite checks every file
+in that directory for completeness and chart legibility. The retired alternatives (`catppuccin-warm`,
+`neutral`, `neutral-catppuccin-code`) are in git history.
 
 One caveat that is not a matter of taste:
 
@@ -341,11 +319,7 @@ stylesheet binds that to the chart-ink token.
 
 ## Not built yet
 
-- **Deployment.** Local only. `site-url` is unset, so canonical URLs, the sitemap and OG tags are
-  wrong until it is.
-- **No CI and no git remote.** CI needs Node ≥22, `uv` + Python, the Quarto CLI, and
-  `vault/_freeze/` committed or every notebook re-executes. It must run `npm run validate`, not just
-  `npm run build` — validate is what builds the fixtures and runs the validators.
 - **Backlinks.** Prep already parses every link; persisting the edges and inverting them is the
   work. Worth doing when there are enough notes to link.
-- **One unpinned CDN reference**, `@jupyter-widgets/html-manager@*`, emitted by Quarto.
+- **One unpinned CDN reference**, `@jupyter-widgets/html-manager@*`, emitted by Quarto on any page
+  with a Jupyter widget. No published page has one yet.

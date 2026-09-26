@@ -1,11 +1,11 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
+import { readFile, readdir, rm, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 import { parse as parseYaml } from "yaml"
 
-// Publication prep (section 15). Deliberately narrower than a content compiler:
-// it selects publishable sources, stages them, and fails the build on metadata,
-// link, or privacy defects. Graph/search/backlink indexes stay with Quartz.
+// Publication prep. Deliberately narrower than a content compiler: it selects
+// publishable sources, writes the render allowlist, and fails the build on
+// metadata, link, or privacy defects.
 
 export type SourceType = "markdown" | "quarto"
 
@@ -19,7 +19,6 @@ export type SourceDocument = {
   raw: string
   body: string
   publish: boolean
-  fixture: boolean
   title: string
   aliases: string[]
   tags: string[]
@@ -31,29 +30,14 @@ export type SourceDocument = {
 export type Problem = { file: string; message: string }
 
 export type PrepareOptions = {
-  /**
-   * Stage `fixture: true` documents as though they were published.
-   *
-   * The validators inspect real built pages -- a Quarto fragment hosted in a
-   * Quartz shell, a Python cell, a Jupyter widget -- and nothing in the
-   * portfolio exercises those paths. So the fixtures still have to be built;
-   * they just must not reach the public site. This flag is the seam: the
-   * production build leaves it off and the fixtures vanish, the validation
-   * build turns it on and gets its own output tree.
-   */
-  includeFixtures: boolean
   vaultDir: string
-  linkMapPath: string
   quartoDir: string
-  /** Profile name `quarto render --profile <name>` activates. */
-  quartoProfile: string
-  attachmentRoot: string
   /** Fail when a published .qmd has no rendered Quarto artifact yet. */
   requireQuarto: boolean
   /**
-   * Clear generated/quarto/ so the next render starts from nothing. Quarto
-   * refuses to clean an output-dir outside its project, so it leaves orphaned
-   * `*_files/` directories behind that the bridge emitter would keep copying.
+   * Clear the output tree so the next render starts from nothing. Quarto
+   * refuses to clean an output-dir outside its project, so it would leave
+   * pages for since-unpublished documents behind to be deployed.
    */
   clearQuartoOutput: boolean
 }
@@ -62,16 +46,11 @@ export type PrepareResult = {
   documents: SourceDocument[]
   published: SourceDocument[]
   attachments: string[]
-  linkMap: LinkMap
 }
 
 export const defaultOptions: PrepareOptions = {
-  includeFixtures: false,
   vaultDir: "vault",
-  linkMapPath: "generated/link-map.json",
   quartoDir: "generated/site",
-  quartoProfile: "publish",
-  attachmentRoot: "attachments",
   requireQuarto: false,
   // Off by default so importing this module never deletes anything unexpected;
   // the CLI turns it on for the stage pass.
@@ -191,7 +170,6 @@ function readDocument(
   repoPath: string,
   raw: string,
   problems: Problem[],
-  includeFixtures = false,
 ): SourceDocument | undefined {
   const { frontmatter, body } = parseFrontmatter(raw)
   if (!frontmatter) {
@@ -208,19 +186,6 @@ function readDocument(
   const publish = frontmatter.publish
   if (publish !== undefined && typeof publish !== "boolean") {
     problems.push({ file: repoPath, message: "`publish` must be true or false" })
-    return undefined
-  }
-
-  const fixture = frontmatter.fixture
-  if (fixture !== undefined && typeof fixture !== "boolean") {
-    problems.push({ file: repoPath, message: "`fixture` must be true or false" })
-    return undefined
-  }
-  if (fixture === true && publish === true) {
-    problems.push({
-      file: repoPath,
-      message: "a `fixture` document must be `publish: false`; fixtures never reach the site",
-    })
     return undefined
   }
 
@@ -243,8 +208,7 @@ function readDocument(
     frontmatter,
     raw,
     body,
-    publish: publish === true || (includeFixtures && fixture === true),
-    fixture: fixture === true,
+    publish: publish === true,
     title: title.trim(),
     aliases,
     tags,
@@ -396,45 +360,31 @@ export function checkWikilinks(document: SourceDocument): Problem[] {
 }
 
 /**
- * Reports unpublished documents sitting in a folder whose index page carries a
- * Quarto `listing:`.
+ * Reports a published `listing:` that does not filter on `publish: true`.
  *
  * Quarto listings glob the filesystem, not the project render list. Measured: a
- * `publish: false` draft left in `articles/` was linked from the published
- * articles/index.html *and* had its raw .qmd source copied into the output tree
- * as a listing resource. Both are leaks, and neither shows up as an error --
- * the render reports "contains no metadata" and carries on.
- *
- * Quartz's folder-page could not do this because it only ever saw the staged
- * published tree; there is no staged tree any more, so the check has to be
- * here. Drafts belong in _hidden/, which is where they already live.
+ * `publish: false` draft beside an unfiltered listing is linked from the
+ * published page *and* has its raw source copied into the output tree, with no
+ * error. `include: { publish: true }` drops it from both, so drafts can live
+ * next to their data instead of in _hidden/.
  */
-export function checkListingLeaks(
-  published: SourceDocument[],
-  documents: SourceDocument[],
-): Problem[] {
-  const listingDirs = new Map<string, SourceDocument>()
-  for (const document of published) {
-    if (document.frontmatter.listing !== undefined) {
-      listingDirs.set(documentDir(document), document)
-    }
-  }
-
-  const problems: Problem[] = []
-  for (const document of documents) {
-    if (document.publish) continue
-    const owner = listingDirs.get(documentDir(document))
-    if (!owner) continue
-    problems.push({
+export function checkListingFilter(document: SourceDocument): Problem[] {
+  const listing = document.frontmatter.listing
+  if (listing === undefined) return []
+  const listings = (Array.isArray(listing) ? listing : [listing]) as Record<string, unknown>[]
+  const filtered = listings.every(
+    (entry) => (entry?.include as Record<string, unknown> | undefined)?.publish === true,
+  )
+  if (filtered) return []
+  return [
+    {
       file: document.repoPath,
       message:
-        `unpublished, but sits in a folder listed by ${owner.repoPath}. Quarto listings glob ` +
-        "the filesystem rather than the render list, so this would be linked from the published " +
-        "listing and its source copied into the site. Move it to _hidden/ until it is ready",
-    })
-  }
-
-  return problems
+        "listing does not filter on publish. Quarto listings glob the filesystem, so a draft in " +
+        "this folder would be linked and its source copied into the site. Add " +
+        "`include: { publish: true }` to every listing",
+    },
+  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -504,12 +454,6 @@ function resolveAttachment(candidate: string, index: DocumentIndex): Resolution 
  * `newLinkFormat: relative` and Quarto resolves a relative target against the
  * document's own directory, so author, validator and renderer read a target the
  * same way and nothing has to rewrite it in between.
- *
- * This was vault-root-absolute while Quartz rendered the .md half, because
- * Quartz collapsed a bare `index.md` to the site root regardless of the
- * directory it was written in -- so `index.md` in a section meant that section
- * to Obsidian and the root to Quartz. That ambiguity was a Quartz artifact and
- * left with it.
  */
 export function resolveReference(
   reference: Reference,
@@ -524,7 +468,7 @@ export function resolveReference(
     return (
       resolveAttachment(target, index) ?? {
         kind: "unresolved",
-        reason: "no such attachment in the vault (link paths are from the vault folder)",
+        reason: "no such attachment in the vault (link paths are relative to this document)",
       }
     )
   }
@@ -536,76 +480,28 @@ export function resolveReference(
 
   return {
     kind: "unresolved",
-    reason: "no published note or attachment matches (link paths are from the vault folder)",
+    reason: "no published note or attachment matches (link paths are relative to this document)",
   }
 }
 
-// ---------------------------------------------------------------------------
-// Link map
-// ---------------------------------------------------------------------------
-
-export type LinkMapDocument = {
-  sourcePath: string
-  sourceType: SourceType
-  slug: string
-  url: string
-  title: string
-  aliases: string[]
-}
-
-export type LinkMap = {
-  documents: LinkMapDocument[]
-  attachments: { sourcePath: string; url: string }[]
-  /** Title, alias, slug, and source path, each mapped to its canonical URL. */
-  byKey: Record<string, string>
-}
-
-export function buildLinkMap(
-  published: SourceDocument[],
-  attachments: string[],
-  vaultDir: string,
-  problems: Problem[],
-): LinkMap {
-  const byKey: Record<string, string> = {}
+/** Two pages cannot both redirect from one URL. */
+export function checkAliasCollisions(published: SourceDocument[]): Problem[] {
   const owners = new Map<string, SourceDocument>()
-
-  const claim = (key: string, document: SourceDocument, label: string): void => {
-    const owner = owners.get(key)
-    if (owner && owner !== document) {
-      problems.push({
-        file: document.repoPath,
-        message: `${label} "${key}" is already claimed by ${owner.repoPath}`,
-      })
-      return
-    }
-    owners.set(key, document)
-    byKey[key] = document.url
-  }
-
+  const problems: Problem[] = []
   for (const document of published) {
-    claim(document.title, document, "title")
     for (const alias of document.aliases) {
-      claim(alias, document, "alias")
+      const owner = owners.get(alias)
+      if (owner && owner !== document) {
+        problems.push({
+          file: document.repoPath,
+          message: `alias "${alias}" is already claimed by ${owner.repoPath}`,
+        })
+      } else {
+        owners.set(alias, document)
+      }
     }
-    claim(document.slug, document, "slug")
-    claim(document.sourcePath, document, "source path")
   }
-
-  return {
-    documents: published.map((document) => ({
-      sourcePath: document.repoPath,
-      sourceType: document.sourceType,
-      slug: document.slug,
-      url: document.url,
-      title: document.title,
-      aliases: document.aliases,
-    })),
-    attachments: attachments.map((attachment) => ({
-      sourcePath: `${vaultDir}/${attachment}`,
-      url: `/${attachment}`,
-    })),
-    byKey: Object.fromEntries(Object.entries(byKey).sort(([a], [b]) => a.localeCompare(b))),
-  }
+  return problems
 }
 
 // ---------------------------------------------------------------------------
@@ -645,7 +541,7 @@ async function checkQuartoArtifacts(
   }
 
   // A stale artifact for a document that is no longer public is a leak: the
-  // output tree is what gets deployed (section 22.2).
+  // output tree is what gets deployed.
   for (const file of rendered) {
     if (!expected.has(file)) {
       problems.push({
@@ -660,7 +556,6 @@ async function checkQuartoArtifacts(
       if (!rendered.includes(`${document.slug}.html`)) {
         problems.push({
           file: document.repoPath,
-          // Section 20: stub slug and Quarto public URL must not diverge.
           message: `expected Quarto output at ${options.quartoDir}/${document.slug}.html`,
         })
       }
@@ -683,15 +578,12 @@ async function checkFreezeTree(
 
   const published = new Set(
     documents
-      .filter(
-        (document) =>
-          (document.publish || document.fixture) && document.sourceType === "quarto",
-      )
+      .filter((document) => document.publish && document.sourceType === "quarto")
       .map((document) => document.slug),
   )
 
   // Frozen results can embed output derived from private data even when the
-  // document itself was never published (section 22.2).
+  // document itself was never published.
   const seen = new Set<string>()
   for (const file of frozen) {
     // A website project caches its shared script/style bundle under the freeze
@@ -730,11 +622,11 @@ export async function preparePublication(
     if (file.endsWith(".md") || file.endsWith(".qmd")) {
       const repoPath = `${options.vaultDir}/${file}`
       const raw = await readFile(path.join(options.vaultDir, file), "utf8")
-      const document = readDocument(file, repoPath, raw, problems, options.includeFixtures)
+      const document = readDocument(file, repoPath, raw, problems)
       if (document) {
         documents.push(document)
       }
-    } else if (file.startsWith(`${options.attachmentRoot}/`)) {
+    } else {
       attachments.push(file)
     }
   }
@@ -765,16 +657,12 @@ export async function preparePublication(
     }
   }
 
-  // Slug-colliding documents are already reported; keep one owner per URL so
-  // downstream stages never see two documents competing for the same page.
-  const staged = [...bySlug.values()]
   const publishedIndex = buildIndex(published, attachments)
   const allIndex = buildIndex(documents, attachments)
   const referencedAttachments = new Set<string>()
 
-  problems.push(...checkListingLeaks(published, documents))
-
   for (const document of published) {
+    problems.push(...checkListingFilter(document))
     problems.push(...checkQuartoSyntax(document))
     problems.push(...checkAliases(document))
     problems.push(...checkWikilinks(document))
@@ -803,8 +691,8 @@ export async function preparePublication(
     }
   }
 
+  problems.push(...checkAliasCollisions(published))
   const stagedAttachments = [...referencedAttachments].sort()
-  const linkMap = buildLinkMap(staged, stagedAttachments, options.vaultDir, problems)
 
   // Pointless when the tree is about to be wiped: the stage pass clears it and
   // the verify pass re-checks what the render actually produced.
@@ -817,77 +705,44 @@ export async function preparePublication(
     throw new ValidationFailure(problems)
   }
 
-  // No staging pass. Quarto renders the vault in place, so the only thing that
-  // has to reach it is the allowlist below; copying sources somewhere first
-  // existed to feed Quartz a tree it could glob, and to rewrite links into the
-  // form its slugifier understood. Both left with Quartz -- and a link that is
-  // correct in the vault is now correct in the render, which is what makes
-  // `quarto preview` show the real page.
-
   if (options.clearQuartoOutput) {
     await rm(options.quartoDir, { recursive: true, force: true })
   }
-
-  await mkdir(path.dirname(options.linkMapPath), { recursive: true })
-  await writeFile(options.linkMapPath, `${JSON.stringify(linkMap, null, 2)}\n`, "utf8")
 
   // Quarto cannot select documents by arbitrary frontmatter. Generate a
   // profile containing the exact published allowlist so drafts can live
   // anywhere without being rendered. The base config contributes the *_hidden
   // exclusion as defense in depth.
-  //
-  // Both source types are listed. While Quartz rendered the .md half this was
-  // .qmd only; now Quarto renders everything.
   const quartoTargets = published.map((document) => document.sourcePath).sort()
   // A null/empty render field can fall back to project discovery. An exclusion
   // target makes the zero-QMD case explicitly render nothing.
   const profileTargets = quartoTargets.length > 0 ? quartoTargets : ["!**/*"]
-  // The output directory travels with the profile: a fixture render must not
-  // write over the artifacts the production bridge reads.
-  const quartoOutputDir = path.posix.relative(
-    options.vaultDir,
-    options.quartoDir.split(path.sep).join(path.posix.sep),
-  )
   const quartoProfile = [
     "# Generated by scripts/prepare-publication.ts; do not edit.",
     "project:",
-    `  output-dir: ${JSON.stringify(quartoOutputDir)}`,
     "  render:",
     ...profileTargets.map((target) => `    - ${JSON.stringify(target)}`),
     "",
   ].join("\n")
   await writeFile(
-    path.join(options.vaultDir, `_quarto-${options.quartoProfile}.yml`),
+    path.join(options.vaultDir, "_quarto-publish.yml"),
     quartoProfile,
     "utf8",
   )
 
-  return { documents, published, attachments: stagedAttachments, linkMap }
+  return { documents, published, attachments: stagedAttachments }
 }
 
 async function main(): Promise<void> {
-  // Two modes, matching the section 28 order. The default stage mode runs
+  // Two modes. The default stage mode runs
   // before Quarto and clears its output tree; --require-quarto runs after and
   // only verifies, so it must leave that tree alone.
   const requireQuarto = process.argv.includes("--require-quarto")
   // --keep-quarto leaves the rendered tree alone, so a prose-only edit can be
   // re-checked without a full Quarto re-render.
   const keepQuarto = process.argv.includes("--keep-quarto")
-  // --fixtures admits the validation fixtures to the allowlist and renders them
-  // into a separate tree. Only `npm run validate` passes it; the production
-  // build never does, so nothing under examples/ can reach the public site.
-  const includeFixtures = process.argv.includes("--fixtures")
-  const fixtureDirs = includeFixtures
-    ? {
-        linkMapPath: "generated/fixture-link-map.json",
-        quartoDir: "generated/fixture-site",
-        quartoProfile: "fixtures",
-      }
-    : {}
   try {
     const result = await preparePublication({
-      includeFixtures,
-      ...fixtureDirs,
       requireQuarto,
       clearQuartoOutput: !requireQuarto && !keepQuarto,
     })
