@@ -15,6 +15,9 @@ vault/ would fail the build it is meant to support.
     npx playwright screenshot --viewport-size=1200,630 \
         scripts/social-card/card.html vault/assets/social-card.png
 
+It also writes signals-as-vectors.html, the article's card; shoot it the same
+way into vault/articles/data/signals-as-vectors-card.png.
+
 Edit the copy or the palette here, never the PNG.
 """
 
@@ -92,10 +95,20 @@ TEMPLATE = """<meta charset="utf-8">
 </div>
 """
 
-if __name__ == "__main__":
-    out = pathlib.Path(__file__).parent / "card.html"
+
+def write(filename: str, **copy: str) -> None:
+    out = pathlib.Path(__file__).parent / filename
     out.write_text(TEMPLATE.format(
         fonts=FONTS, ground=GROUND, ink=INK, muted=MUTED, accent=ACCENT, gray=GRAY,
-        wave=wave_path(), name=NAME, role=ROLE, desc=DESC, domain=DOMAIN,
+        domain=DOMAIN, **copy,
     ))
     print(f"wrote {out}")
+
+
+if __name__ == "__main__":
+    write("card.html", wave=wave_path(), name=NAME, role=ROLE, desc=DESC)
+    # Copy follows the article's frontmatter; keep them in step.
+    write("signals-as-vectors.html", wave=wave_path(),
+          name="Signals as Vectors", role="Article &middot; Signal processing",
+          desc=("See how sampling turns a signal into a vector, and how the "
+                "right basis can reveal a compact representation."))

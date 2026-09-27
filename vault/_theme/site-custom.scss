@@ -48,6 +48,20 @@
     font-size: 1.075rem;
     line-height: 1.55;
   }
+
+  // An article's `abstract:` is its takeaway (abstract-title in _quarto.yml).
+  // Quarto sets it smaller than the prose; it should read as the lead.
+  .abstract {
+    margin: 1.5rem 0 2rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--secondary);
+  }
+
+  // Quarto's 0.9em rule is `#title-block-header.quarto-title-block.default
+  // .abstract > p`; matching its specificity lets this one win by order.
+  &.quarto-title-block.default .abstract > p {
+    font-size: 1rem;
+  }
 }
 
 // The home page asks for more air than a document header. `:has()` is the seam:
@@ -332,4 +346,69 @@ mjx-container {
   overflow-x: auto;
   overflow-y: hidden;
   padding-bottom: 0.15em;
+}
+
+// ---------------------------------------------------------------------------
+// Observable Inputs
+//
+// Inputs ships a 120px label column, which wraps a label such as "retained
+// frequency bins r" onto two lines, and a browser-blue slider. Widen the label
+// and draw the controls in the site's accent.
+// ---------------------------------------------------------------------------
+form[class^="oi-"] {
+  --label-width: 13rem;
+  --length1: 16rem;
+  margin: 1rem 0;
+  accent-color: var(--secondary);
+  font-family: var(--bs-body-font-family);
+  font-size: 0.95rem;
+
+  input[type="number"] {
+    border: 1px solid var(--lightgray);
+    border-radius: 0.25rem;
+    background: transparent;
+    color: inherit;
+  }
+}
+
+// The source link from `code-tools` sits beside the title; keep it quiet.
+#quarto-code-tools-source {
+  color: var(--gray);
+  font-size: 0.85rem;
+}
+
+// Plot wraps a figure that has a `subtitle` in <figure><h3>, which the theme
+// then sizes as a section heading; a chart title is a label, not a section.
+// Its colour legend brings its own 10px system font.
+// No `$=` in attribute selectors: Quarto's SCSS scanner reads `$` as a
+// variable and the render dies with a bare "ERROR: stop".
+figure:has(svg[class^="plot-"]) {
+  > h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  > div[class*="-swatches"] {
+    font-family: inherit;
+    font-size: 0.85rem;
+  }
+}
+
+// `fig-align: center` (set in _quarto.yml) only marks the float; Plot's SVG, or
+// the <figure> Plot wraps it in for a subtitle or legend, is a full-width block
+// and stays left. Centre the chart itself, and only under that class, so a
+// figure with `fig-align: left` still can opt out.
+.quarto-figure-center .observablehq {
+  > svg[class^="plot-"],
+  > figure[class^="plot-"] {
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+}
+
+// Quarto leaves a centred figure's caption left-aligned.
+.quarto-figure-center > figure > figcaption {
+  text-align: center;
 }

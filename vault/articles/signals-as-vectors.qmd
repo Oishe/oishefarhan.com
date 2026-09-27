@@ -2,12 +2,30 @@
 title: Signals as Vectors
 description: See how sampling turns a signal into a vector, and how the right basis can reveal a compact representation.
 date: 2026-08-20
+# The takeaway. Shown under the title here, and read by the featured card on the
+# home page (vault/_theme/featured.ejs.md), so this is the only copy.
+abstract: |
+  Sampling turns a signal into a vector, a point in a high-dimensional space.
+  The Fourier transform expresses that same point in a coordinate system built from sinusoidal basis vectors.
+
+  With a suitable basis, most of a signal’s information can be concentrated in just a few coordinates.
+  The Fourier transform is particularly well suited to periodic signals.
+  In the flute audio example, a few dominant frequency components are enough to reconstruct the signal almost exactly.
+  These sparse representations offer many benefits including data compression.
 aliases:
   - /knowledge/signals-as-vectors
 tags:
   - ml/signal-processing
   - ml/linear-algebra
+# Regenerate with scripts/social-card/build-card.py.
+image: data/signals-as-vectors-card.png
+image-alt: The article title and summary over a faint waveform.
 publish: true
+# The plotting cells alone say little; the full source is one link away.
+echo: false
+code-tools:
+  source: repo
+  toggle: false
 ---
 
 ## Introduction
@@ -32,7 +50,6 @@ by the note.
 {{< include ../_theme/_ojs-setup.qmd >}}
 
 ```{ojs}
-//| echo: false
 flute = {
   const context = new OfflineAudioContext(1, 1, 11025)
   const audio = await context.decodeAudioData(
@@ -46,7 +63,6 @@ flute = {
 ```
 
 ```{ojs}
-//| echo: false
 sampleWindow = (center, count) => {
   const middle = Math.round(center * flute.sampleRate)
   const first = middle - Math.floor(count / 2)
@@ -61,16 +77,16 @@ sampleWindow = (center, count) => {
 ```
 
 ```{ojs}
-//| echo: false
 waveform = sampleWindow(0.724, 160)
 ```
 
 ```{ojs}
+//| label: fig-waveform
+//| fig-cap: "A 14.5 ms excerpt of the flute recording, with consecutive samples joined by a line."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 240,
   marginLeft: 52,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
   marks: [
@@ -85,16 +101,16 @@ store a continuous curve. It stores individual measurements. Magnifying a
 smaller interval makes them visible.
 
 ```{ojs}
-//| echo: false
 closeup = sampleWindow(0.724, 64)
 ```
 
 ```{ojs}
+//| label: fig-samples
+//| fig-cap: "A 64-sample close-up of the same excerpt."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 240,
   marginLeft: 52,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
   marks: [
@@ -205,7 +221,7 @@ s_2
 $$
 
 The columns of $\Psi$ are the building blocks. The coordinates $s_1$ and
-$s_2$ tell us how much of each one to use, including its sign. In the diagram,
+$s_2$ tell us how much of each one to use, including its sign. In @fig-rotation,
 $\mathbf{x}$ remains fixed while the basis rotates. The two heavier component
 arrows show the reconstruction: the first contributes
 $s_1\boldsymbol{\psi}_1$, and the second adds
@@ -213,7 +229,6 @@ $s_2\boldsymbol{\psi}_2$ to reach $\mathbf{x}$.
 
 
 ```{ojs}
-//| echo: false
 rotated = {
   const angle = theta * Math.PI / 180
   const x = { x: 2, y: 3 }
@@ -264,10 +279,20 @@ rotated = {
 ```
 
 ```{ojs}
+viewof theta = Inputs.range([90, -90], {
+  label: "rotation θ (degrees)",
+  value: 30,
+  step: 0.1,
+})
+```
+
+```{ojs}
+//| label: fig-rotation
+//| fig-cap: "A fixed vector x described in a rotated orthonormal basis. The heavy arrows are the components s₁ψ₁ and s₂ψ₂."
 Plot.plot({
-  width: figW,
+  ...plotBase,
+  width: Math.min(figW, 520),
   aspectRatio: 1,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "x₁", domain: [-4, 4], grid: true },
   y: { label: "x₂", domain: [-4, 4], grid: true },
   marks: [
@@ -311,16 +336,6 @@ Plot.plot({
 ```
 
 ```{ojs}
-//| echo: false
-viewof theta = Inputs.range([90, -90], {
-  label: "rotation θ (degrees)",
-  value: 30,
-  step: 0.1,
-})
-```
-
-```{ojs}
-//| echo: false
 md`At ${tex`\theta=${theta.toFixed(1)}^\circ`}, the current reconstruction,
 rounded to two decimal places, is
 
@@ -450,19 +465,32 @@ Fourier basis matrix $\Psi_F$. Its real part is a sampled cosine and its
 imaginary part is a sampled sine. The common factor $1/\sqrt{n}$ gives every
 basis vector length one.
 
-The following plot shows the real parts of three basis vectors corresponding
+@fig-basis shows the real parts of three basis vectors corresponding
 to prominent harmonics in the flute recording. The waves are drawn vertically
 to emphasize that each complete curve is a column of $\Psi_F$. Only the first
 160 of 4,096 entries are shown, and the common factor $1/\sqrt{n}$ is omitted
 from the horizontal scale.
 
 ```{ojs}
-//| echo: false
 analysisSize = 4096
 ```
 
 ```{ojs}
-//| echo: false
+FFT = import("https://cdn.jsdelivr.net/npm/fft.js@4.0.4/+esm").then((m) => m.default)
+```
+
+```{ojs}
+// Unscaled one-sided DFT, bins 0..n/2, with the e^{-2πijk/n} sign convention.
+// realTransform fills exactly those bins as interleaved [re, im] pairs.
+rfft = (values) => {
+  const f = new FFT(values.length)
+  const out = f.createComplexArray()
+  f.realTransform(out, Array.from(values))
+  return d3.range(values.length / 2 + 1).map((k) => ({ re: out[2 * k], im: out[2 * k + 1] }))
+}
+```
+
+```{ojs}
 basisWaves = [
   { k: 164, basis: "ψ₁₆₄  ·  441 Hz" },
   { k: 328, basis: "ψ₃₂₈  ·  883 Hz" },
@@ -477,10 +505,11 @@ basisWaves = [
 ```
 
 ```{ojs}
+//| label: fig-basis
+//| fig-cap: "Real parts of three Fourier basis vectors at the flute's strongest harmonics, drawn vertically as columns of Ψ_F."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 380,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "real part", domain: [-1.1, 1.1], grid: true },
   y: { label: "sample index j", reverse: true },
   fx: {
@@ -521,7 +550,6 @@ part contains sampled sines. Red cells are positive, blue cells are negative,
 and pale cells are near zero.
 
 ```{ojs}
-//| echo: false
 fourierMatrix = d3.cross(
   d3.range(64),
   d3.range(64),
@@ -530,10 +558,12 @@ fourierMatrix = d3.cross(
 ```
 
 ```{ojs}
+//| label: fig-fourier-matrix
+//| fig-cap: "Real part of the 64 × 64 Fourier matrix. Red is positive, blue negative."
 Plot.plot({
-  width: figW,
+  ...plotBase,
+  width: Math.min(figW, 520),
   aspectRatio: 1,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "basis index k", ticks: d3.range(0, 64, 8) },
   y: {
     label: "sample index j",
@@ -574,33 +604,20 @@ complex value of every nonnegative-frequency coefficient; the corresponding
 negative-frequency coefficients are determined by conjugate symmetry.
 
 ```{ojs}
-//| echo: false
 analysisWindow = sampleWindow(0.724, analysisSize)
 ```
 
 ```{ojs}
-//| echo: false
 fourier = {
   const values = analysisWindow.map((d) => d.amplitude)
   const scale = 1 / Math.sqrt(analysisSize)
-  const coefficients = []
-
-  for (let k = 0; k <= analysisSize / 2; ++k) {
-    let re = 0
-    let im = 0
-    for (let j = 0; j < analysisSize; ++j) {
-      const phase = 2 * Math.PI * k * j / analysisSize
-      re += values[j] * Math.cos(phase)
-      im -= values[j] * Math.sin(phase)
-    }
-    coefficients.push({
-      k,
-      frequency: k * flute.sampleRate / analysisSize,
-      re: scale * re,
-      im: scale * im,
-      magnitude: scale * Math.hypot(re, im),
-    })
-  }
+  const coefficients = rfft(values).map(({ re, im }, k) => ({
+    k,
+    frequency: k * flute.sampleRate / analysisSize,
+    re: scale * re,
+    im: scale * im,
+    magnitude: scale * Math.hypot(re, im),
+  }))
 
   const shown = coefficients.filter((d) => d.frequency <= 3000)
   const largest = d3.max(shown, (d) => d.magnitude)
@@ -653,11 +670,11 @@ fourier = {
 ```
 
 ```{ojs}
+//| label: fig-spectrum
+//| fig-cap: "Normalized Fourier coefficient magnitudes of the 4,096-sample flute window. Dots mark the first five harmonics."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 380,
-  subtitle: "Fourier coefficient magnitudes |sₖ| normalized",
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "frequency (Hz)", domain: [0, 3000], grid: true },
   y: {
     label: "relative coefficient magnitude",
@@ -700,7 +717,6 @@ $$
 $$
 
 ```{ojs}
-//| echo: false
 md`The full transform has ${analysisSize.toLocaleString()} complex coefficients.
 Because the signal is real, the one-sided representation groups them into
 ${fourier.stats.bins.toLocaleString()} nonnegative-frequency bins. Counting
@@ -771,21 +787,11 @@ It follows that retaining the largest bins gives the best approximation
 obtainable from $r$ nonnegative-frequency bins in this basis: no other choice
 of $r$ bins discards less energy.
 
-Move the slider to change the number of retained frequency bins. The first
-plot emphasizes the coefficients that remain; the second compares the
-resulting reconstruction with the original waveform.
+@fig-retained emphasizes the coefficients that remain, and @fig-reconstruction
+compares the resulting reconstruction with the original waveform. The slider
+between them changes the number of retained frequency bins.
 
 ```{ojs}
-//| echo: false
-viewof retainedCount = Inputs.range([1, 128], {
-  label: "retained frequency bins r",
-  value: 17,
-  step: 1,
-})
-```
-
-```{ojs}
-//| echo: false
 approximation = {
   const retained = fourier.rankedCoefficients.slice(0, retainedCount)
   const retainedBins = new Set(retained.map((d) => d.k))
@@ -825,11 +831,12 @@ approximation = {
 ```
 
 ```{ojs}
+//| label: fig-retained
+//| fig-cap: "The retained coefficients, in dark, against the full spectrum."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 380,
   subtitle: `Retained Fourier magnitudes (r = ${retainedCount})`,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "frequency (Hz)", domain: [0, 3000], grid: true },
   y: {
     label: "normalized |sₖ|",
@@ -855,12 +862,21 @@ Plot.plot({
 ```
 
 ```{ojs}
+viewof retainedCount = Inputs.range([1, 128], {
+  label: "retained frequency bins r",
+  value: 17,
+  step: 1,
+})
+```
+
+```{ojs}
+//| label: fig-reconstruction
+//| fig-cap: "The original waveform and its reconstruction from the retained frequency bins."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 380,
   subtitle: `Original and ${retainedCount}-bin reconstruction`,
   marginLeft: 52,
-  style: { background: "transparent", fontSize: "14px" },
   x: { label: "time (ms)", grid: true },
   y: { label: "amplitude", domain: [-0.11, 0.11], grid: true },
   color: {
@@ -878,7 +894,6 @@ Plot.plot({
 ```
 
 ```{ojs}
-//| echo: false
 md`With ${tex`r=${retainedCount}`}, the approximation retains
 **${(100 * approximation.energyFraction).toFixed(1)}%** of the signal energy.
 Its relative ${tex`L^2`} error is
@@ -911,7 +926,7 @@ random seed so that the example is reproducible. We transform all three
 signals and rank their nonnegative-frequency bins by energy, just as we did for
 the flute.
 
-The following curves show how much signal energy is retained by the largest
+@fig-energy shows how much signal energy is retained by the largest
 $r$ bins. As in the previous section, $S_r$ contains all coefficient indices
 represented by those bins, including their conjugate partners:
 
@@ -925,7 +940,6 @@ A curve that rises quickly indicates a compressible representation. A curve
 that rises slowly means that many coefficients are needed.
 
 ```{ojs}
-//| echo: false
 whiteNoise = {
   let state = 2026
   return d3.range(analysisSize).map(() => {
@@ -936,17 +950,9 @@ whiteNoise = {
 ```
 
 ```{ojs}
-//| echo: false
 oneSidedEnergy = (values) => {
   const n = values.length
-  return d3.range(n / 2 + 1).map((k) => {
-    let re = 0
-    let im = 0
-    for (let j = 0; j < n; ++j) {
-      const phase = 2 * Math.PI * k * j / n
-      re += values[j] * Math.cos(phase)
-      im -= values[j] * Math.sin(phase)
-    }
+  return rfft(values).map(({ re, im }, k) => {
     const paired = k > 0 && k < n / 2
     return (paired ? 2 : 1) * (re ** 2 + im ** 2) / n
   }).sort(d3.descending)
@@ -954,7 +960,6 @@ oneSidedEnergy = (values) => {
 ```
 
 ```{ojs}
-//| echo: false
 energyComparison = {
   const n = analysisSize
   const signals = [
@@ -1000,14 +1005,14 @@ energyComparison = {
 ```
 
 ```{ojs}
+//| label: fig-energy
+//| fig-cap: "Fraction of signal energy kept by the largest r frequency bins, for three signals in the same Fourier basis. The dashed line marks 90%."
 Plot.plot({
-  width: figW,
+  ...plotBase,
   height: 400,
   marginLeft: 52,
   marginRight: 28,
   marginBottom: 48,
-  subtitle: "Energy retained by the largest frequency bins",
-  style: { background: "transparent", fontSize: "14px" },
   x: {
     label: "retained frequency bins r",
     type: "log",
@@ -1043,7 +1048,6 @@ Plot.plot({
 ```
 
 ```{ojs}
-//| echo: false
 md`The flute reaches **90% of its energy with
 ${energyComparison.stats.flute.energy90} frequency bins**. The same threshold
 requires **${energyComparison.stats["white noise"].energy90.toLocaleString()}

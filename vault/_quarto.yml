@@ -25,6 +25,11 @@ website:
   # LinkedIn or Slack -- which is where a link to this site actually gets
   # posted.
   site-url: https://oishefarhan.com
+  # Target of an article's `code-tools: { source: repo }` link. No
+  # `repo-actions`, so it adds nothing else to the page.
+  repo-url: https://github.com/Oishe/oishefarhan.com
+  repo-subdir: vault
+  repo-branch: main
   description: >-
     Data and ML platform engineering: sensor ingest, warehouses shaped for model
     training, and the serving path from a model to a person.
@@ -109,6 +114,11 @@ format:
     # Source is available but not in the way: an article should read as prose,
     # with the code one click away.
     code-fold: true
+    # Charts are capped narrower than the reading column (720px, and 520px for
+    # square ones), so left-aligned they sit off-centre under the prose.
+    fig-align: center
+    # An article's `abstract:` is its takeaway, not an academic abstract.
+    abstract-title: Key takeaway
     # site-*.scss are generated from tokens.yaml and must not be hand-edited.
     # site-custom.scss is the hand-written layer that sits after them: the page
     # furniture the published pages ask for, built only out of the custom

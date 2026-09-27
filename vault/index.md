@@ -13,24 +13,21 @@ publish: true
 # navigation furniture competing with the hero. The writing is the point of the
 # page, so it sits directly under the hero.
 toc: false
+# The featured card is a one-item listing so its text comes from the article's
+# own `abstract:` rather than a second copy here. Swap `contents` to feature a
+# different article.
+listing:
+  id: featured
+  contents: articles/signals-as-vectors.qmd
+  type: custom
+  template: _theme/featured.ejs.md
+  include:
+    publish: true
 ---
 
 ::: {.landing}
 
-::: {.feature}
-[Featured writing]{.feature-kicker}
-
-## [Signals as Vectors](articles/signals-as-vectors.qmd){.feature-link}
-
-Sampling turns a signal into a vector, a point in a high-dimensional space.
-The Fourier transform expresses that same point in a coordinate system built from sinusoidal basis vectors.
-
-With a suitable basis, most of a signal’s information can be concentrated in just a few coordinates.
-The Fourier transform is particularly well suited to periodic signals.
-In the flute audio example, a few dominant frequency components are enough to reconstruct the signal almost exactly.
-These sparse representations offer many benefits including data compression.
-
-[Read the article →]{.feature-cta}
+::: {#featured}
 :::
 
 ::: {.next-steps}

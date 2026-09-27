@@ -61,3 +61,17 @@ col = {
   }
 }
 ```
+
+```{ojs}
+//| echo: false
+//| output: false
+// Options every figure shares; spread first so a figure can override any of
+// them. Plot sets its font inline on the SVG, so `inherit` is what makes chart
+// text match the prose. The larger bottom margin keeps the x-axis label, which
+// Plot draws at the bottom-right, off the last tick label at 14px.
+plotBase = ({
+  width: figW,
+  marginBottom: 44,
+  style: { background: "transparent", fontSize: "14px", fontFamily: "inherit" },
+})
+```
