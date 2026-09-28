@@ -1,0 +1,717 @@
+---
+title: Compression Playground
+description: Load a photograph, pick a basis, and throw coefficients away to see what survives.
+date: 2026-09-27
+tags:
+  - ml/signal-processing
+  - ml/linear-algebra
+publish: true
+echo: false
+toc: false
+page-layout: full
+---
+
+Every basis here is a matrix $B$: the coefficients of an image $X$ are $C = B_h X B_w^\top$, and the
+reconstruction is $B_h^\top C B_w$ after the small coefficients are set to zero. Both products run
+on your GPU, through WebGPU.
+
+```{=html}
+<style>
+.playground-source { display: flex; flex-wrap: wrap; align-items: center; gap: 0 1rem; }
+.playground-source form { margin: 0.25rem 0; width: auto; }
+
+/* The four panels laid out as the pipeline: pixel space on the left, transform
+   space on the right, arrows for the three steps between them. */
+.playground-flow { display: grid; grid-template-columns: 1fr 5rem 1fr; margin: 1rem 0; }
+/* .playground-wide: wider than the text column, centred on it, up to 1500px.
+   Quarto's own column classes would switch the whole page onto its column
+   grid. The 3rem leaves room for a scrollbar, which 100vw includes. Quarto
+   gives cell outputs overflow: auto, which would clip it. */
+.playground-wide { --wide: min(calc(100vw - 3rem), 1500px); width: var(--wide); margin-left: calc(50% - var(--wide) / 2); }
+.cell-output-display:has(.playground-wide) { overflow: visible; }
+.playground-flow > * { min-width: 0; }
+.playground-flow .space { grid-row: 1 / 5; border-radius: 6px; border: 1px solid color-mix(in srgb, currentColor 18%, transparent); background: color-mix(in srgb, currentColor 4%, transparent); }
+.playground-flow .title { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; text-align: center; padding: 0.5rem 0 0.4rem; }
+.playground-flow figure { margin: 0 0.5rem; }
+.playground-flow .last { margin-bottom: 0.5rem; }
+.playground-flow .arrow { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.3rem; font-size: 0.8rem; opacity: 0.8; text-align: center; line-height: 1.2; margin: 0 -0.5rem 1.8rem; z-index: 1; }
+.playground-flow .arrow i { display: block; width: 100%; border-top: 1.5px solid; position: relative; }
+.playground-flow .arrow i::after { content: ""; position: absolute; top: -5.5px; border: 5px solid transparent; }
+.playground-flow .right i::after { right: -1px; border-left: 9px solid; border-right: 0; }
+.playground-flow .left i::after { left: -1px; border-right: 9px solid; border-left: 0; }
+.playground-flow .down { flex-direction: row; height: 2.6rem; margin: 0; gap: 0.5rem; }
+.playground-flow .down i { width: 0; height: 100%; border-top: 0; border-left: 1.5px solid; }
+.playground-flow .down i::after { top: auto; bottom: -1px; left: -5.75px; border: 5px solid transparent; border-top: 9px solid; border-bottom: 0; }
+.playground-flow .down span { width: 0; white-space: nowrap; }
+.playground-flow .right span, .playground-flow .left span { padding: 0 0.6rem; }
+.at-1-1 { grid-area: 1 / 1; } .at-1-3 { grid-area: 1 / 3; }
+.at-2-1 { grid-area: 2 / 1; } .at-2-2 { grid-area: 2 / 2; } .at-2-3 { grid-area: 2 / 3; }
+.at-3-3 { grid-area: 3 / 3; }
+.at-4-1 { grid-area: 4 / 1; } .at-4-2 { grid-area: 4 / 2; } .at-4-3 { grid-area: 4 / 3; }
+@media (max-width: 768px) {
+  .playground-flow { grid-template-columns: 1fr; gap: 0.75rem; }
+  .playground-wide { width: auto; margin-left: 0; }
+  .playground-flow > * { grid-area: auto; }
+  .playground-flow .space, .playground-flow .title, .playground-flow .arrow { display: none; }
+}
+
+.playground-flow .viewport { overflow: hidden; border-radius: 4px; cursor: grab; }
+.playground-flow canvas { display: block; width: 100%; transform-origin: 0 0; }
+.playground-flow figcaption { display: flex; justify-content: space-between; align-items: center; color: inherit; font-size: 0.85rem; margin-top: 0.3rem; min-height: 1.8rem; }
+.playground-flow figcaption form { margin: 0; }
+.playground-flow figcaption button { font-size: 0.8rem; padding: 0.1rem 0.6rem; }
+
+.playground-readout { display: flex; flex-wrap: wrap; justify-content: center; margin: 1.5rem 0 1rem; text-align: center; }
+.playground-readout > div { padding: 0.25rem 2rem; }
+.playground-readout > div + div { border-left: 1px solid color-mix(in srgb, currentColor 20%, transparent); }
+.playground-readout .label { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.playground-readout .value { font-size: 1.8rem; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.playground-readout .detail { font-size: 0.8rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+@media (max-width: 768px) {
+  .playground-readout > div { padding: 0.25rem 0.75rem; }
+  .playground-readout > div + div { border-left: 0; }
+  /* Every other decade, or the labels overlap. */
+  .keep-slider .ticks span:nth-child(even) { display: none; }
+}
+.playground-status { font-size: 0.85rem; opacity: 0.75; min-height: 1.3em; }
+
+/* Offsets match the plot's 60px side margins; 8px is half the slider thumb, so
+   the thumb's centre travels exactly along the plot's x range. */
+.keep-slider { position: relative; margin-top: 0.5rem; padding-bottom: 1.4rem; }
+.keep-slider input { display: block; margin: 0 0 0 52px; width: calc(100% - 104px); accent-color: var(--secondary); }
+.keep-slider .ticks { position: absolute; left: 60px; right: 60px; bottom: 0; height: 1.2rem; font-size: 0.75rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.keep-slider .ticks span { position: absolute; transform: translateX(-50%); }
+.keep-slider .label { position: absolute; left: 0; top: 0; font-size: 0.8rem; opacity: 0.8; line-height: 1.2; }
+</style>
+```
+
+```{ojs}
+viewof source = {
+  // One value for three inputs, whichever was used last: a typed URL, a random
+  // photograph, or a file.
+  const url = Inputs.text({
+    type: "url",
+    label: "image URL",
+    value: "https://picsum.photos/2048/1344",
+    submit: "Load",
+    width: 480,
+  })
+  const random = Inputs.button("Random photo", { label: "or" })
+  // The label is only a visual "or"; without this it would be the button's name.
+  random.querySelector("button").setAttribute("aria-label", "Random photo")
+  const file = Inputs.file({ accept: "image/*" })
+  const form = html`<div>${url}<div class="playground-source">${random}${file}</div></div>`
+  const set = (value) => {
+    form.value = value
+    form.dispatchEvent(new Event("input", { bubbles: true }))
+  }
+  url.addEventListener("input", (e) => { e.stopPropagation(); set(url.value) })
+  random.addEventListener("input", (e) => {
+    e.stopPropagation()
+    set(`https://picsum.photos/2048/1344?random=${Date.now()}`)
+  })
+  file.addEventListener("input", (e) => { e.stopPropagation(); if (file.value) set(file.value) })
+  form.value = url.value
+  return form
+}
+```
+
+```{ojs}
+viewof maxSide = Inputs.radio([1024, 1536, 2048], { value: 1536, label: "longest side" })
+```
+
+```{ojs}
+viewof basisName = Inputs.select(Object.keys(BASES), { value: "Fourier", label: "basis" })
+```
+
+```{ojs}
+// Errors replace the status line until the next image loads.
+status = {
+  const el = html`<div class="playground-status">Loading…</div>`
+  if (gpu instanceof Error) el.textContent = gpu.message
+  else if (loaded instanceof Error) el.textContent = loaded.message
+  return el
+}
+```
+
+```{ojs}
+html`<div class="playground-flow playground-wide">
+  <div class="space at-1-1"></div><div class="space at-1-3"></div>
+  <div class="title at-1-1">Pixel space</div>
+  <div class="title at-1-3">Transform space</div>
+  ${panel("original", canvases.original, "at-2-1")}
+  <div class="arrow right at-2-2"><span>transform</span><i></i></div>
+  ${panel("coefficients", canvases.coefficients, "at-2-3")}
+  <div class="arrow down at-3-3"><i></i><span>threshold: keep the largest</span></div>
+  ${panel("sparse coefficients", canvases.sparse, "at-4-3 last")}
+  <div class="arrow left at-4-2"><span>inverse transform</span><i></i></div>
+  ${panel("reconstruction", canvases.reconstruction, "at-4-1 last", viewInput)}
+</div>`
+```
+
+```{ojs}
+// Each number takes the colour of what it matches in the plot below: the kept
+// share is the dashed cut, the energy is the energy curve. PSNR is also given
+// as the RMS error in 8-bit levels, which is easier to picture.
+html`<div class="playground-readout">${[
+  ["kept", `${+keepPct.toPrecision(2)}%`, `${cut.kept.toLocaleString()} of ${analysis.n.toLocaleString()} coefficients`, col.series[2]],
+  ["energy retained", `${(100 * cut.energy).toFixed(2)}%`, `${(100 * (1 - cut.energy)).toPrecision(2)}% thrown away`, col.series[1]],
+  ["PSNR", `${cut.psnr.toFixed(1)} dB`, `RMS error ${(255 * 10 ** (-cut.psnr / 20)).toFixed(1)} of 255 levels`, "inherit"],
+].map(([label, value, detail, color]) => html`<div>
+  <div class="label">${label}</div>
+  <div class="value" style="color: ${color}">${value}</div>
+  <div class="detail">${detail}</div>
+</div>`)}</div>`
+```
+
+```{ojs}
+// The slider runs on a log scale from one coefficient to all of them, which is
+// the plot's rank axis shifted by a constant, so the thumb stays over the
+// plot's dashed line. It is rebuilt for each image size but keeps its value.
+keepInput = {
+  const n = 3 * image.h * image.w
+  const lo = Math.log10(100 / n)
+  const keep = Math.min(100, Math.max(100 / n, this?.value ?? 5))
+  const range = html`<input type="range" aria-label="coefficients kept, log scale" min=${lo} max="2" step="0.01" value=${Math.log10(keep)}>`
+  const at = (d) => `calc(${(100 * (d - lo)) / (2 - lo)}%)`
+  const form = html`<div class="keep-slider playground-wide">
+    <div class="label">keep<br>(log)</div>
+    ${range}
+    <div class="ticks">${d3.range(Math.ceil(lo), 3).map((d) =>
+      html`<span style="left: ${at(d)}">${+(10 ** d).toPrecision(1)}%</span>`)}</div>
+  </div>`
+  form.value = keep
+  range.addEventListener("input", () => { form.value = 10 ** range.valueAsNumber })
+  return form
+}
+```
+
+```{ojs}
+// The decay curve and, on its own axis, the share of the energy kept by
+// stopping at each rank: it climbs as coefficients are added, steeply at first
+// because most of the energy is in the largest few. The dashed line is the
+// slider's cut.
+{
+  const { curve, n } = analysis
+  // Map 0–100% onto the magnitude's log range, so the two curves share the
+  // plot's height.
+  const [m0, m1] = d3.extent(curve, (d) => Math.log10(d.magnitude))
+  const y = (pct) => 10 ** (m0 + (pct / 100) * (m1 - m0))
+  return html`<div class="playground-wide">${Plot.plot({
+    ...plotBase,
+    width: wideWidth,
+    height: 340,
+    marginLeft: 60,
+    marginRight: 60,
+    marginBottom: 52,
+    x: { type: "log", domain: [1, n], label: "rank (coefficients, largest first)", labelAnchor: "center", labelOffset: 42, grid: true },
+    y: { type: "log", axis: null },
+    marks: [
+      Plot.gridY({ strokeOpacity: 0.07 }),
+      Plot.axisY({ anchor: "left", label: "↑ magnitude", color: col.series[0] }),
+      Plot.axisY(d3.range(0, 101, 20), {
+        anchor: "right", y, tickFormat: (v) => `${v}%`, label: "↑ energy retained", color: col.series[1],
+      }),
+      Plot.line(curve, { x: "rank", y: "magnitude", stroke: col.series[0], strokeWidth: 1.5 }),
+      Plot.line(curve, { x: "rank", y: (d) => y(100 * d.energy), stroke: col.series[1], strokeWidth: 1.5 }),
+      Plot.ruleX([cut.kept], { stroke: col.series[2], strokeDasharray: "4,3" }),
+    ],
+  })}</div>`
+}
+```
+
+```{ojs}
+//| output: false
+// The width of .playground-wide in pixels, for the plot, which draws at a
+// fixed size. It follows the window, not the text column, which stops growing
+// at its maximum width.
+wideWidth = Generators.observe((notify) => {
+  const main = document.querySelector("main#quarto-document-content")
+  // window. throughout: OJS reads a bare global once, as a constant.
+  const read = () => notify(window.innerWidth <= 768 ? main.getBoundingClientRect().width : Math.min(window.innerWidth - 48, 1500))
+  read()
+  window.addEventListener("resize", read)
+  return () => window.removeEventListener("resize", read)
+})
+```
+
+```{ojs}
+//| output: false
+keepPct = Generators.input(keepInput)
+```
+
+```{ojs}
+//| output: false
+// Placed in the reconstruction panel's caption.
+viewInput = Inputs.radio(["reconstruction", "error × 10"], { value: "reconstruction" })
+```
+
+```{ojs}
+//| output: false
+view = Generators.input(viewInput)
+```
+
+```{ojs}
+//| output: false
+// One captioned panel with a save button; `caption` replaces the name.
+panel = (name, canvas, cls, caption = html`<span>${name}</span>`) => html`<figure class="${cls}">
+  <div class="viewport">${canvas}</div>
+  <figcaption>${caption}${DOM.download(
+    () => new Promise((resolve) => canvas.toBlob(resolve)),
+    `${name.replaceAll(" ", "-")}.png`,
+    "save",
+  )}</figcaption>
+</figure>`
+```
+
+<!--
+Machinery. OJS cells run in dependency order, not page order.
+
+The flow: `source` and `maxSide` give `image`; `image` gives `res`, the GPU
+buffers sized to it; `basisName` gives `analysis` (upload the basis, forward
+transform, read the coefficients back once for their histogram); `keepPct`
+gives `cut` (a lookup in that histogram) and a frame (inverse transform and
+redraw). WebGPU runs submitted work in order, so a frame never sees a basis
+that is half uploaded.
+-->
+
+{{< include ../_theme/_ojs-setup.qmd >}}
+
+```{ojs}
+import { BASES, LEVELS, transpose } from "./compression-bases.js"
+```
+
+```{ojs}
+// A matrix product on all three channels at once, O = L · R, where one side is
+// a basis shared by the channels (batch stride 0). Each 16 × 16 workgroup
+// computes a 64 × 64 tile of O, each thread a 4 × 4 block of it, stepping
+// through K 16 at a time in workgroup memory. Every side is a multiple of 64
+// (see `image`), so there are no edge cases. Entries of R below t count as zero,
+// which is the threshold; t = 0 keeps everything.
+MATMUL = `
+struct P { M: u32, N: u32, K: u32, sL: u32, sR: u32, sO: u32, t: f32, pad: u32 }
+@group(0) @binding(0) var<uniform> p: P;
+@group(0) @binding(1) var<storage, read> L: array<f32>;
+@group(0) @binding(2) var<storage, read> R: array<f32>;
+@group(0) @binding(3) var<storage, read_write> O: array<f32>;
+var<workgroup> tL: array<array<f32, 64>, 16>;
+var<workgroup> tR: array<array<f32, 64>, 16>;
+
+@compute @workgroup_size(16, 16)
+fn main(@builtin(workgroup_id) g: vec3u, @builtin(local_invocation_id) l: vec3u,
+        @builtin(local_invocation_index) li: u32) {
+  let m0 = g.y * 64u;
+  let n0 = g.x * 64u;
+  let lo = g.z * p.sL;
+  let ro = g.z * p.sR;
+  var acc: array<array<f32, 4>, 4>;
+  for (var k0 = 0u; k0 < p.K; k0 += 16u) {
+    for (var i = 0u; i < 4u; i++) {
+      let e = li + i * 256u;
+      tL[e % 16u][e / 16u] = L[lo + (m0 + e / 16u) * p.K + k0 + e % 16u];
+      let v = R[ro + (k0 + e / 64u) * p.N + n0 + e % 64u];
+      tR[e / 64u][e % 64u] = select(v, 0.0, abs(v) < p.t);
+    }
+    workgroupBarrier();
+    for (var k = 0u; k < 16u; k++) {
+      var a: array<f32, 4>;
+      var b: array<f32, 4>;
+      for (var i = 0u; i < 4u; i++) {
+        a[i] = tL[k][l.y + 16u * i];
+        b[i] = tR[k][l.x + 16u * i];
+      }
+      for (var i = 0u; i < 4u; i++) {
+        for (var j = 0u; j < 4u; j++) { acc[i][j] += a[i] * b[j]; }
+      }
+    }
+    workgroupBarrier();
+  }
+  for (var i = 0u; i < 4u; i++) {
+    for (var j = 0u; j < 4u; j++) {
+      O[g.z * p.sO + (m0 + l.y + 16u * i) * p.N + n0 + l.x + 16u * j] = acc[i][j];
+    }
+  }
+}`
+```
+
+```{ojs}
+// One panel, drawn straight into its canvas: a triangle that covers it, and one
+// fragment per pixel. Mode 0 is an image, clamped to [0, 1]. Mode 1 is a
+// coefficient field: the log of the magnitude summed over the channels, counting
+// entries below t as zero, through a colour map. Mode 2 is the error of image A
+// against image B, magnified by `gain`.
+DISPLAY = `
+struct D { w: u32, h: u32, mode: u32, t: f32, lo: f32, hi: f32, gain: f32, pad: f32 }
+@group(0) @binding(0) var<uniform> d: D;
+@group(0) @binding(1) var<storage, read> A: array<f32>;
+@group(0) @binding(2) var<storage, read> B: array<f32>;
+@group(0) @binding(3) var<storage, read> lut: array<vec4f, 256>;
+
+@vertex
+fn vs(@builtin(vertex_index) i: u32) -> @builtin(position) vec4f {
+  let p = vec2f(f32((i << 1u) & 2u), f32(i & 2u));
+  return vec4f(p * 2.0 - 1.0, 0.0, 1.0);
+}
+
+@fragment
+fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+  let n = d.w * d.h;
+  let i = u32(pos.y) * d.w + u32(pos.x);
+  let a = vec3f(A[i], A[n + i], A[2u * n + i]);
+  if (d.mode == 0u) { return vec4f(clamp(a, vec3f(0.0), vec3f(1.0)), 1.0); }
+  if (d.mode == 2u) {
+    let b = vec3f(B[i], B[n + i], B[2u * n + i]);
+    return vec4f(min(abs(a - b) * d.gain, vec3f(1.0)), 1.0);
+  }
+  let m = abs(a);
+  let s = dot(select(m, vec3f(0.0), m < vec3f(d.t)), vec3f(1.0));
+  let u = clamp((log(s + 1e-12) - d.lo) / (d.hi - d.lo), 0.0, 1.0);
+  return lut[u32(u * 255.0)];
+}`
+```
+
+```{ojs}
+// The device and the two pipelines, once per page. Without WebGPU this is an
+// Error, which the status line shows, and nothing downstream runs.
+gpu = {
+  const adapter = await navigator.gpu?.requestAdapter()
+  if (!adapter) return new Error("This playground needs WebGPU, which this browser does not provide.")
+  const device = await adapter.requestDevice()
+  const format = navigator.gpu.getPreferredCanvasFormat()
+  const matmul = device.createComputePipeline({
+    layout: "auto",
+    compute: { module: device.createShaderModule({ code: MATMUL }), entryPoint: "main" },
+  })
+  const module = device.createShaderModule({ code: DISPLAY })
+  const display = device.createRenderPipeline({
+    layout: "auto",
+    vertex: { module, entryPoint: "vs" },
+    fragment: { module, entryPoint: "fs", targets: [{ format }] },
+  })
+  // 256 colours for the coefficient panels.
+  const colours = Float32Array.from(d3.range(256).flatMap((i) => {
+    const { r, g, b } = d3.rgb(d3.interpolateMagma(i / 255))
+    return [r / 255, g / 255, b / 255, 1]
+  }))
+  const lut = device.createBuffer({ size: colours.byteLength, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST })
+  device.queue.writeBuffer(lut, 0, colours)
+  return { device, format, matmul, display, lut }
+}
+```
+
+```{ojs}
+// The panels outlive every image, so their zoom and pan persist too. Scroll to
+// zoom, drag to pan, double-click to reset. Each space shares one view, so the
+// same detail stays side by side: original with reconstruction, coefficients
+// with sparse coefficients.
+canvases = {
+  if (gpu instanceof Error) return new Promise(() => {})
+  const names = ["original", "coefficients", "sparse", "reconstruction"]
+  const all = Object.fromEntries(names.map((name) => [name, document.createElement("canvas")]))
+  for (const [name, c] of Object.entries(all)) {
+    c.setAttribute("role", "img")
+    c.setAttribute("aria-label", name)
+    c.getContext("webgpu").configure({ device: gpu.device, format: gpu.format, alphaMode: "opaque" })
+  }
+  const zoom = (group) => {
+    let view = { s: 1, x: 0, y: 0 }
+    const apply = () => {
+      for (const c of group) {
+        const box = c.parentElement?.getBoundingClientRect()
+        const width = box?.width ?? 1
+        // Clamp so the image always covers its viewport.
+        view.x = Math.min(0, Math.max(width * (1 - view.s), view.x))
+        view.y = Math.min(0, Math.max((box?.height ?? 1) * (1 - view.s), view.y))
+        c.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.s})`
+        // Nearest-neighbour only when magnifying: it aliases when shrinking.
+        const magnified = view.s * width * devicePixelRatio >= c.width
+        c.style.imageRendering = magnified ? "pixelated" : "auto"
+      }
+    }
+    for (const c of group) {
+      c.addEventListener("wheel", (e) => {
+        e.preventDefault()
+        const box = c.parentElement.getBoundingClientRect()
+        const px = e.clientX - box.left, py = e.clientY - box.top
+        const s = Math.min(64, Math.max(1, view.s * Math.exp(-e.deltaY / 400)))
+        view = { s, x: px - ((px - view.x) * s) / view.s, y: py - ((py - view.y) * s) / view.s }
+        apply()
+      }, { passive: false })
+      c.addEventListener("pointerdown", (e) => {
+        c.setPointerCapture(e.pointerId)
+        let last = [e.clientX, e.clientY]
+        const move = (e) => {
+          view.x += e.clientX - last[0]
+          view.y += e.clientY - last[1]
+          last = [e.clientX, e.clientY]
+          apply()
+        }
+        c.addEventListener("pointermove", move)
+        // Fires on release and on cancel, where pointerup would miss a cancel.
+        c.addEventListener("lostpointercapture", () => c.removeEventListener("pointermove", move), { once: true })
+      })
+      c.addEventListener("dblclick", () => { view = { s: 1, x: 0, y: 0 }; apply() })
+    }
+  }
+  zoom([all.original, all.reconstruction])
+  zoom([all.coefficients, all.sparse])
+  return all
+}
+```
+
+```{ojs}
+// A failed load is kept as a value, so the status line can say what went
+// wrong while the panels keep the last image that did load.
+loaded = (async () => {
+  const blob = typeof source === "string"
+    ? await fetch(source, { cache: "no-store" }).then((r) => {
+        if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
+        return r.blob()
+      })
+    : await source.blob()
+  return createImageBitmap(blob)
+})().catch((error) => new Error(`Could not load that image (${error.message}).` + (typeof source === "string"
+  ? " Its server may not allow other sites to read it; save it and choose it as a file instead."
+  : "")))
+```
+
+```{ojs}
+// The image, shrunk so its longest side is at most `maxSide`, then trimmed at
+// the centre to a multiple of 2^LEVELS on each side so every wavelet level
+// halves evenly (and the matrix product needs no edge cases). Planar RGB in
+// [0, 1]: all of red, then green, then blue.
+image = {
+  if (loaded instanceof Error) return new Promise(() => {})
+  const bw = loaded.width, bh = loaded.height
+  const s = Math.min(1, maxSide / Math.max(bw, bh))
+  const step = 2 ** LEVELS
+  // At least one step, so a tiny or very narrow image is padded with black
+  // instead of trimmed to nothing.
+  const w = Math.max(step, Math.floor((bw * s) / step) * step)
+  const h = Math.max(step, Math.floor((bh * s) / step) * step)
+  const canvas = document.createElement("canvas")
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })
+  ctx.imageSmoothingQuality = "high"
+  // Whole-pixel offsets, so an unscaled image is copied, not resampled.
+  ctx.drawImage(loaded, Math.floor((bw - w / s) / 2), Math.floor((bh - h / s) / 2), w / s, h / s, 0, 0, w, h)
+  const px = ctx.getImageData(0, 0, w, h).data
+  const data = new Float32Array(3 * h * w)
+  for (let c = 0; c < 3; c++) for (let i = 0; i < h * w; i++) data[c * h * w + i] = px[i * 4 + c] / 255
+  return { data, h, w }
+}
+```
+
+```{ojs}
+// The GPU side of one image: its buffers, the four products (two forward, two
+// inverse) and the four panels, each with its own small uniform buffer so they
+// can all go in one submission.
+res = {
+  const { device, matmul, display, lut } = gpu
+  const { data, h, w } = image
+  const hw = h * w
+  const owned = []
+  const buffer = (bytes, usage) => {
+    const b = device.createBuffer({ size: bytes, usage })
+    owned.push(b)
+    return b
+  }
+  const { STORAGE, UNIFORM, COPY_DST, COPY_SRC } = GPUBufferUsage
+  const matrix = (n) => buffer(4 * n, STORAGE | COPY_DST | COPY_SRC)
+  const B = {
+    Bh: matrix(h * h), BhT: matrix(h * h), Bw: matrix(w * w), BwT: matrix(w * w),
+    X: matrix(3 * hw), T: matrix(3 * hw), C: matrix(3 * hw), U: matrix(3 * hw), Xh: matrix(3 * hw),
+  }
+  device.queue.writeBuffer(B.X, 0, data)
+  const group = (pipeline, buffers) => device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: buffers.map((b, binding) => ({ binding, resource: { buffer: b } })),
+  })
+
+  // O = L · R on every channel; `batched` names the side that is the image.
+  const product = (L, R, O, [M, K, N], batched) => {
+    const params = buffer(32, UNIFORM | COPY_DST)
+    const bind = group(matmul, [params, L, R, O])
+    const set = (t) => {
+      const bytes = new ArrayBuffer(32)
+      new Uint32Array(bytes, 0, 6).set([M, N, K, batched === "L" ? hw : 0, batched === "R" ? hw : 0, hw])
+      new Float32Array(bytes, 24, 1)[0] = t
+      device.queue.writeBuffer(params, 0, bytes)
+    }
+    set(0)
+    return { set, run: (pass) => { pass.setBindGroup(0, bind); pass.dispatchWorkgroups(N / 64, M / 64, 3) } }
+  }
+  const forward = [product(B.Bh, B.X, B.T, [h, h, w], "R"), product(B.T, B.BwT, B.C, [h, w, w], "L")]
+  const inverse = [product(B.BhT, B.C, B.U, [h, h, w], "R"), product(B.U, B.Bw, B.Xh, [h, w, w], "L")]
+
+  const panel = (canvas, A, other = A) => {
+    const params = buffer(32, UNIFORM | COPY_DST)
+    const bind = group(display, [params, A, other, lut])
+    canvas.width = w
+    canvas.height = h
+    return {
+      set: ({ mode = 0, t = 0, span = [0, 1], gain = 1 }) => {
+        const bytes = new ArrayBuffer(32)
+        new Uint32Array(bytes, 0, 3).set([w, h, mode])
+        new Float32Array(bytes, 12, 4).set([t, span[0], span[1], gain])
+        device.queue.writeBuffer(params, 0, bytes)
+      },
+      draw: (encoder) => {
+        const pass = encoder.beginRenderPass({
+          colorAttachments: [{ view: canvas.getContext("webgpu").getCurrentTexture().createView(), loadOp: "clear", storeOp: "store" }],
+        })
+        pass.setPipeline(display)
+        pass.setBindGroup(0, bind)
+        pass.draw(3)
+        pass.end()
+      },
+    }
+  }
+  const panels = {
+    original: panel(canvases.original, B.X),
+    coefficients: panel(canvases.coefficients, B.C),
+    sparse: panel(canvases.sparse, B.C),
+    reconstruction: panel(canvases.reconstruction, B.Xh, B.X),
+  }
+
+  // Redraws run one at a time, and while one is waiting a newer one replaces
+  // it, so a fast drag on a slow GPU renders the latest position instead of
+  // every position it passed through.
+  let next = null, busy = false, dead = false
+  const frame = async (job) => {
+    next = job
+    if (busy) return
+    busy = true
+    while (next && !dead) { const run = next; next = null; await run() }
+    busy = false
+  }
+  invalidation.then(() => { dead = true; owned.forEach((b) => b.destroy()) })
+  return { ...B, h, w, forward, inverse, panels, frame }
+}
+```
+
+```{ojs}
+// Forward transform for the chosen basis, C = B_h X B_wᵀ, then one readback of
+// C for its histogram.
+analysis = {
+  const { device, matmul } = gpu
+  const { h, w } = res
+  const q = device.queue
+  const Bh = BASES[basisName](h)
+  const Bw = w === h ? Bh : BASES[basisName](w)
+  q.writeBuffer(res.Bh, 0, Bh)
+  q.writeBuffer(res.BhT, 0, transpose(Bh, h))
+  q.writeBuffer(res.Bw, 0, Bw)
+  q.writeBuffer(res.BwT, 0, transpose(Bw, w))
+  const bytes = 12 * h * w
+  const read = device.createBuffer({ size: bytes, usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST })
+  const encoder = device.createCommandEncoder()
+  const pass = encoder.beginComputePass()
+  pass.setPipeline(matmul)
+  res.forward.forEach((p) => p.run(pass))
+  pass.end()
+  encoder.copyBufferToBuffer(res.C, 0, read, 0, bytes)
+  q.submit([encoder.finish()])
+  await read.mapAsync(GPUMapMode.READ)
+  const stats = histogram(new Float32Array(read.getMappedRange()), h, w)
+  read.destroy()
+  return stats
+}
+```
+
+```{ojs}
+// Everything the threshold slider needs, from one pass over the coefficients
+// instead of a sort. Magnitudes go into log-spaced bins holding a count and an
+// energy; summed from the top, bin b says how many coefficients are at least
+// its lower edge and how much energy they carry. Thresholding at a bin edge is
+// therefore exact, and with 2^16 bins the edges are 0.04% apart. C is planar,
+// all of one channel and then the next.
+histogram = function (C, h, w) {
+  const BINS = 1 << 16
+  const hw = h * w
+  let max = 0
+  for (const v of C) max = Math.max(max, Math.abs(v))
+  // An all-black image has no nonzero coefficient; any finite top will do.
+  const top = Math.log(max || 1), bottom = top - Math.log(1e12)
+  const scale = (BINS - 1) / (top - bottom)
+  const count = new Float64Array(BINS), energy = new Float64Array(BINS)
+  const field = new Float32Array(hw)
+  let total = 0
+  for (let i = 0; i < C.length; i++) {
+    const a = Math.abs(C[i])
+    const b = a > 0 ? Math.max(0, Math.floor((Math.log(a) - bottom) * scale)) : 0
+    count[b]++
+    energy[b] += a * a
+    total += a * a
+    field[i % hw] += a
+  }
+  for (let b = BINS - 2; b >= 0; b--) {
+    count[b] += count[b + 1]
+    energy[b] += energy[b + 1]
+  }
+  // The colour range of the coefficient panels, from percentiles of the log
+  // field; a few enormous low-frequency coefficients would wash out the rest.
+  const sample = d3.range(0, hw, 7).map((i) => Math.log(field[i] + 1e-12)).sort(d3.ascending)
+  const edge = (b) => Math.exp(bottom + b / scale)
+  // The decay curve and the energy kept up to each rank: one point per bin
+  // where the rank has grown by 1%.
+  const curve = []
+  for (let b = BINS - 1, last = 0; b >= 0; b--) {
+    if (count[b] >= Math.max(1, last * 1.01)) {
+      curve.push({ rank: count[b], magnitude: edge(b), energy: total ? energy[b] / total : 1 })
+      last = count[b]
+    }
+  }
+  return {
+    n: C.length, count, energy, total, edge, curve,
+    span: [d3.quantileSorted(sample, 0.01), d3.quantileSorted(sample, 0.999)],
+  }
+}
+```
+
+```{ojs}
+// The threshold for the slider: the highest bin edge that keeps at least the
+// asked-for number of coefficients. The basis is orthonormal, so the squared
+// error of the reconstruction is exactly the energy thrown away (Parseval),
+// before the display clips it to [0, 1].
+cut = {
+  const { n, count, energy, total, edge } = analysis
+  const want = Math.max(1, Math.round((keepPct / 100) * n))
+  let b = count.length - 1
+  while (b > 0 && count[b] < want) b--
+  const mse = (total - energy[b]) / n
+  return {
+    t: b === 0 ? 0 : edge(b),
+    kept: count[b],
+    energy: total ? energy[b] / total : 1,
+    psnr: mse > 0 ? 10 * Math.log10(1 / mse) : Infinity,
+  }
+}
+```
+
+```{ojs}
+//| output: false
+// The inverse, B_hᵀ · (C with the small entries zeroed) · B_w, then every panel.
+// The time is from submission until the GPU reports the work done.
+res.frame(async () => {
+  const { device, matmul } = gpu
+  const { span } = analysis
+  const P = res.panels
+  const start = performance.now()
+  res.inverse[0].set(cut.t)
+  P.original.set({})
+  P.coefficients.set({ mode: 1, span })
+  P.sparse.set({ mode: 1, t: cut.t, span })
+  P.reconstruction.set(view === "reconstruction" ? {} : { mode: 2, gain: 10 })
+  const encoder = device.createCommandEncoder()
+  const pass = encoder.beginComputePass()
+  pass.setPipeline(matmul)
+  res.inverse.forEach((p) => p.run(pass))
+  pass.end()
+  Object.values(P).forEach((p) => p.draw(encoder))
+  device.queue.submit([encoder.finish()])
+  await device.queue.onSubmittedWorkDone()
+  status.textContent = `${res.w} × ${res.h} · ${Math.round(performance.now() - start)} ms per update`
+})
+```

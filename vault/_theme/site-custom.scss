@@ -357,7 +357,6 @@ mjx-container {
 // ---------------------------------------------------------------------------
 form[class^="oi-"] {
   --label-width: 13rem;
-  --length1: 16rem;
   margin: 1rem 0;
   accent-color: var(--secondary);
   font-family: var(--bs-body-font-family);
@@ -368,6 +367,12 @@ form[class^="oi-"] {
     border-radius: 0.25rem;
     background: transparent;
     color: inherit;
+  }
+
+  // Inputs sets its buttons' text to the body colour, which vanishes on the
+  // dark btn-quarto background Quarto gives them.
+  button.btn-quarto {
+    color: var(--bs-btn-color);
   }
 }
 
