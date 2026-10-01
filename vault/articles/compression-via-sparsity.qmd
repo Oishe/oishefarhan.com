@@ -1,0 +1,791 @@
+---
+title: Compression via Sparsity
+description: Why natural images survive throwing away most of their transform coefficients, and what changes when the basis changes.
+date: 2026-10-01
+# The takeaway. Shown under the title here, and read by the featured card on the
+# home page once published.
+abstract: |
+  This photograph stays recognizable after losing 95% of its coordinates in
+  a suitable basis. In the pixel basis the same cut leaves almost nothing.
+  Random pixel fluctuations are much harder to approximate with so few terms.
+
+  Which basis is right depends on what the image contains. Waves suit smooth
+  regions; localized wavelets can represent edges more economically. Related
+  choices underlie the transforms used in JPEG and JPEG 2000.
+tags:
+  - ml/signal-processing
+  - ml/linear-algebra
+publish: true
+echo: false
+---
+
+{{< include ../_theme/_ojs-setup.qmd >}}
+
+```{=html}
+<style>
+.panels { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin: 1rem 0; }
+.panel { flex: 1 1 240px; max-width: 340px; margin: 0; }
+.panels.four { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 560px; margin-inline: auto; }
+.panels.four .panel { max-width: none; }
+.panels.two { display: grid; grid-template-columns: repeat(2, 1fr); max-width: 560px; margin-inline: auto; }
+.panels.two .panel { max-width: none; }
+.panel img { width: 100%; height: auto; display: block; border-radius: 4px; }
+.panel figcaption { font-size: 0.85rem; text-align: center; margin-top: 0.35rem; color: inherit; opacity: 0.75; }
+.panel canvas.pixelated { width: 100%; display: block; image-rendering: pixelated; }
+/* The basis comparison: one 256-pixel crop drawn at 2x. */
+.panel.crop { max-width: 512px; margin: 1rem auto; }
+.panel.crop .blank { aspect-ratio: 1; background: #000; border-radius: 4px; }
+
+/* The recipe loop: three columns, three rows, arrows drawn in CSS so they
+   follow the text colour in both themes. Vertical arrows are zero-width, and
+   their labels hang toward the empty middle column. */
+.recipe { display: grid; grid-template-columns: 1fr minmax(6rem, auto) 1fr; align-items: center; justify-items: center; gap: 0.5rem 0.75rem; max-width: 560px; margin: 1.5rem auto; }
+.recipe p { margin: 0; }
+.recipe .node { text-align: center; font-size: 1.4rem; margin: 0; }
+.recipe .cap, .recipe figcaption { display: block; font-size: 0.85rem; opacity: 0.75; color: inherit; }
+.recipe.pictures .node { width: 100%; max-width: 240px; }
+.recipe.pictures img { width: 100%; height: auto; display: block; border-radius: 4px; margin-bottom: 0.35rem; }
+.recipe .arrow { position: relative; font-size: 0.85rem; opacity: 0.8; }
+.recipe .left, .recipe .right { justify-self: stretch; text-align: center; padding-bottom: 12px; }
+.recipe .left::after, .recipe .right::after { content: ""; position: absolute; left: 0; right: 0; bottom: 4px; border-top: 1.5px solid currentColor; }
+.recipe .arrow::before { content: ""; position: absolute; border: 4.75px solid transparent; }
+.recipe .right::before { right: -2px; bottom: 0; border-right: 0; border-left: 9px solid currentColor; }
+.recipe .left::before { left: -2px; bottom: 0; border-left: 0; border-right: 9px solid currentColor; }
+.recipe .up, .recipe .down { width: 0; height: 3rem; border-left: 1.5px solid currentColor; }
+.recipe .up::before, .recipe .down::before { left: -5.5px; }
+.recipe .down::before { bottom: -2px; border-bottom: 0; border-top: 9px solid currentColor; }
+.recipe .up::before { top: -2px; border-top: 0; border-bottom: 9px solid currentColor; }
+.recipe .label { position: absolute; top: 50%; transform: translateY(-50%); white-space: nowrap; }
+.recipe .down .label { right: 0.6rem; }
+.recipe .up .label { left: 0.6rem; }
+</style>
+```
+
+## Introduction
+
+```{ojs}
+panels(
+  ["original", "fjord"],
+  [`from 5% of its DCT coefficients · ${db("fjord/DCT")}`, "fjord-dct"],
+)
+```
+
+The source image has 1024 × 1024 pixels, with three colour channels each:
+about three million numbers. The DCT, a transform we will meet below,
+describes the same image with another three million numbers. The version on
+the right keeps the largest 5% of those and sets the rest to zero. The scene
+remains recognizable, though details blur and the sky and water pick up
+visible ripples. The previews above are reduced for the page; we will look at
+a crop at full resolution later.
+
+[Signals as Vectors](signals-as-vectors.qmd) did this with a flute note. The
+recording was a vector, the Fourier basis described it with a few large
+coefficients and many small ones, and discarding the small ones cost almost
+nothing. This article makes the same move in two dimensions. An image is also a
+vector, and the question is again which basis makes it sparse.
+
+## An image is a vector
+
+A colour image with $h$ rows and $w$ columns is $3hw$ numbers, one brightness
+per pixel and channel. Stack them in any fixed order and the image becomes a
+vector $\mathbf{x} \in \mathbb{R}^{3hw}$, whose coordinates in the standard
+basis are the pixel values themselves.
+
+Any other orthonormal basis describes the same vector. If its basis vectors are
+the columns of $\Psi$, the image's coordinates in that basis are
+$\mathbf{s} = \Psi^{\mathsf T}\mathbf{x}$, and $\mathbf{x} = \Psi\mathbf{s}$
+recovers the pixels exactly. Computing $\mathbf{s}$ is called a **transform**.
+
+It is tempting to think of the transform as carrying the image into another
+space, the "frequency domain". It does not move the image at all. In the
+[rotating basis](signals-as-vectors.qmd#fig-rotation) of Signals as Vectors,
+the vector stayed where it was while the axes turned, and only its coordinates
+changed. Here too, $\mathbf{x}$ and $\mathbf{s}$ are coordinate lists for the
+same image vector, with the same number of numbers, measured along different
+axes. The pixel and transform "domains" are two coordinate systems, not two
+places.
+
+One quantity does not depend on the axes. We call the squared length of the
+vector the image's **energy**, and because $\Psi$ is orthonormal it is the same
+sum of squares in either coordinate system:
+
+$$
+\|\mathbf{x}\|_2^2 = \sum_i x_i^2 = \sum_k s_k^2.
+$$
+
+It measures squared RGB values here, not physical light energy or perceptual
+importance.
+
+## The recipe
+
+Every reconstruction in this article is made by the same three steps. This
+tests **sparse approximation**: how much of an image survives when most
+coefficients are zeroed. Keeping 5% of the coefficients does not yet mean a
+file is 5% of its original size; storing their values and locations also costs bits.
+
+:::: {.recipe}
+::: {.node}
+$\mathbf{x}$ [pixels]{.cap}
+:::
+::: {.arrow .right}
+transform $\Psi^{\mathsf T}$
+:::
+::: {.node}
+$\mathbf{s}$ [coefficients]{.cap}
+:::
+::: {.arrow .up}
+[compare]{.label}
+:::
+::: {}
+:::
+::: {.arrow .down}
+[keep $r$ largest $|s_k|$]{.label}
+:::
+::: {.node}
+$\hat{\mathbf{x}}$ [reconstruction]{.cap}
+:::
+::: {.arrow .left}
+inverse $\Psi$
+:::
+::: {.node}
+$\tilde{\mathbf{s}}$ [sparse coefficients]{.cap}
+:::
+::::
+
+The transform and its inverse are exact, so the **threshold** is the only step
+that changes anything. It keeps the $r$ largest coordinates of $\mathbf{s}$
+**in absolute value** and sets the rest to zero, giving $\tilde{\mathbf{s}}$.
+The **inverse transform** reads those coordinates in the same basis and returns
+to pixels, $\hat{\mathbf{x}} = \Psi\tilde{\mathbf{s}}$. The upward arrow on the
+left is not a step. It compares the reconstruction with the original.
+
+Throwing coordinates away is cheap only if the ones thrown away are small, so
+everything depends on the basis. The simplest choice skips the change of basis:
+$\Psi = I$, so $\mathbf{s} = \mathbf{x}$ and the threshold acts on the pixels
+directly. Keeping the largest 5% keeps roughly the brightest 5% of channel
+values, not 5% of whole RGB pixels. Most of them are in the blue channel of the
+sky and the water, and the rest are a few sunlit rocks.
+
+```{ojs}
+panels(
+  ["original", "fjord"],
+  [`its largest 5% of pixel values · ${db("fjord/Pixel")}`, "fjord-pixel"],
+)
+```
+
+In this basis, many coordinates have comparable magnitudes, and almost every
+one matters. For compression we need a basis in which most of the image's
+energy collects in a few coordinates. The rest of the article is about that
+choice.
+
+## A basis for images
+
+When the vectors are images, so are the basis vectors. The reconstruction
+$\mathbf{x} = \Psi\mathbf{s} = \sum_k s_k\boldsymbol{\psi}_k$ says that the
+image is a weighted sum of **basis images**. In the pixel basis, each basis
+image is a single lit pixel in one colour channel, and its weight is that
+channel's value. Any other orthonormal set of $3hw$ images also allows exact
+reconstruction, and the question is which one needs the fewest large weights.
+
+An image has two spatial axes. We build a **separable** basis by choosing a
+1D basis for each axis, and transform the RGB channels independently. Take a
+1D basis $\Psi_h$ for columns of length $h$ and $\Psi_w$ for rows of length
+$w$. Each channel $X$ is an $h \times w$ matrix, and its coefficients form a
+matrix of the same shape:
+
+$$
+S = \Psi_h^{\mathsf T} X \Psi_w,
+\qquad
+X = \Psi_h S \Psi_w^{\mathsf T}.
+$$
+
+Transform every column, then every row. If $\mathbf{a}_u$ is column $u$ of
+$\Psi_h$ and $\mathbf{b}_v$ is column $v$ of $\Psi_w$, coefficient $S_{uv}$
+measures how much of the basis image $\mathbf{a}_u \mathbf{b}_v^{\mathsf T}$
+the channel contains. These outer products form an orthonormal basis for
+$h \times w$ matrices.
+
+The **discrete cosine transform** (DCT) is the transform used in ordinary lossy
+JPEG, there applied to 8 × 8 blocks. Here we apply it across the whole image.
+Its vectors are cosines sampled at the middle of each pixel,
+
+$$
+\psi_k[i] = \alpha_k \cos\frac{\pi(2i+1)k}{2n},
+\qquad
+\alpha_0 = \sqrt{1/n},\ \alpha_{k>0} = \sqrt{2/n},
+$$
+
+a close relative of the Fourier basis that uses only cosines, with
+$i,k = 0,\ldots,n-1$. Here are the 64 basis images of lowest frequency.
+Frequency increases to the right horizontally and downward vertically.
+
+```{ojs}
+panels(["the 64 lowest-frequency 2D DCT basis images", dctBasisGrid(8, 32)])
+```
+
+A whole photograph has too many coordinates to look at, but a small patch does
+not. Below is a grey 8 × 8 patch from where the water meets the tip of the
+right-hand cliff, each of its pixels the average of an 8 × 8 block of the
+photograph: a vector in $\mathbb{R}^{64}$.
+
+```{ojs}
+panels(
+  ["where the patch comes from", patchLocator()],
+  ["the patch", patchSum(PATCH_BASES[0][1], 64)],
+)
+```
+
+Each row below writes the patch as a sum of 64 terms $s_k\boldsymbol{\psi}_k$,
+first in the pixel basis and then in the 8 × 8 DCT. Every tile is one term,
+drawn where it sits in its basis, with mid grey for zero. Each row keeps the
+six largest terms in magnitude and adds them up. Faded tiles are the ones
+discarded.
+
+```{ojs}
+patchKept = 6
+```
+
+```{ojs}
+panels4(
+  ...PATCH_BASES.flatMap(([name, terms]) => [
+    [`${name}: the ${patchKept} largest of 64 terms`, termGrid(terms, patchKept)],
+    [`their sum · ${pct(keptEnergy(terms, patchKept))} of the energy`, patchSum(terms, patchKept)],
+  ]),
+)
+```
+
+With all 64 terms the two sums would both equal the patch: they describe the
+same vector using two different lists of 64 numbers. With six terms the two
+rows diverge. The six largest pixel terms light just six pixels and hold
+${pct(keptEnergy(PATCH_BASES[0][1], 6))} of the energy. The six largest DCT
+terms already give a blurred copy of the whole patch, bright water shading into
+the dark cliff in the corner, with ${pct(keptEnergy(PATCH_BASES[1][1], 6))} of
+the energy. Most of that is the first term alone, the patch's average
+brightness, which holds ${pct(keptEnergy(PATCH_BASES[1][1], 1))}. The other
+five add the slow changes across the patch, and those are exactly the DCT's
+next basis images.
+
+The DCT tiles sit in the same arrangement as the basis grid above, with the
+lowest frequencies at the top left, and the coefficient pictures below use that
+layout at full size. They are not pictures of the image. A coefficient's
+position says which basis image it weights, not where anything is in the
+photograph.
+
+## Running the recipe
+
+Here is the recipe again, now with the photograph and the DCT, keeping 5% of
+the coefficients.
+
+```{ojs}
+html`<div class="recipe pictures">
+  ${recipeNode("pixels", "fjord")}
+  <div class="arrow right">DCT</div>
+  ${recipeNode("coefficients", "fjord-dct-coefficients")}
+  <div class="arrow up"><span class="label">compare</span></div>
+  <div></div>
+  <div class="arrow down"><span class="label">keep the largest 5%</span></div>
+  ${recipeNode(`reconstruction · ${db("fjord/DCT")}`, "fjord-dct")}
+  <div class="arrow left">inverse DCT</div>
+  ${recipeNode("sparse coefficients", "fjord-dct-sparse")}
+</div>`
+```
+
+All of the loss happens at the threshold. Since the basis is orthonormal, the
+squared error of the reconstruction equals the energy of the discarded
+coefficients,
+
+$$
+\|\mathbf{x} - \hat{\mathbf{x}}\|_2^2 = \sum_{k \notin S_r} s_k^2,
+$$
+
+where $S_r$ is the set of indices of the $r$ largest coefficients in absolute
+value. Keeping those coefficients minimizes squared error among all
+approximations using at most $r$ coefficients **in this fixed basis**. At 5%,
+the DCT keeps ${pct(fjord.dct.energy)} of the photograph's energy.
+
+A common error measure is **peak signal-to-noise ratio** (PSNR). With pixel
+values in $[0, 1]$ and $N = 3hw$,
+
+$$
+\mathrm{MSE} = \frac{1}{N}\|\mathbf{x} - \hat{\mathbf{x}}\|_2^2,
+\qquad
+\mathrm{PSNR} = 10 \log_{10} \frac{1}{\mathrm{MSE}} \ \text{dB}.
+$$
+
+An increase of about 6 dB halves the root-mean-square error. The reconstruction
+above is at ${fjord.dct.psnr.toFixed(1)} dB, a root-mean-square error of
+${rms(fjord.dct)} levels out of 255. Retaining 99% of the energy can still
+leave visible artifacts: average brightness contributes heavily to energy,
+while small edge details matter to our eyes. PSNR does not fully describe
+perceived quality.
+
+These measurements use the transform coefficients before the displayed pixels
+are clipped to $[0,1]$ and rounded. The playground chooses a magnitude
+threshold, so tied coefficients can make its actual count exceed the requested
+budget. The transform bases land within a few hundredths of a percent of 5%,
+but 8-bit pixel values tie often, and the pixel run keeps
+${pct(fjord.pixel.kept)}.
+
+## How much can we throw away?
+
+Before sweeping the threshold, it is worth asking why throwing anything away
+works at all. An image this size is one point in a space with millions of
+dimensions. Draw each channel value independently and uniformly from $[0,1]$
+and the result will almost certainly look like static. Natural images occupy a
+far smaller and more predictable region of that space: mostly smooth areas
+separated by edges, where each pixel is a good guess for its neighbours.
+
+The transform makes that structure visible. Below are white noise and the
+photograph, each next to its DCT coefficients, coloured by magnitude on a log
+scale. Each coefficient panel uses its own colour range to reveal structure;
+brightness is not an absolute magnitude comparison between panels.
+
+```{ojs}
+Object.assign(panels(
+  ["white noise", "noise"],
+  ["its DCT coefficients", "noise-dct-coefficients"],
+  ["photograph", "fjord"],
+  ["its DCT coefficients", "fjord-dct-coefficients"],
+), { className: "panels two" })
+```
+
+The two images have the same size and go through the same transform, yet their
+coefficients look nothing alike. The photograph's energy gathers in the slow
+waves at the top left and fades into a dark field. Apart from its mean
+brightness, the noise has no spatial pattern for this transform to exploit,
+and its fluctuating part spreads energy across all the coefficients. For
+zero-mean white noise with covariance $\sigma^2 I$, any fixed orthonormal
+transform preserves that covariance: each coefficient still has expected
+squared magnitude $\sigma^2$.
+
+One could choose a basis whose first vector points along a particular noise
+image, making that image one-sparse. But then the basis itself would encode the
+image. The useful question is whether a basis known to the decoder in advance
+concentrates the signal's energy. As with the flute, sparsity depends on the
+signal and the basis together.
+
+The recipe above kept 5% of the coefficients, which is one point on a curve.
+Sweep the share of coefficients kept, from one coefficient to all of them, and
+plot the energy lost at each point. The steeper the curve falls, the more
+compressible the image is in that basis. Solid lines are the photograph, dashed
+lines the noise, and the vertical line marks the 5% budget.
+
+```{ojs}
+Plot.plot({
+  ...plotBase,
+  height: 360,
+  marginLeft: 68,
+  marginTop: 30,
+  marginBottom: 58,
+  x: {
+    label: "fraction of coefficients kept (largest first)",
+    type: "log",
+    grid: true,
+    domain: [1e-5, 1],
+    ticks: keepTicks,
+    tickFormat: pctTick,
+    labelAnchor: "center",
+    labelOffset: 46,
+  },
+  y: {
+    label: "energy discarded",
+    type: "log",
+    grid: true,
+    domain: [1e-5, 1],
+    ticks: keepTicks,
+    tickFormat: pctTick,
+  },
+  color: { legend: true, domain: BASES, range: col.series },
+  marks: [
+    Plot.ruleX([0.05], { strokeOpacity: 0.4, strokeDasharray: "1,3" }),
+    Plot.line(curves.filter((d) => d.image === "fjord"), {
+      x: "fraction", y: "discarded", stroke: "basis", clip: true,
+    }),
+    Plot.line(curves.filter((d) => d.image === "noise"), {
+      x: "fraction", y: "discarded", stroke: "basis", strokeDasharray: "3,3", clip: true,
+    }),
+  ],
+})
+```
+
+The noise curves fall much more slowly. Keeping 5% of its coefficients
+discards about ${pct(1 - noise.dct.energy)} of its energy in every transform
+basis. The noise has one structured feature, its average brightness of one
+half. For uniform $[0,1]$ noise, $\mathbb{E}[x]^2 / \mathbb{E}[x^2] =
+(1/4)/(1/3) = 3/4$, so the mean accounts for about three quarters of the
+energy, which is why the dashed curves level off near 25%. Keeping the largest
+fluctuations improves on that, but slowly. All the curves reach zero loss at
+100% kept; zero is outside this logarithmic plot.
+
+The DCT and Fourier bases hold each channel's mean in a single coefficient, so
+that drop happens off the left edge of the plot. The wavelets hold it in a
+coarse 16 × 16 approximation per channel, 768 coefficients in all, and both
+the photograph's and the noise's wavelet curves stay near 100% until about
+0.025% kept, when those coefficients are in.
+
+In the pixel basis, the photograph is no more compressible than noise. Its
+curve falls only as fast as the brightness values drop off. In all four
+transform bases tested, the photograph's curve falls by orders of magnitude,
+and at 5% it has lost under 1% of its energy.
+
+## Choosing the basis
+
+The four transform bases lose between ${pct(1 - fjord.daubechies4.energy)} and
+${pct(1 - fjord.fourier.energy)} of the photograph's energy at 5%. The gap
+looks small as a share of total energy, but the discarded energy differs by
+about a factor of two: ${(fjord.daubechies4.psnr - fjord.fourier.psnr).toFixed(1)} dB
+of PSNR. The difference is easiest to see in a detail: the cliff edge, the
+people standing on it, and the flat water below. Switch between the bases to
+compare them in place.
+
+```{ojs}
+viewof cropBasis = Inputs.radio(["original", ...BASES.slice(1)], { value: "DCT", format: label })
+```
+
+```{ojs}
+viewof cropView = Inputs.radio(["reconstruction", "error"], { value: "reconstruction", format: (v) => v === "error" ? `absolute error × ${ERROR_GAIN}` : v })
+```
+
+```{ojs}
+{
+  const original = cropBasis === "original", error = cropView === "error"
+  const figure = original && error
+    ? html`<div class="blank"></div>`
+    : html`<img src=${FIGURES[`crop-${slug(cropBasis)}${error ? "-error" : ""}`]} alt="">`
+  const caption = original
+    ? (error ? "original: no error" : "original")
+    : `${label(cropBasis)} · ${db(`fjord/${cropBasis}`)} over the whole image`
+  return html`<figure class="panel crop">${figure}<figcaption>${caption}</figcaption></figure>`
+}
+```
+
+The crop is 256 × 256 pixels of the reconstruction, drawn at twice its size. The error view shows the absolute difference from the
+original, magnified ${ERROR_GAIN} times per channel. Black means no error. The
+PSNR is for the full image, not just this crop.
+
+**Fourier** and **DCT** fail in the same way. Their basis vectors extend across
+the image. A sharp edge needs many of them working together, and when most are
+discarded the edge blurs and the error concentrates along it. The flat water
+also picks up speckle, because each surviving wave, placed to help an edge
+somewhere, adds a ripple to the water as well. The real Fourier basis used here
+consists of sines and cosines, counted as separate real coefficients. It treats
+the image as periodic, as though the left edge joined the right and the top
+joined the bottom. The DCT instead corresponds to an even reflection at the
+borders, avoiding that wraparound jump. On this image the two nearly tie.
+
+**Wavelets** are localized at different scales. A 1D Haar wavelet is positive
+on one half of its support and negative on the other. Here, products of 1D
+basis vectors form rectangular 2D patterns, using six levels along each axis.
+These wavelets also wrap periodically at the borders, but only the few that
+straddle a border feel it. Wavelets away from an edge can have very small or
+zero coefficients, so fewer terms are needed to keep the edge while leaving
+smooth water relatively clean. The error still depends on the image; it is not
+spread uniformly.
+
+Haar's visible drawback is its blocks: at 5% the cliff face breaks into
+rectangles. **Daubechies 4** here means `db4`, with four vanishing moments and
+an eight-tap filter. Its smoother, overlapping basis vectors reduce these
+blocks at the same coefficient budget. It has the lowest squared error of the
+bases tested on this photograph, not a guarantee for every image.
+
+JPEG takes a different route to the same fix. It applies the DCT to each 8×8
+block separately, so every basis vector is local, at the cost of block
+boundaries at high compression. JPEG 2000 also uses wavelets, but its standard
+9/7 and reversible 5/3 transforms are different from the orthonormal `db4`
+transform here. This is a comparison of sparse approximations, not a
+JPEG-versus-JPEG-2000 benchmark.[^jpeg2000]
+
+## Try it
+
+The [Compression Playground](compression-playground.qmd) generated the
+reconstructions, crops and error curves above. Load a photograph, pick a basis,
+and drag the threshold to explore other images and budgets.
+
+## Conclusion
+
+A change of basis compresses nothing by itself: it is exact and reversible,
+and it produces as many numbers as it takes in. It is useful when it moves the
+image's energy into a few coordinates, and that depends on how well the basis
+matches the image. In this experiment, the pixel basis spreads the photograph's
+energy across many values; the transforms concentrate it, and the tested
+wavelets give the lowest error at a 5% budget. The noise's random fluctuations
+remain much harder to approximate.
+
+A transform codec also **quantizes** coefficients to a finite set of values
+and **encodes** both their values and where the nonzeros occur. Entropy coding
+can make common symbols, including runs of zeros, cheap to store. The number of
+bits depends on these choices as well as sparsity. Those steps turn a sparse
+approximation into a smaller file.
+
+Every basis here was fixed in advance. A basis can instead be learned from a
+collection of images: after subtracting the collection's mean image, principal
+component analysis finds the shared $r$-dimensional subspace that minimizes
+average squared reconstruction error.[^pca] That uses the same $r$ directions
+for every image, whereas thresholding here chooses a different set of
+coefficients for each image. The learned basis and mean must also be available
+to the decoder, with their storage cost shared across the collection.
+
+[^jpeg2000]: Michael D. Adams and Rabab Ward, [*Wavelet Transforms in the JPEG-2000 Standard*](https://www.ece.uvic.ca/~frodo/publications/pacrim2001.pdf).
+
+[^pca]: Ryan Tibshirani, [*Dimension reduction 2: Principal component analysis*](https://www.stat.cmu.edu/~ryantibs/datamining/lectures/08-dim2.pdf).
+
+<!--
+Everything below is machinery. The figures are rendered by the Compression
+Playground, not here: scripts/export-compression-figures.ts drives it and writes
+data/compression/. Re-run it after changing a basis or the playground.
+-->
+
+```{ojs}
+stats = FileAttachment("data/compression/stats.json").json()
+```
+
+```{ojs}
+curves = FileAttachment("data/compression/curves.csv").csv({ typed: true })
+```
+
+```{ojs}
+// Literal paths, so Quarto sees each attachment and copies it.
+FIGURES = {
+  const files = {
+    fjord: FileAttachment("data/compression/fjord.webp"),
+    "fjord-pixel": FileAttachment("data/compression/fjord-pixel.webp"),
+    "fjord-dct": FileAttachment("data/compression/fjord-dct.webp"),
+    "fjord-dct-coefficients": FileAttachment("data/compression/fjord-dct-coefficients.webp"),
+    "fjord-dct-sparse": FileAttachment("data/compression/fjord-dct-sparse.webp"),
+    noise: FileAttachment("data/compression/noise.webp"),
+    "noise-dct-coefficients": FileAttachment("data/compression/noise-dct-coefficients.webp"),
+    "crop-original": FileAttachment("data/compression/crop-original.webp"),
+    "crop-fourier": FileAttachment("data/compression/crop-fourier.webp"),
+    "crop-fourier-error": FileAttachment("data/compression/crop-fourier-error.webp"),
+    "crop-dct": FileAttachment("data/compression/crop-dct.webp"),
+    "crop-dct-error": FileAttachment("data/compression/crop-dct-error.webp"),
+    "crop-haar": FileAttachment("data/compression/crop-haar.webp"),
+    "crop-haar-error": FileAttachment("data/compression/crop-haar-error.webp"),
+    "crop-daubechies4": FileAttachment("data/compression/crop-daubechies4.webp"),
+    "crop-daubechies4-error": FileAttachment("data/compression/crop-daubechies4-error.webp"),
+  }
+  return Object.fromEntries(await Promise.all(Object.entries(files).map(async ([k, f]) => [k, await f.url()])))
+}
+```
+
+```{ojs}
+// Must match ERROR_GAIN in scripts/export-compression-figures.ts.
+ERROR_GAIN = 4
+```
+
+```{ojs}
+// In the playground's order, which is also the plot's colour order.
+BASES = ["Pixel", "Fourier", "DCT", "Wavelet: Haar", "Wavelet: Daubechies 4"]
+```
+
+```{ojs}
+label = (name) => name.replace("Wavelet: ", "")
+```
+
+```{ojs}
+// The export script's file-name form of a basis name.
+slug = (name) => label(name).replace(" ", "").toLowerCase()
+```
+
+```{ojs}
+// Per-image stats by basis slug, for inline expressions in the prose, which
+// cannot hold quoted strings: Pandoc would curl the quotes.
+fjord = Object.fromEntries(BASES.map((name) => [slug(name), stats[`fjord/${name}`]]))
+```
+
+```{ojs}
+noise = Object.fromEntries(BASES.map((name) => [slug(name), stats[`noise/${name}`]]))
+```
+
+```{ojs}
+db = (key) => `${stats[key].psnr.toFixed(1)} dB`
+```
+
+```{ojs}
+// PSNR as an RMS error in 8-bit levels.
+rms = (s) => (255 * 10 ** (-s.psnr / 20)).toFixed(0)
+```
+
+```{ojs}
+pct = (x) => `${+(100 * x).toPrecision(2)}%`
+```
+
+```{ojs}
+// A row of captioned figures. Each item is [caption, figure], where the figure
+// is a FIGURES key, a node, or null for a caption-only cell.
+panels = function (...items) {
+  const node = (f) => typeof f === "string" ? html`<img src=${FIGURES[f]} alt="" loading="lazy">` : f
+  return html`<div class="panels">${items.map(([caption, f]) =>
+    html`<figure class="panel">${f === null ? "" : node(f)}<figcaption>${caption}</figcaption></figure>`)}</div>`
+}
+```
+
+```{ojs}
+// Two rows: terms and their sum, one basis per row.
+panels4 = (...items) => Object.assign(panels(...items), { className: "panels four" })
+```
+
+```{ojs}
+// One node of the recipe loop, with a picture instead of a symbol.
+recipeNode = (caption, key) =>
+  html`<figure class="node"><img src=${FIGURES[key]} alt="" loading="lazy"><figcaption>${caption}</figcaption></figure>`
+```
+
+```{ojs}
+// The playground's basis matrices. Renamed because BASES is already the list
+// of names above.
+import { BASES as MATRICES } from "./compression-bases.js"
+```
+
+```{ojs}
+//| output: false
+// The patch's source. Hidden: a cell whose value is an image displays it.
+fjord512 = FileAttachment("data/fjord-512.jpg").image()
+```
+
+```{ojs}
+// A grey 8 x 8 patch: the 32 x 32 region where the water meets the tip of the
+// right-hand cliff, averaged over 4 x 4 blocks.
+patch = {
+  const img = fjord512
+  const side = 32, n = 8, b = side / n
+  const ctx = Object.assign(document.createElement("canvas"), { width: side, height: side }).getContext("2d")
+  ctx.drawImage(img, 300, 200, side, side, 0, 0, side, side)
+  const d = ctx.getImageData(0, 0, side, side).data
+  const p = new Float64Array(n * n)
+  for (let y = 0; y < side; y++) for (let x = 0; x < side; x++) {
+    const i = 4 * (y * side + x)
+    p[Math.floor(y / b) * n + Math.floor(x / b)] += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / (255 * b * b)
+  }
+  return p
+}
+```
+
+```{ojs}
+// The patch's 64 terms s ψ in the 2D basis built from B, whose rows are the 1D
+// basis vectors. Term u·8+v is the outer product of rows u and v; rank orders
+// the terms by |s|, largest first.
+patchTerms = function (B) {
+  const n = 8
+  const terms = []
+  for (let u = 0; u < n; u++) for (let v = 0; v < n; v++) {
+    let s = 0
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) s += B[u * n + i] * B[v * n + j] * patch[i * n + j]
+    const term = new Float64Array(n * n)
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) term[i * n + j] = s * B[u * n + i] * B[v * n + j]
+    terms.push({ s, term })
+  }
+  terms.map((_, k) => k)
+    .sort((a, b) => Math.abs(terms[b].s) - Math.abs(terms[a].s))
+    .forEach((k, rank) => { terms[k].rank = rank })
+  return terms
+}
+```
+
+```{ojs}
+PATCH_BASES = [["pixel basis", patchTerms(MATRICES.Pixel(8))], ["DCT", patchTerms(MATRICES.DCT(8))]]
+```
+
+```{ojs}
+// The photograph with the patch's source region outlined.
+patchLocator = function () {
+  const canvas = Object.assign(document.createElement("canvas"), { width: 512, height: 512 })
+  canvas.style.width = "100%"
+  const ctx = canvas.getContext("2d")
+  ctx.drawImage(fjord512, 0, 0)
+  ctx.strokeStyle = "#ff3b30"
+  ctx.lineWidth = 3
+  ctx.strokeRect(300 - 4, 200 - 4, 32 + 8, 32 + 8)
+  return canvas
+}
+```
+
+```{ojs}
+keptEnergy = function (terms, kept) {
+  const total = d3.sum(terms, (t) => t.s ** 2)
+  return d3.sum(terms.filter((t) => t.rank < kept), (t) => t.s ** 2) / total
+}
+```
+
+```{ojs}
+// One grey scale for every tile in both bases, so tile contrast compares
+// term sizes across the two rows.
+termScale = d3.max(PATCH_BASES.flatMap(([, terms]) => terms.map((t) => d3.max(t.term, Math.abs))))
+```
+
+```{ojs}
+// The 64 terms as 8 x 8 tiles in basis order, mid-grey at zero, with a
+// one-pixel transparent gap. Discarded terms are faded.
+termGrid = function (terms, kept) {
+  const n = 8, side = n * n + n - 1
+  const canvas = Object.assign(document.createElement("canvas"), { width: side, height: side, className: "pixelated" })
+  const ctx = canvas.getContext("2d")
+  const image = ctx.createImageData(side, side)
+  terms.forEach(({ term, rank }, k) => {
+    const x0 = (k % n) * (n + 1), y0 = Math.floor(k / n) * (n + 1)
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+      const p = 4 * ((y0 + i) * side + x0 + j)
+      image.data[p] = image.data[p + 1] = image.data[p + 2] = 128 + 127 * term[i * n + j] / termScale
+      image.data[p + 3] = rank < kept ? 255 : 45
+    }
+  })
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+```
+
+```{ojs}
+// The sum of the kept terms as an 8 x 8 grey image.
+patchSum = function (terms, kept) {
+  const n = 8
+  const canvas = Object.assign(document.createElement("canvas"), { width: n, height: n, className: "pixelated" })
+  const ctx = canvas.getContext("2d")
+  const image = ctx.createImageData(n, n)
+  for (let p = 0; p < n * n; p++) {
+    const v = 255 * d3.sum(terms, (t) => (t.rank < kept ? t.term[p] : 0))
+    image.data[4 * p] = image.data[4 * p + 1] = image.data[4 * p + 2] = v
+    image.data[4 * p + 3] = 255
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+```
+
+```{ojs}
+// The k x k lowest-frequency 2D DCT basis images, each sampled on a size x
+// size grid: cos(π(2x+1)u / 2n) · cos(π(2y+1)v / 2n), mid-grey at zero. The
+// one-pixel gaps between tiles are left transparent.
+dctBasisGrid = function (k, size) {
+  const side = k * size + (k - 1)
+  const c = (i, f) => Math.cos(Math.PI * (2 * i + 1) * f / (2 * size))
+  const canvas = document.createElement("canvas")
+  canvas.width = canvas.height = side
+  canvas.style.width = "100%"
+  const ctx = canvas.getContext("2d")
+  const image = ctx.createImageData(side, side)
+  const px = image.data
+  for (let v = 0; v < k; v++) for (let u = 0; u < k; u++) {
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = ((v * (size + 1) + y) * side + u * (size + 1) + x) * 4
+      px[i] = px[i + 1] = px[i + 2] = 128 + 127 * c(x, u) * c(y, v)
+      px[i + 3] = 255
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+```
+
+```{ojs}
+// Six decades of ticks would collide on a log axis, so name them.
+keepTicks = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
+```
+
+```{ojs}
+// d3's SI formatting renders 1e-5 as "10µ" on a log axis, which is not what a
+// fraction means to a reader.
+pctTick = function (d) {
+  const v = d * 100
+  return `${v < 1 ? v.toPrecision(1) : v}%`
+}
+```

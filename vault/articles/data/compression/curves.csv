@@ -1,0 +1,1965 @@
+image,basis,fraction,discarded
+fjord,Pixel,0.002341,0.9939
+fjord,Pixel,0.005044,0.9869
+fjord,Pixel,0.007758,0.9800
+fjord,Pixel,0.01094,0.9719
+fjord,Pixel,0.01352,0.9654
+fjord,Pixel,0.01629,0.9585
+fjord,Pixel,0.01874,0.9524
+fjord,Pixel,0.02097,0.9469
+fjord,Pixel,0.02320,0.9415
+fjord,Pixel,0.02550,0.9359
+fjord,Pixel,0.02784,0.9303
+fjord,Pixel,0.03024,0.9246
+fjord,Pixel,0.03272,0.9188
+fjord,Pixel,0.03541,0.9125
+fjord,Pixel,0.03816,0.9061
+fjord,Pixel,0.04138,0.8987
+fjord,Pixel,0.04473,0.8910
+fjord,Pixel,0.04869,0.8820
+fjord,Pixel,0.05292,0.8725
+fjord,Pixel,0.05805,0.8611
+fjord,Pixel,0.06411,0.8477
+fjord,Pixel,0.07118,0.8323
+fjord,Pixel,0.07931,0.8146
+fjord,Pixel,0.08890,0.7940
+fjord,Pixel,0.09841,0.7737
+fjord,Pixel,0.1076,0.7542
+fjord,Pixel,0.1159,0.7368
+fjord,Pixel,0.1227,0.7226
+fjord,Pixel,0.1337,0.7002
+fjord,Pixel,0.1421,0.6833
+fjord,Pixel,0.1521,0.6636
+fjord,Pixel,0.1612,0.6460
+fjord,Pixel,0.1708,0.6281
+fjord,Pixel,0.1815,0.6088
+fjord,Pixel,0.1925,0.5894
+fjord,Pixel,0.2043,0.5692
+fjord,Pixel,0.2171,0.5479
+fjord,Pixel,0.2309,0.5256
+fjord,Pixel,0.2461,0.5017
+fjord,Pixel,0.2626,0.4767
+fjord,Pixel,0.2815,0.4489
+fjord,Pixel,0.3006,0.4215
+fjord,Pixel,0.3214,0.3928
+fjord,Pixel,0.3434,0.3633
+fjord,Pixel,0.3652,0.3351
+fjord,Pixel,0.3863,0.3087
+fjord,Pixel,0.4072,0.2833
+fjord,Pixel,0.4328,0.2536
+fjord,Pixel,0.4583,0.2255
+fjord,Pixel,0.4860,0.1968
+fjord,Pixel,0.5170,0.1668
+fjord,Pixel,0.5458,0.1411
+fjord,Pixel,0.5732,0.1186
+fjord,Pixel,0.6035,0.09593
+fjord,Pixel,0.6393,0.07265
+fjord,Pixel,0.6743,0.05327
+fjord,Pixel,0.7140,0.03527
+fjord,Pixel,0.7579,0.02000
+fjord,Pixel,0.8007,0.009661
+fjord,Pixel,0.8409,0.003503
+fjord,Pixel,0.8890,0.0002340
+fjord,Pixel,0.9458,0.000003212
+fjord,Pixel,1.000,0.000
+fjord,Fourier,3.179e-7,0.5665
+fjord,Fourier,6.358e-7,0.2897
+fjord,Fourier,9.537e-7,0.1650
+fjord,Fourier,0.000001272,0.1492
+fjord,Fourier,0.000001589,0.1345
+fjord,Fourier,0.000001907,0.1229
+fjord,Fourier,0.000002225,0.1150
+fjord,Fourier,0.000002543,0.1094
+fjord,Fourier,0.000002861,0.1056
+fjord,Fourier,0.000003179,0.1028
+fjord,Fourier,0.000003497,0.1009
+fjord,Fourier,0.000003815,0.09903
+fjord,Fourier,0.000004133,0.09718
+fjord,Fourier,0.000004450,0.09554
+fjord,Fourier,0.000004768,0.09397
+fjord,Fourier,0.000005086,0.09246
+fjord,Fourier,0.000005404,0.09106
+fjord,Fourier,0.000005722,0.08991
+fjord,Fourier,0.000006040,0.08879
+fjord,Fourier,0.000006358,0.08781
+fjord,Fourier,0.000006676,0.08684
+fjord,Fourier,0.000007312,0.08493
+fjord,Fourier,0.000007947,0.08308
+fjord,Fourier,0.000008583,0.08147
+fjord,Fourier,0.000009219,0.07999
+fjord,Fourier,0.000009855,0.07870
+fjord,Fourier,0.00001049,0.07749
+fjord,Fourier,0.00001113,0.07640
+fjord,Fourier,0.00001176,0.07536
+fjord,Fourier,0.00001240,0.07439
+fjord,Fourier,0.00001303,0.07351
+fjord,Fourier,0.00001399,0.07228
+fjord,Fourier,0.00001494,0.07115
+fjord,Fourier,0.00001589,0.07010
+fjord,Fourier,0.00001685,0.06916
+fjord,Fourier,0.00001780,0.06827
+fjord,Fourier,0.00001876,0.06744
+fjord,Fourier,0.00001971,0.06670
+fjord,Fourier,0.00002098,0.06576
+fjord,Fourier,0.00002225,0.06489
+fjord,Fourier,0.00002352,0.06408
+fjord,Fourier,0.00002480,0.06330
+fjord,Fourier,0.00002607,0.06260
+fjord,Fourier,0.00002766,0.06178
+fjord,Fourier,0.00002925,0.06099
+fjord,Fourier,0.00003084,0.06023
+fjord,Fourier,0.00003274,0.05938
+fjord,Fourier,0.00003465,0.05860
+fjord,Fourier,0.00003656,0.05787
+fjord,Fourier,0.00003846,0.05716
+fjord,Fourier,0.00004101,0.05629
+fjord,Fourier,0.00004323,0.05558
+fjord,Fourier,0.00004578,0.05482
+fjord,Fourier,0.00004832,0.05412
+fjord,Fourier,0.00005118,0.05339
+fjord,Fourier,0.00005436,0.05264
+fjord,Fourier,0.00005754,0.05197
+fjord,Fourier,0.00006072,0.05136
+fjord,Fourier,0.00006390,0.05079
+fjord,Fourier,0.00006803,0.05011
+fjord,Fourier,0.00007184,0.04954
+fjord,Fourier,0.00007566,0.04900
+fjord,Fourier,0.00007979,0.04846
+fjord,Fourier,0.00008456,0.04789
+fjord,Fourier,0.00008996,0.04728
+fjord,Fourier,0.00009505,0.04676
+fjord,Fourier,0.0001001,0.04627
+fjord,Fourier,0.0001052,0.04582
+fjord,Fourier,0.0001116,0.04529
+fjord,Fourier,0.0001179,0.04480
+fjord,Fourier,0.0001246,0.04432
+fjord,Fourier,0.0001316,0.04386
+fjord,Fourier,0.0001396,0.04337
+fjord,Fourier,0.0001478,0.04290
+fjord,Fourier,0.0001558,0.04247
+fjord,Fourier,0.0001637,0.04207
+fjord,Fourier,0.0001739,0.04159
+fjord,Fourier,0.0001834,0.04117
+fjord,Fourier,0.0001933,0.04077
+fjord,Fourier,0.0002050,0.04031
+fjord,Fourier,0.0002165,0.03990
+fjord,Fourier,0.0002289,0.03947
+fjord,Fourier,0.0002419,0.03905
+fjord,Fourier,0.0002556,0.03865
+fjord,Fourier,0.0002705,0.03824
+fjord,Fourier,0.0002858,0.03785
+fjord,Fourier,0.0003023,0.03745
+fjord,Fourier,0.0003188,0.03708
+fjord,Fourier,0.0003370,0.03670
+fjord,Fourier,0.0003551,0.03634
+fjord,Fourier,0.0003748,0.03597
+fjord,Fourier,0.0003955,0.03561
+fjord,Fourier,0.0004171,0.03526
+fjord,Fourier,0.0004400,0.03490
+fjord,Fourier,0.0004635,0.03456
+fjord,Fourier,0.0004883,0.03423
+fjord,Fourier,0.0005147,0.03389
+fjord,Fourier,0.0005420,0.03356
+fjord,Fourier,0.0005722,0.03322
+fjord,Fourier,0.0006037,0.03288
+fjord,Fourier,0.0006367,0.03255
+fjord,Fourier,0.0006714,0.03222
+fjord,Fourier,0.0007073,0.03190
+fjord,Fourier,0.0007467,0.03157
+fjord,Fourier,0.0007868,0.03125
+fjord,Fourier,0.0008281,0.03094
+fjord,Fourier,0.0008726,0.03062
+fjord,Fourier,0.0009190,0.03030
+fjord,Fourier,0.0009673,0.03000
+fjord,Fourier,0.001019,0.02968
+fjord,Fourier,0.001074,0.02937
+fjord,Fourier,0.001130,0.02906
+fjord,Fourier,0.001192,0.02875
+fjord,Fourier,0.001257,0.02844
+fjord,Fourier,0.001324,0.02813
+fjord,Fourier,0.001395,0.02783
+fjord,Fourier,0.001470,0.02752
+fjord,Fourier,0.001547,0.02722
+fjord,Fourier,0.001630,0.02692
+fjord,Fourier,0.001719,0.02661
+fjord,Fourier,0.001810,0.02632
+fjord,Fourier,0.001905,0.02602
+fjord,Fourier,0.002007,0.02573
+fjord,Fourier,0.002117,0.02543
+fjord,Fourier,0.002232,0.02513
+fjord,Fourier,0.002350,0.02484
+fjord,Fourier,0.002475,0.02455
+fjord,Fourier,0.002607,0.02426
+fjord,Fourier,0.002744,0.02398
+fjord,Fourier,0.002891,0.02369
+fjord,Fourier,0.003044,0.02341
+fjord,Fourier,0.003207,0.02312
+fjord,Fourier,0.003378,0.02284
+fjord,Fourier,0.003555,0.02256
+fjord,Fourier,0.003745,0.02227
+fjord,Fourier,0.003942,0.02200
+fjord,Fourier,0.004148,0.02172
+fjord,Fourier,0.004363,0.02145
+fjord,Fourier,0.004596,0.02117
+fjord,Fourier,0.004840,0.02089
+fjord,Fourier,0.005099,0.02061
+fjord,Fourier,0.005368,0.02034
+fjord,Fourier,0.005657,0.02006
+fjord,Fourier,0.005955,0.01979
+fjord,Fourier,0.006272,0.01952
+fjord,Fourier,0.006601,0.01925
+fjord,Fourier,0.006952,0.01898
+fjord,Fourier,0.007319,0.01871
+fjord,Fourier,0.007709,0.01844
+fjord,Fourier,0.008115,0.01818
+fjord,Fourier,0.008542,0.01791
+fjord,Fourier,0.009003,0.01764
+fjord,Fourier,0.009479,0.01738
+fjord,Fourier,0.009994,0.01711
+fjord,Fourier,0.01052,0.01684
+fjord,Fourier,0.01108,0.01658
+fjord,Fourier,0.01167,0.01632
+fjord,Fourier,0.01230,0.01605
+fjord,Fourier,0.01295,0.01579
+fjord,Fourier,0.01364,0.01553
+fjord,Fourier,0.01436,0.01527
+fjord,Fourier,0.01512,0.01502
+fjord,Fourier,0.01591,0.01477
+fjord,Fourier,0.01674,0.01452
+fjord,Fourier,0.01764,0.01426
+fjord,Fourier,0.01857,0.01401
+fjord,Fourier,0.01955,0.01376
+fjord,Fourier,0.02061,0.01351
+fjord,Fourier,0.02169,0.01326
+fjord,Fourier,0.02286,0.01301
+fjord,Fourier,0.02408,0.01276
+fjord,Fourier,0.02537,0.01251
+fjord,Fourier,0.02673,0.01226
+fjord,Fourier,0.02814,0.01202
+fjord,Fourier,0.02962,0.01178
+fjord,Fourier,0.03119,0.01154
+fjord,Fourier,0.03284,0.01130
+fjord,Fourier,0.03459,0.01106
+fjord,Fourier,0.03641,0.01082
+fjord,Fourier,0.03833,0.01058
+fjord,Fourier,0.04037,0.01035
+fjord,Fourier,0.04248,0.01011
+fjord,Fourier,0.04474,0.009880
+fjord,Fourier,0.04708,0.009649
+fjord,Fourier,0.04958,0.009416
+fjord,Fourier,0.05225,0.009182
+fjord,Fourier,0.05501,0.008952
+fjord,Fourier,0.05794,0.008722
+fjord,Fourier,0.06097,0.008496
+fjord,Fourier,0.06419,0.008270
+fjord,Fourier,0.06763,0.008040
+fjord,Fourier,0.07120,0.007816
+fjord,Fourier,0.07500,0.007589
+fjord,Fourier,0.07901,0.007363
+fjord,Fourier,0.08313,0.007143
+fjord,Fourier,0.08754,0.006921
+fjord,Fourier,0.09221,0.006698
+fjord,Fourier,0.09712,0.006475
+fjord,Fourier,0.1022,0.006259
+fjord,Fourier,0.1075,0.006045
+fjord,Fourier,0.1132,0.005826
+fjord,Fourier,0.1191,0.005611
+fjord,Fourier,0.1254,0.005395
+fjord,Fourier,0.1322,0.005175
+fjord,Fourier,0.1392,0.004963
+fjord,Fourier,0.1466,0.004748
+fjord,Fourier,0.1545,0.004533
+fjord,Fourier,0.1625,0.004328
+fjord,Fourier,0.1712,0.004120
+fjord,Fourier,0.1804,0.003912
+fjord,Fourier,0.1899,0.003709
+fjord,Fourier,0.1999,0.003510
+fjord,Fourier,0.2103,0.003315
+fjord,Fourier,0.2213,0.003121
+fjord,Fourier,0.2330,0.002929
+fjord,Fourier,0.2451,0.002744
+fjord,Fourier,0.2582,0.002556
+fjord,Fourier,0.2716,0.002378
+fjord,Fourier,0.2859,0.002199
+fjord,Fourier,0.3009,0.002028
+fjord,Fourier,0.3166,0.001861
+fjord,Fourier,0.3332,0.001698
+fjord,Fourier,0.3506,0.001542
+fjord,Fourier,0.3690,0.001390
+fjord,Fourier,0.3883,0.001245
+fjord,Fourier,0.4085,0.001107
+fjord,Fourier,0.4297,0.0009761
+fjord,Fourier,0.4520,0.0008519
+fjord,Fourier,0.4756,0.0007347
+fjord,Fourier,0.5005,0.0006252
+fjord,Fourier,0.5264,0.0005249
+fjord,Fourier,0.5537,0.0004330
+fjord,Fourier,0.5824,0.0003499
+fjord,Fourier,0.6126,0.0002759
+fjord,Fourier,0.6441,0.0002114
+fjord,Fourier,0.6774,0.0001558
+fjord,Fourier,0.7122,0.0001095
+fjord,Fourier,0.7487,0.00007212
+fjord,Fourier,0.7872,0.00004340
+fjord,Fourier,0.8275,0.00002288
+fjord,Fourier,0.8699,0.000009728
+fjord,Fourier,0.9143,0.000002753
+fjord,Fourier,0.9611,2.576e-7
+fjord,DCT,3.179e-7,0.5665
+fjord,DCT,6.358e-7,0.2897
+fjord,DCT,9.537e-7,0.1650
+fjord,DCT,0.000001272,0.1439
+fjord,DCT,0.000001589,0.1269
+fjord,DCT,0.000001907,0.1140
+fjord,DCT,0.000002225,0.1061
+fjord,DCT,0.000002543,0.09844
+fjord,DCT,0.000002861,0.09331
+fjord,DCT,0.000003179,0.09033
+fjord,DCT,0.000003497,0.08842
+fjord,DCT,0.000003815,0.08678
+fjord,DCT,0.000004133,0.08518
+fjord,DCT,0.000004450,0.08359
+fjord,DCT,0.000004768,0.08217
+fjord,DCT,0.000005086,0.08099
+fjord,DCT,0.000005404,0.07985
+fjord,DCT,0.000005722,0.07874
+fjord,DCT,0.000006040,0.07780
+fjord,DCT,0.000006358,0.07695
+fjord,DCT,0.000006676,0.07620
+fjord,DCT,0.000007312,0.07471
+fjord,DCT,0.000007947,0.07334
+fjord,DCT,0.000008583,0.07213
+fjord,DCT,0.000009219,0.07097
+fjord,DCT,0.000009855,0.06991
+fjord,DCT,0.00001049,0.06891
+fjord,DCT,0.00001113,0.06796
+fjord,DCT,0.00001176,0.06708
+fjord,DCT,0.00001240,0.06623
+fjord,DCT,0.00001303,0.06545
+fjord,DCT,0.00001399,0.06433
+fjord,DCT,0.00001494,0.06327
+fjord,DCT,0.00001589,0.06232
+fjord,DCT,0.00001685,0.06146
+fjord,DCT,0.00001780,0.06068
+fjord,DCT,0.00001876,0.05995
+fjord,DCT,0.00001971,0.05931
+fjord,DCT,0.00002098,0.05853
+fjord,DCT,0.00002225,0.05781
+fjord,DCT,0.00002352,0.05715
+fjord,DCT,0.00002480,0.05652
+fjord,DCT,0.00002607,0.05593
+fjord,DCT,0.00002766,0.05527
+fjord,DCT,0.00002925,0.05465
+fjord,DCT,0.00003084,0.05405
+fjord,DCT,0.00003306,0.05326
+fjord,DCT,0.00003497,0.05263
+fjord,DCT,0.00003688,0.05205
+fjord,DCT,0.00003878,0.05150
+fjord,DCT,0.00004133,0.05081
+fjord,DCT,0.00004387,0.05021
+fjord,DCT,0.00004641,0.04966
+fjord,DCT,0.00004896,0.04914
+fjord,DCT,0.00005150,0.04869
+fjord,DCT,0.00005468,0.04815
+fjord,DCT,0.00005786,0.04764
+fjord,DCT,0.00006135,0.04712
+fjord,DCT,0.00006485,0.04664
+fjord,DCT,0.00006866,0.04616
+fjord,DCT,0.00007248,0.04571
+fjord,DCT,0.00007629,0.04530
+fjord,DCT,0.00008011,0.04491
+fjord,DCT,0.00008488,0.04446
+fjord,DCT,0.00008996,0.04403
+fjord,DCT,0.00009473,0.04366
+fjord,DCT,0.00009950,0.04331
+fjord,DCT,0.0001046,0.04296
+fjord,DCT,0.0001113,0.04252
+fjord,DCT,0.0001176,0.04212
+fjord,DCT,0.0001243,0.04173
+fjord,DCT,0.0001319,0.04130
+fjord,DCT,0.0001399,0.04087
+fjord,DCT,0.0001478,0.04046
+fjord,DCT,0.0001558,0.04009
+fjord,DCT,0.0001643,0.03971
+fjord,DCT,0.0001739,0.03931
+fjord,DCT,0.0001837,0.03893
+fjord,DCT,0.0001936,0.03858
+fjord,DCT,0.0002054,0.03818
+fjord,DCT,0.0002171,0.03781
+fjord,DCT,0.0002292,0.03744
+fjord,DCT,0.0002422,0.03708
+fjord,DCT,0.0002553,0.03675
+fjord,DCT,0.0002702,0.03639
+fjord,DCT,0.0002855,0.03604
+fjord,DCT,0.0003014,0.03570
+fjord,DCT,0.0003179,0.03537
+fjord,DCT,0.0003354,0.03505
+fjord,DCT,0.0003538,0.03473
+fjord,DCT,0.0003738,0.03440
+fjord,DCT,0.0003935,0.03409
+fjord,DCT,0.0004148,0.03378
+fjord,DCT,0.0004371,0.03347
+fjord,DCT,0.0004609,0.03316
+fjord,DCT,0.0004861,0.03285
+fjord,DCT,0.0005121,0.03255
+fjord,DCT,0.0005398,0.03224
+fjord,DCT,0.0005700,0.03193
+fjord,DCT,0.0006002,0.03163
+fjord,DCT,0.0006339,0.03133
+fjord,DCT,0.0006676,0.03104
+fjord,DCT,0.0007044,0.03074
+fjord,DCT,0.0007420,0.03045
+fjord,DCT,0.0007817,0.03016
+fjord,DCT,0.0008246,0.02987
+fjord,DCT,0.0008688,0.02959
+fjord,DCT,0.0009174,0.02929
+fjord,DCT,0.0009677,0.02900
+fjord,DCT,0.001021,0.02871
+fjord,DCT,0.001076,0.02843
+fjord,DCT,0.001135,0.02814
+fjord,DCT,0.001195,0.02786
+fjord,DCT,0.001259,0.02758
+fjord,DCT,0.001327,0.02729
+fjord,DCT,0.001400,0.02701
+fjord,DCT,0.001474,0.02673
+fjord,DCT,0.001550,0.02646
+fjord,DCT,0.001635,0.02618
+fjord,DCT,0.001725,0.02589
+fjord,DCT,0.001819,0.02561
+fjord,DCT,0.001916,0.02533
+fjord,DCT,0.002017,0.02506
+fjord,DCT,0.002126,0.02478
+fjord,DCT,0.002239,0.02451
+fjord,DCT,0.002360,0.02423
+fjord,DCT,0.002486,0.02396
+fjord,DCT,0.002619,0.02368
+fjord,DCT,0.002758,0.02341
+fjord,DCT,0.002907,0.02314
+fjord,DCT,0.003066,0.02286
+fjord,DCT,0.003235,0.02258
+fjord,DCT,0.003412,0.02230
+fjord,DCT,0.003597,0.02202
+fjord,DCT,0.003794,0.02174
+fjord,DCT,0.003999,0.02147
+fjord,DCT,0.004209,0.02120
+fjord,DCT,0.004434,0.02093
+fjord,DCT,0.004674,0.02066
+fjord,DCT,0.004927,0.02038
+fjord,DCT,0.005187,0.02012
+fjord,DCT,0.005460,0.01986
+fjord,DCT,0.005745,0.01959
+fjord,DCT,0.006046,0.01933
+fjord,DCT,0.006366,0.01907
+fjord,DCT,0.006699,0.01881
+fjord,DCT,0.007063,0.01854
+fjord,DCT,0.007436,0.01828
+fjord,DCT,0.007834,0.01801
+fjord,DCT,0.008250,0.01775
+fjord,DCT,0.008686,0.01749
+fjord,DCT,0.009145,0.01724
+fjord,DCT,0.009629,0.01698
+fjord,DCT,0.01013,0.01672
+fjord,DCT,0.01066,0.01647
+fjord,DCT,0.01122,0.01622
+fjord,DCT,0.01182,0.01596
+fjord,DCT,0.01246,0.01571
+fjord,DCT,0.01313,0.01545
+fjord,DCT,0.01383,0.01520
+fjord,DCT,0.01456,0.01495
+fjord,DCT,0.01533,0.01470
+fjord,DCT,0.01615,0.01445
+fjord,DCT,0.01701,0.01420
+fjord,DCT,0.01792,0.01395
+fjord,DCT,0.01887,0.01371
+fjord,DCT,0.01988,0.01346
+fjord,DCT,0.02092,0.01322
+fjord,DCT,0.02203,0.01298
+fjord,DCT,0.02319,0.01274
+fjord,DCT,0.02442,0.01250
+fjord,DCT,0.02572,0.01226
+fjord,DCT,0.02709,0.01202
+fjord,DCT,0.02852,0.01179
+fjord,DCT,0.03001,0.01155
+fjord,DCT,0.03157,0.01133
+fjord,DCT,0.03325,0.01109
+fjord,DCT,0.03502,0.01085
+fjord,DCT,0.03688,0.01062
+fjord,DCT,0.03883,0.01039
+fjord,DCT,0.04085,0.01016
+fjord,DCT,0.04301,0.009933
+fjord,DCT,0.04533,0.009700
+fjord,DCT,0.04776,0.009469
+fjord,DCT,0.05031,0.009240
+fjord,DCT,0.05300,0.009012
+fjord,DCT,0.05577,0.008788
+fjord,DCT,0.05872,0.008564
+fjord,DCT,0.06175,0.008346
+fjord,DCT,0.06502,0.008123
+fjord,DCT,0.06844,0.007902
+fjord,DCT,0.07207,0.007680
+fjord,DCT,0.07587,0.007460
+fjord,DCT,0.07990,0.007239
+fjord,DCT,0.08406,0.007022
+fjord,DCT,0.08851,0.006804
+fjord,DCT,0.09321,0.006585
+fjord,DCT,0.09808,0.006371
+fjord,DCT,0.1032,0.006155
+fjord,DCT,0.1086,0.005944
+fjord,DCT,0.1143,0.005732
+fjord,DCT,0.1204,0.005517
+fjord,DCT,0.1268,0.005304
+fjord,DCT,0.1334,0.005094
+fjord,DCT,0.1406,0.004879
+fjord,DCT,0.1481,0.004667
+fjord,DCT,0.1560,0.004459
+fjord,DCT,0.1642,0.004253
+fjord,DCT,0.1727,0.004054
+fjord,DCT,0.1819,0.003851
+fjord,DCT,0.1916,0.003649
+fjord,DCT,0.2017,0.003450
+fjord,DCT,0.2124,0.003254
+fjord,DCT,0.2236,0.003061
+fjord,DCT,0.2354,0.002872
+fjord,DCT,0.2479,0.002685
+fjord,DCT,0.2610,0.002502
+fjord,DCT,0.2747,0.002323
+fjord,DCT,0.2892,0.002148
+fjord,DCT,0.3044,0.001978
+fjord,DCT,0.3204,0.001812
+fjord,DCT,0.3372,0.001652
+fjord,DCT,0.3548,0.001498
+fjord,DCT,0.3732,0.001350
+fjord,DCT,0.3929,0.001206
+fjord,DCT,0.4135,0.001070
+fjord,DCT,0.4350,0.0009408
+fjord,DCT,0.4574,0.0008199
+fjord,DCT,0.4811,0.0007059
+fjord,DCT,0.5062,0.0005988
+fjord,DCT,0.5324,0.0005010
+fjord,DCT,0.5598,0.0004119
+fjord,DCT,0.5888,0.0003311
+fjord,DCT,0.6192,0.0002595
+fjord,DCT,0.6509,0.0001975
+fjord,DCT,0.6844,0.0001442
+fjord,DCT,0.7196,0.00009989
+fjord,DCT,0.7566,0.00006466
+fjord,DCT,0.7954,0.00003796
+fjord,DCT,0.8361,0.00001930
+fjord,DCT,0.8789,0.000007711
+fjord,DCT,0.9238,0.000001911
+fjord,DCT,0.9710,1.062e-7
+fjord,Wavelet: Haar,3.179e-7,0.9967
+fjord,Wavelet: Haar,6.358e-7,0.9935
+fjord,Wavelet: Haar,9.537e-7,0.9903
+fjord,Wavelet: Haar,0.000001589,0.9839
+fjord,Wavelet: Haar,0.000001907,0.9807
+fjord,Wavelet: Haar,0.000002861,0.9711
+fjord,Wavelet: Haar,0.000003179,0.9679
+fjord,Wavelet: Haar,0.000003497,0.9647
+fjord,Wavelet: Haar,0.000003815,0.9615
+fjord,Wavelet: Haar,0.000004133,0.9583
+fjord,Wavelet: Haar,0.000004768,0.9520
+fjord,Wavelet: Haar,0.000005086,0.9488
+fjord,Wavelet: Haar,0.000005404,0.9457
+fjord,Wavelet: Haar,0.000005722,0.9425
+fjord,Wavelet: Haar,0.000006040,0.9394
+fjord,Wavelet: Haar,0.000006676,0.9332
+fjord,Wavelet: Haar,0.000007312,0.9270
+fjord,Wavelet: Haar,0.000007947,0.9210
+fjord,Wavelet: Haar,0.000008583,0.9150
+fjord,Wavelet: Haar,0.000009219,0.9090
+fjord,Wavelet: Haar,0.000009855,0.9031
+fjord,Wavelet: Haar,0.00001049,0.8972
+fjord,Wavelet: Haar,0.00001113,0.8914
+fjord,Wavelet: Haar,0.00001176,0.8856
+fjord,Wavelet: Haar,0.00001240,0.8798
+fjord,Wavelet: Haar,0.00001303,0.8741
+fjord,Wavelet: Haar,0.00001431,0.8627
+fjord,Wavelet: Haar,0.00001526,0.8543
+fjord,Wavelet: Haar,0.00001621,0.8458
+fjord,Wavelet: Haar,0.00001748,0.8347
+fjord,Wavelet: Haar,0.00001876,0.8235
+fjord,Wavelet: Haar,0.00001971,0.8152
+fjord,Wavelet: Haar,0.00002098,0.8041
+fjord,Wavelet: Haar,0.00002257,0.7904
+fjord,Wavelet: Haar,0.00002384,0.7794
+fjord,Wavelet: Haar,0.00002511,0.7686
+fjord,Wavelet: Haar,0.00002638,0.7578
+fjord,Wavelet: Haar,0.00002797,0.7447
+fjord,Wavelet: Haar,0.00002956,0.7324
+fjord,Wavelet: Haar,0.00003115,0.7205
+fjord,Wavelet: Haar,0.00003274,0.7088
+fjord,Wavelet: Haar,0.00003465,0.6949
+fjord,Wavelet: Haar,0.00003656,0.6814
+fjord,Wavelet: Haar,0.00003846,0.6686
+fjord,Wavelet: Haar,0.00004133,0.6500
+fjord,Wavelet: Haar,0.00004387,0.6340
+fjord,Wavelet: Haar,0.00004641,0.6185
+fjord,Wavelet: Haar,0.00004896,0.6034
+fjord,Wavelet: Haar,0.00005182,0.5867
+fjord,Wavelet: Haar,0.00005500,0.5687
+fjord,Wavelet: Haar,0.00005786,0.5528
+fjord,Wavelet: Haar,0.00006167,0.5320
+fjord,Wavelet: Haar,0.00006485,0.5148
+fjord,Wavelet: Haar,0.00006962,0.4897
+fjord,Wavelet: Haar,0.00007407,0.4666
+fjord,Wavelet: Haar,0.00007852,0.4441
+fjord,Wavelet: Haar,0.00008329,0.4205
+fjord,Wavelet: Haar,0.00008837,0.3964
+fjord,Wavelet: Haar,0.00009314,0.3748
+fjord,Wavelet: Haar,0.00009855,0.3512
+fjord,Wavelet: Haar,0.0001036,0.3299
+fjord,Wavelet: Haar,0.0001090,0.3080
+fjord,Wavelet: Haar,0.0001157,0.2818
+fjord,Wavelet: Haar,0.0001224,0.2566
+fjord,Wavelet: Haar,0.0001297,0.2301
+fjord,Wavelet: Haar,0.0001367,0.2057
+fjord,Wavelet: Haar,0.0001450,0.1785
+fjord,Wavelet: Haar,0.0001532,0.1529
+fjord,Wavelet: Haar,0.0001618,0.1296
+fjord,Wavelet: Haar,0.0001713,0.1078
+fjord,Wavelet: Haar,0.0001809,0.08954
+fjord,Wavelet: Haar,0.0001907,0.07390
+fjord,Wavelet: Haar,0.0002015,0.06170
+fjord,Wavelet: Haar,0.0002127,0.05339
+fjord,Wavelet: Haar,0.0002241,0.04823
+fjord,Wavelet: Haar,0.0002368,0.04519
+fjord,Wavelet: Haar,0.0002495,0.04325
+fjord,Wavelet: Haar,0.0002635,0.04179
+fjord,Wavelet: Haar,0.0002778,0.04062
+fjord,Wavelet: Haar,0.0002931,0.03956
+fjord,Wavelet: Haar,0.0003093,0.03864
+fjord,Wavelet: Haar,0.0003262,0.03782
+fjord,Wavelet: Haar,0.0003440,0.03707
+fjord,Wavelet: Haar,0.0003624,0.03638
+fjord,Wavelet: Haar,0.0003815,0.03575
+fjord,Wavelet: Haar,0.0004021,0.03516
+fjord,Wavelet: Haar,0.0004234,0.03461
+fjord,Wavelet: Haar,0.0004457,0.03410
+fjord,Wavelet: Haar,0.0004698,0.03360
+fjord,Wavelet: Haar,0.0004946,0.03314
+fjord,Wavelet: Haar,0.0005220,0.03266
+fjord,Wavelet: Haar,0.0005522,0.03217
+fjord,Wavelet: Haar,0.0005817,0.03173
+fjord,Wavelet: Haar,0.0006129,0.03131
+fjord,Wavelet: Haar,0.0006460,0.03088
+fjord,Wavelet: Haar,0.0006809,0.03047
+fjord,Wavelet: Haar,0.0007175,0.03007
+fjord,Wavelet: Haar,0.0007563,0.02968
+fjord,Wavelet: Haar,0.0007963,0.02930
+fjord,Wavelet: Haar,0.0008405,0.02891
+fjord,Wavelet: Haar,0.0008863,0.02853
+fjord,Wavelet: Haar,0.0009330,0.02817
+fjord,Wavelet: Haar,0.0009826,0.02782
+fjord,Wavelet: Haar,0.001035,0.02747
+fjord,Wavelet: Haar,0.001089,0.02713
+fjord,Wavelet: Haar,0.001147,0.02679
+fjord,Wavelet: Haar,0.001207,0.02646
+fjord,Wavelet: Haar,0.001270,0.02613
+fjord,Wavelet: Haar,0.001339,0.02580
+fjord,Wavelet: Haar,0.001411,0.02546
+fjord,Wavelet: Haar,0.001490,0.02512
+fjord,Wavelet: Haar,0.001570,0.02479
+fjord,Wavelet: Haar,0.001655,0.02446
+fjord,Wavelet: Haar,0.001745,0.02413
+fjord,Wavelet: Haar,0.001838,0.02381
+fjord,Wavelet: Haar,0.001936,0.02349
+fjord,Wavelet: Haar,0.002038,0.02317
+fjord,Wavelet: Haar,0.002147,0.02285
+fjord,Wavelet: Haar,0.002263,0.02253
+fjord,Wavelet: Haar,0.002384,0.02221
+fjord,Wavelet: Haar,0.002513,0.02189
+fjord,Wavelet: Haar,0.002644,0.02158
+fjord,Wavelet: Haar,0.002790,0.02125
+fjord,Wavelet: Haar,0.002937,0.02094
+fjord,Wavelet: Haar,0.003093,0.02063
+fjord,Wavelet: Haar,0.003265,0.02031
+fjord,Wavelet: Haar,0.003439,0.02000
+fjord,Wavelet: Haar,0.003621,0.01970
+fjord,Wavelet: Haar,0.003814,0.01939
+fjord,Wavelet: Haar,0.004021,0.01907
+fjord,Wavelet: Haar,0.004236,0.01877
+fjord,Wavelet: Haar,0.004466,0.01845
+fjord,Wavelet: Haar,0.004700,0.01815
+fjord,Wavelet: Haar,0.004951,0.01784
+fjord,Wavelet: Haar,0.005213,0.01754
+fjord,Wavelet: Haar,0.005490,0.01724
+fjord,Wavelet: Haar,0.005774,0.01694
+fjord,Wavelet: Haar,0.006080,0.01664
+fjord,Wavelet: Haar,0.006406,0.01633
+fjord,Wavelet: Haar,0.006742,0.01604
+fjord,Wavelet: Haar,0.007095,0.01574
+fjord,Wavelet: Haar,0.007476,0.01544
+fjord,Wavelet: Haar,0.007869,0.01514
+fjord,Wavelet: Haar,0.008283,0.01484
+fjord,Wavelet: Haar,0.008724,0.01454
+fjord,Wavelet: Haar,0.009215,0.01422
+fjord,Wavelet: Haar,0.009726,0.01391
+fjord,Wavelet: Haar,0.01027,0.01360
+fjord,Wavelet: Haar,0.01082,0.01331
+fjord,Wavelet: Haar,0.01142,0.01300
+fjord,Wavelet: Haar,0.01203,0.01270
+fjord,Wavelet: Haar,0.01267,0.01241
+fjord,Wavelet: Haar,0.01336,0.01211
+fjord,Wavelet: Haar,0.01408,0.01182
+fjord,Wavelet: Haar,0.01483,0.01153
+fjord,Wavelet: Haar,0.01565,0.01123
+fjord,Wavelet: Haar,0.01651,0.01093
+fjord,Wavelet: Haar,0.01740,0.01064
+fjord,Wavelet: Haar,0.01841,0.01033
+fjord,Wavelet: Haar,0.01943,0.01003
+fjord,Wavelet: Haar,0.02057,0.009719
+fjord,Wavelet: Haar,0.02170,0.009429
+fjord,Wavelet: Haar,0.02287,0.009143
+fjord,Wavelet: Haar,0.02409,0.008865
+fjord,Wavelet: Haar,0.02543,0.008577
+fjord,Wavelet: Haar,0.02684,0.008291
+fjord,Wavelet: Haar,0.02837,0.007999
+fjord,Wavelet: Haar,0.02994,0.007718
+fjord,Wavelet: Haar,0.03159,0.007441
+fjord,Wavelet: Haar,0.03330,0.007170
+fjord,Wavelet: Haar,0.03521,0.006886
+fjord,Wavelet: Haar,0.03720,0.006610
+fjord,Wavelet: Haar,0.03931,0.006335
+fjord,Wavelet: Haar,0.04152,0.006067
+fjord,Wavelet: Haar,0.04399,0.005787
+fjord,Wavelet: Haar,0.04624,0.005549
+fjord,Wavelet: Haar,0.04874,0.005300
+fjord,Wavelet: Haar,0.05175,0.005021
+fjord,Wavelet: Haar,0.05479,0.004761
+fjord,Wavelet: Haar,0.05787,0.004516
+fjord,Wavelet: Haar,0.06117,0.004272
+fjord,Wavelet: Haar,0.06459,0.004038
+fjord,Wavelet: Haar,0.06817,0.003811
+fjord,Wavelet: Haar,0.07218,0.003577
+fjord,Wavelet: Haar,0.07648,0.003345
+fjord,Wavelet: Haar,0.08037,0.003152
+fjord,Wavelet: Haar,0.08507,0.002936
+fjord,Wavelet: Haar,0.09016,0.002723
+fjord,Wavelet: Haar,0.09553,0.002518
+fjord,Wavelet: Haar,0.1009,0.002331
+fjord,Wavelet: Haar,0.1066,0.002150
+fjord,Wavelet: Haar,0.1120,0.001992
+fjord,Wavelet: Haar,0.1185,0.001820
+fjord,Wavelet: Haar,0.1253,0.001657
+fjord,Wavelet: Haar,0.1335,0.001483
+fjord,Wavelet: Haar,0.1416,0.001330
+fjord,Wavelet: Haar,0.1487,0.001209
+fjord,Wavelet: Haar,0.1576,0.001073
+fjord,Wavelet: Haar,0.1658,0.0009629
+fjord,Wavelet: Haar,0.1755,0.0008463
+fjord,Wavelet: Haar,0.1847,0.0007499
+fjord,Wavelet: Haar,0.1948,0.0006564
+fjord,Wavelet: Haar,0.2058,0.0005682
+fjord,Wavelet: Haar,0.2176,0.0004862
+fjord,Wavelet: Haar,0.2306,0.0004101
+fjord,Wavelet: Haar,0.2427,0.0003496
+fjord,Wavelet: Haar,0.2573,0.0002887
+fjord,Wavelet: Haar,0.2705,0.0002429
+fjord,Wavelet: Haar,0.2843,0.0002029
+fjord,Wavelet: Haar,0.3011,0.0001634
+fjord,Wavelet: Haar,0.3186,0.0001309
+fjord,Wavelet: Haar,0.3352,0.0001065
+fjord,Wavelet: Haar,0.3569,0.00008181
+fjord,Wavelet: Haar,0.3748,0.00006614
+fjord,Wavelet: Haar,0.3976,0.00005087
+fjord,Wavelet: Haar,0.4234,0.00003807
+fjord,Wavelet: Haar,0.4513,0.00002804
+fjord,Wavelet: Haar,0.4828,0.00001983
+fjord,Wavelet: Haar,0.5086,0.00001485
+fjord,Wavelet: Haar,0.5458,0.000009426
+fjord,Wavelet: Haar,0.5795,0.000006085
+fjord,Wavelet: Haar,0.6102,0.000003934
+fjord,Wavelet: Haar,0.6579,0.000001943
+fjord,Wavelet: Haar,0.7017,9.491e-7
+fjord,Wavelet: Haar,0.7679,2.637e-7
+fjord,Wavelet: Haar,0.8080,5.859e-8
+fjord,Wavelet: Haar,0.8535,0.000
+fjord,Wavelet: Haar,0.8987,0.000
+fjord,Wavelet: Haar,1.000,0.000
+fjord,Wavelet: Daubechies 4,3.179e-7,0.9964
+fjord,Wavelet: Daubechies 4,6.358e-7,0.9929
+fjord,Wavelet: Daubechies 4,9.537e-7,0.9895
+fjord,Wavelet: Daubechies 4,0.000001272,0.9860
+fjord,Wavelet: Daubechies 4,0.000001589,0.9826
+fjord,Wavelet: Daubechies 4,0.000001907,0.9793
+fjord,Wavelet: Daubechies 4,0.000002225,0.9760
+fjord,Wavelet: Daubechies 4,0.000002861,0.9695
+fjord,Wavelet: Daubechies 4,0.000003179,0.9662
+fjord,Wavelet: Daubechies 4,0.000003497,0.9630
+fjord,Wavelet: Daubechies 4,0.000003815,0.9598
+fjord,Wavelet: Daubechies 4,0.000004133,0.9567
+fjord,Wavelet: Daubechies 4,0.000004450,0.9536
+fjord,Wavelet: Daubechies 4,0.000004768,0.9505
+fjord,Wavelet: Daubechies 4,0.000005086,0.9474
+fjord,Wavelet: Daubechies 4,0.000005404,0.9443
+fjord,Wavelet: Daubechies 4,0.000005722,0.9412
+fjord,Wavelet: Daubechies 4,0.000006040,0.9381
+fjord,Wavelet: Daubechies 4,0.000006358,0.9351
+fjord,Wavelet: Daubechies 4,0.000006676,0.9320
+fjord,Wavelet: Daubechies 4,0.000007312,0.9260
+fjord,Wavelet: Daubechies 4,0.000007947,0.9200
+fjord,Wavelet: Daubechies 4,0.000008583,0.9140
+fjord,Wavelet: Daubechies 4,0.000009219,0.9081
+fjord,Wavelet: Daubechies 4,0.000009855,0.9022
+fjord,Wavelet: Daubechies 4,0.00001049,0.8964
+fjord,Wavelet: Daubechies 4,0.00001113,0.8907
+fjord,Wavelet: Daubechies 4,0.00001176,0.8849
+fjord,Wavelet: Daubechies 4,0.00001240,0.8793
+fjord,Wavelet: Daubechies 4,0.00001303,0.8736
+fjord,Wavelet: Daubechies 4,0.00001399,0.8652
+fjord,Wavelet: Daubechies 4,0.00001494,0.8567
+fjord,Wavelet: Daubechies 4,0.00001621,0.8456
+fjord,Wavelet: Daubechies 4,0.00001717,0.8373
+fjord,Wavelet: Daubechies 4,0.00001812,0.8290
+fjord,Wavelet: Daubechies 4,0.00001939,0.8180
+fjord,Wavelet: Daubechies 4,0.00002098,0.8043
+fjord,Wavelet: Daubechies 4,0.00002225,0.7935
+fjord,Wavelet: Daubechies 4,0.00002352,0.7826
+fjord,Wavelet: Daubechies 4,0.00002511,0.7692
+fjord,Wavelet: Daubechies 4,0.00002638,0.7586
+fjord,Wavelet: Daubechies 4,0.00002797,0.7459
+fjord,Wavelet: Daubechies 4,0.00002956,0.7336
+fjord,Wavelet: Daubechies 4,0.00003115,0.7217
+fjord,Wavelet: Daubechies 4,0.00003306,0.7075
+fjord,Wavelet: Daubechies 4,0.00003497,0.6939
+fjord,Wavelet: Daubechies 4,0.00003688,0.6808
+fjord,Wavelet: Daubechies 4,0.00003910,0.6659
+fjord,Wavelet: Daubechies 4,0.00004164,0.6490
+fjord,Wavelet: Daubechies 4,0.00004419,0.6326
+fjord,Wavelet: Daubechies 4,0.00004673,0.6168
+fjord,Wavelet: Daubechies 4,0.00004959,0.5999
+fjord,Wavelet: Daubechies 4,0.00005277,0.5815
+fjord,Wavelet: Daubechies 4,0.00005595,0.5636
+fjord,Wavelet: Daubechies 4,0.00005913,0.5462
+fjord,Wavelet: Daubechies 4,0.00006262,0.5273
+fjord,Wavelet: Daubechies 4,0.00006612,0.5087
+fjord,Wavelet: Daubechies 4,0.00006994,0.4888
+fjord,Wavelet: Daubechies 4,0.00007439,0.4660
+fjord,Wavelet: Daubechies 4,0.00007852,0.4454
+fjord,Wavelet: Daubechies 4,0.00008265,0.4253
+fjord,Wavelet: Daubechies 4,0.00008678,0.4056
+fjord,Wavelet: Daubechies 4,0.00009155,0.3834
+fjord,Wavelet: Daubechies 4,0.00009696,0.3591
+fjord,Wavelet: Daubechies 4,0.0001024,0.3357
+fjord,Wavelet: Daubechies 4,0.0001087,0.3090
+fjord,Wavelet: Daubechies 4,0.0001144,0.2863
+fjord,Wavelet: Daubechies 4,0.0001211,0.2609
+fjord,Wavelet: Daubechies 4,0.0001275,0.2380
+fjord,Wavelet: Daubechies 4,0.0001342,0.2153
+fjord,Wavelet: Daubechies 4,0.0001424,0.1885
+fjord,Wavelet: Daubechies 4,0.0001507,0.1633
+fjord,Wavelet: Daubechies 4,0.0001593,0.1396
+fjord,Wavelet: Daubechies 4,0.0001688,0.1165
+fjord,Wavelet: Daubechies 4,0.0001783,0.09635
+fjord,Wavelet: Daubechies 4,0.0001879,0.08034
+fjord,Wavelet: Daubechies 4,0.0001990,0.06550
+fjord,Wavelet: Daubechies 4,0.0002101,0.05499
+fjord,Wavelet: Daubechies 4,0.0002213,0.04849
+fjord,Wavelet: Daubechies 4,0.0002337,0.04532
+fjord,Wavelet: Daubechies 4,0.0002464,0.04341
+fjord,Wavelet: Daubechies 4,0.0002594,0.04192
+fjord,Wavelet: Daubechies 4,0.0002737,0.04062
+fjord,Wavelet: Daubechies 4,0.0002880,0.03954
+fjord,Wavelet: Daubechies 4,0.0003042,0.03850
+fjord,Wavelet: Daubechies 4,0.0003201,0.03765
+fjord,Wavelet: Daubechies 4,0.0003389,0.03679
+fjord,Wavelet: Daubechies 4,0.0003567,0.03607
+fjord,Wavelet: Daubechies 4,0.0003767,0.03535
+fjord,Wavelet: Daubechies 4,0.0003970,0.03470
+fjord,Wavelet: Daubechies 4,0.0004187,0.03408
+fjord,Wavelet: Daubechies 4,0.0004409,0.03351
+fjord,Wavelet: Daubechies 4,0.0004644,0.03296
+fjord,Wavelet: Daubechies 4,0.0004896,0.03244
+fjord,Wavelet: Daubechies 4,0.0005159,0.03193
+fjord,Wavelet: Daubechies 4,0.0005433,0.03145
+fjord,Wavelet: Daubechies 4,0.0005735,0.03095
+fjord,Wavelet: Daubechies 4,0.0006037,0.03049
+fjord,Wavelet: Daubechies 4,0.0006351,0.03004
+fjord,Wavelet: Daubechies 4,0.0006692,0.02959
+fjord,Wavelet: Daubechies 4,0.0007041,0.02916
+fjord,Wavelet: Daubechies 4,0.0007413,0.02874
+fjord,Wavelet: Daubechies 4,0.0007807,0.02832
+fjord,Wavelet: Daubechies 4,0.0008221,0.02791
+fjord,Wavelet: Daubechies 4,0.0008678,0.02748
+fjord,Wavelet: Daubechies 4,0.0009146,0.02708
+fjord,Wavelet: Daubechies 4,0.0009629,0.02669
+fjord,Wavelet: Daubechies 4,0.001014,0.02631
+fjord,Wavelet: Daubechies 4,0.001067,0.02593
+fjord,Wavelet: Daubechies 4,0.001125,0.02555
+fjord,Wavelet: Daubechies 4,0.001185,0.02517
+fjord,Wavelet: Daubechies 4,0.001249,0.02479
+fjord,Wavelet: Daubechies 4,0.001315,0.02443
+fjord,Wavelet: Daubechies 4,0.001385,0.02406
+fjord,Wavelet: Daubechies 4,0.001459,0.02370
+fjord,Wavelet: Daubechies 4,0.001537,0.02334
+fjord,Wavelet: Daubechies 4,0.001620,0.02298
+fjord,Wavelet: Daubechies 4,0.001707,0.02263
+fjord,Wavelet: Daubechies 4,0.001801,0.02227
+fjord,Wavelet: Daubechies 4,0.001897,0.02192
+fjord,Wavelet: Daubechies 4,0.001999,0.02158
+fjord,Wavelet: Daubechies 4,0.002104,0.02124
+fjord,Wavelet: Daubechies 4,0.002216,0.02090
+fjord,Wavelet: Daubechies 4,0.002334,0.02057
+fjord,Wavelet: Daubechies 4,0.002456,0.02024
+fjord,Wavelet: Daubechies 4,0.002590,0.01991
+fjord,Wavelet: Daubechies 4,0.002728,0.01959
+fjord,Wavelet: Daubechies 4,0.002871,0.01927
+fjord,Wavelet: Daubechies 4,0.003021,0.01896
+fjord,Wavelet: Daubechies 4,0.003180,0.01865
+fjord,Wavelet: Daubechies 4,0.003351,0.01833
+fjord,Wavelet: Daubechies 4,0.003531,0.01802
+fjord,Wavelet: Daubechies 4,0.003717,0.01772
+fjord,Wavelet: Daubechies 4,0.003915,0.01741
+fjord,Wavelet: Daubechies 4,0.004121,0.01711
+fjord,Wavelet: Daubechies 4,0.004340,0.01682
+fjord,Wavelet: Daubechies 4,0.004569,0.01652
+fjord,Wavelet: Daubechies 4,0.004811,0.01623
+fjord,Wavelet: Daubechies 4,0.005067,0.01593
+fjord,Wavelet: Daubechies 4,0.005338,0.01564
+fjord,Wavelet: Daubechies 4,0.005622,0.01535
+fjord,Wavelet: Daubechies 4,0.005927,0.01505
+fjord,Wavelet: Daubechies 4,0.006240,0.01477
+fjord,Wavelet: Daubechies 4,0.006567,0.01449
+fjord,Wavelet: Daubechies 4,0.006911,0.01421
+fjord,Wavelet: Daubechies 4,0.007273,0.01394
+fjord,Wavelet: Daubechies 4,0.007665,0.01365
+fjord,Wavelet: Daubechies 4,0.008068,0.01338
+fjord,Wavelet: Daubechies 4,0.008495,0.01311
+fjord,Wavelet: Daubechies 4,0.008944,0.01284
+fjord,Wavelet: Daubechies 4,0.009414,0.01257
+fjord,Wavelet: Daubechies 4,0.009910,0.01230
+fjord,Wavelet: Daubechies 4,0.01043,0.01203
+fjord,Wavelet: Daubechies 4,0.01099,0.01176
+fjord,Wavelet: Daubechies 4,0.01157,0.01150
+fjord,Wavelet: Daubechies 4,0.01219,0.01123
+fjord,Wavelet: Daubechies 4,0.01285,0.01096
+fjord,Wavelet: Daubechies 4,0.01354,0.01070
+fjord,Wavelet: Daubechies 4,0.01425,0.01044
+fjord,Wavelet: Daubechies 4,0.01500,0.01019
+fjord,Wavelet: Daubechies 4,0.01579,0.009932
+fjord,Wavelet: Daubechies 4,0.01663,0.009677
+fjord,Wavelet: Daubechies 4,0.01752,0.009422
+fjord,Wavelet: Daubechies 4,0.01845,0.009169
+fjord,Wavelet: Daubechies 4,0.01946,0.008911
+fjord,Wavelet: Daubechies 4,0.02049,0.008662
+fjord,Wavelet: Daubechies 4,0.02156,0.008418
+fjord,Wavelet: Daubechies 4,0.02271,0.008173
+fjord,Wavelet: Daubechies 4,0.02390,0.007932
+fjord,Wavelet: Daubechies 4,0.02514,0.007695
+fjord,Wavelet: Daubechies 4,0.02647,0.007456
+fjord,Wavelet: Daubechies 4,0.02787,0.007218
+fjord,Wavelet: Daubechies 4,0.02935,0.006984
+fjord,Wavelet: Daubechies 4,0.03091,0.006749
+fjord,Wavelet: Daubechies 4,0.03255,0.006516
+fjord,Wavelet: Daubechies 4,0.03428,0.006285
+fjord,Wavelet: Daubechies 4,0.03607,0.006060
+fjord,Wavelet: Daubechies 4,0.03794,0.005838
+fjord,Wavelet: Daubechies 4,0.03992,0.005618
+fjord,Wavelet: Daubechies 4,0.04203,0.005398
+fjord,Wavelet: Daubechies 4,0.04426,0.005179
+fjord,Wavelet: Daubechies 4,0.04660,0.004963
+fjord,Wavelet: Daubechies 4,0.04907,0.004750
+fjord,Wavelet: Daubechies 4,0.05167,0.004540
+fjord,Wavelet: Daubechies 4,0.05441,0.004334
+fjord,Wavelet: Daubechies 4,0.05723,0.004134
+fjord,Wavelet: Daubechies 4,0.06023,0.003935
+fjord,Wavelet: Daubechies 4,0.06341,0.003740
+fjord,Wavelet: Daubechies 4,0.06674,0.003548
+fjord,Wavelet: Daubechies 4,0.07024,0.003362
+fjord,Wavelet: Daubechies 4,0.07394,0.003178
+fjord,Wavelet: Daubechies 4,0.07786,0.002997
+fjord,Wavelet: Daubechies 4,0.08198,0.002821
+fjord,Wavelet: Daubechies 4,0.08625,0.002652
+fjord,Wavelet: Daubechies 4,0.09083,0.002485
+fjord,Wavelet: Daubechies 4,0.09563,0.002323
+fjord,Wavelet: Daubechies 4,0.1006,0.002167
+fjord,Wavelet: Daubechies 4,0.1060,0.002014
+fjord,Wavelet: Daubechies 4,0.1116,0.001867
+fjord,Wavelet: Daubechies 4,0.1175,0.001726
+fjord,Wavelet: Daubechies 4,0.1236,0.001592
+fjord,Wavelet: Daubechies 4,0.1300,0.001462
+fjord,Wavelet: Daubechies 4,0.1369,0.001337
+fjord,Wavelet: Daubechies 4,0.1441,0.001217
+fjord,Wavelet: Daubechies 4,0.1516,0.001105
+fjord,Wavelet: Daubechies 4,0.1594,0.0009982
+fjord,Wavelet: Daubechies 4,0.1677,0.0008976
+fjord,Wavelet: Daubechies 4,0.1764,0.0008028
+fjord,Wavelet: Daubechies 4,0.1856,0.0007141
+fjord,Wavelet: Daubechies 4,0.1952,0.0006317
+fjord,Wavelet: Daubechies 4,0.2054,0.0005549
+fjord,Wavelet: Daubechies 4,0.2160,0.0004844
+fjord,Wavelet: Daubechies 4,0.2272,0.0004200
+fjord,Wavelet: Daubechies 4,0.2389,0.0003618
+fjord,Wavelet: Daubechies 4,0.2514,0.0003087
+fjord,Wavelet: Daubechies 4,0.2643,0.0002620
+fjord,Wavelet: Daubechies 4,0.2780,0.0002203
+fjord,Wavelet: Daubechies 4,0.2923,0.0001838
+fjord,Wavelet: Daubechies 4,0.3074,0.0001523
+fjord,Wavelet: Daubechies 4,0.3232,0.0001251
+fjord,Wavelet: Daubechies 4,0.3399,0.0001020
+fjord,Wavelet: Daubechies 4,0.3573,0.00008276
+fjord,Wavelet: Daubechies 4,0.3758,0.00006663
+fjord,Wavelet: Daubechies 4,0.3951,0.00005343
+fjord,Wavelet: Daubechies 4,0.4154,0.00004254
+fjord,Wavelet: Daubechies 4,0.4369,0.00003365
+fjord,Wavelet: Daubechies 4,0.4595,0.00002640
+fjord,Wavelet: Daubechies 4,0.4831,0.00002056
+fjord,Wavelet: Daubechies 4,0.5078,0.00001585
+fjord,Wavelet: Daubechies 4,0.5338,0.00001207
+fjord,Wavelet: Daubechies 4,0.5613,0.000009014
+fjord,Wavelet: Daubechies 4,0.5902,0.000006610
+fjord,Wavelet: Daubechies 4,0.6204,0.000004735
+fjord,Wavelet: Daubechies 4,0.6523,0.000003287
+fjord,Wavelet: Daubechies 4,0.6858,0.000002197
+fjord,Wavelet: Daubechies 4,0.7209,0.000001398
+fjord,Wavelet: Daubechies 4,0.7579,8.289e-7
+fjord,Wavelet: Daubechies 4,0.7967,4.464e-7
+fjord,Wavelet: Daubechies 4,0.8375,2.072e-7
+fjord,Wavelet: Daubechies 4,0.8803,7.482e-8
+fjord,Wavelet: Daubechies 4,0.9253,1.627e-8
+fjord,Wavelet: Daubechies 4,0.9725,6.769e-10
+noise,Pixel,0.003931,0.9882
+noise,Pixel,0.007804,0.9767
+noise,Pixel,0.01172,0.9651
+noise,Pixel,0.01565,0.9537
+noise,Pixel,0.01953,0.9424
+noise,Pixel,0.02339,0.9313
+noise,Pixel,0.02729,0.9201
+noise,Pixel,0.03117,0.9091
+noise,Pixel,0.03510,0.8981
+noise,Pixel,0.03899,0.8873
+noise,Pixel,0.04291,0.8764
+noise,Pixel,0.04687,0.8655
+noise,Pixel,0.05074,0.8550
+noise,Pixel,0.05470,0.8443
+noise,Pixel,0.05856,0.8340
+noise,Pixel,0.06245,0.8237
+noise,Pixel,0.06635,0.8134
+noise,Pixel,0.07026,0.8032
+noise,Pixel,0.07414,0.7932
+noise,Pixel,0.07800,0.7833
+noise,Pixel,0.08578,0.7635
+noise,Pixel,0.09356,0.7442
+noise,Pixel,0.1014,0.7250
+noise,Pixel,0.1092,0.7062
+noise,Pixel,0.1171,0.6877
+noise,Pixel,0.1247,0.6699
+noise,Pixel,0.1324,0.6522
+noise,Pixel,0.1403,0.6347
+noise,Pixel,0.1482,0.6173
+noise,Pixel,0.1560,0.6005
+noise,Pixel,0.1638,0.5839
+noise,Pixel,0.1755,0.5596
+noise,Pixel,0.1873,0.5359
+noise,Pixel,0.1990,0.5130
+noise,Pixel,0.2106,0.4909
+noise,Pixel,0.2224,0.4692
+noise,Pixel,0.2341,0.4483
+noise,Pixel,0.2497,0.4214
+noise,Pixel,0.2652,0.3957
+noise,Pixel,0.2808,0.3710
+noise,Pixel,0.2963,0.3474
+noise,Pixel,0.3121,0.3246
+noise,Pixel,0.3277,0.3028
+noise,Pixel,0.3473,0.2770
+noise,Pixel,0.3670,0.2527
+noise,Pixel,0.3867,0.2297
+noise,Pixel,0.4100,0.2044
+noise,Pixel,0.4334,0.1810
+noise,Pixel,0.4568,0.1593
+noise,Pixel,0.4804,0.1394
+noise,Pixel,0.5116,0.1156
+noise,Pixel,0.5429,0.09474
+noise,Pixel,0.5741,0.07654
+noise,Pixel,0.6052,0.06088
+noise,Pixel,0.6363,0.04751
+noise,Pixel,0.6755,0.03368
+noise,Pixel,0.7145,0.02286
+noise,Pixel,0.7535,0.01465
+noise,Pixel,0.7965,0.008201
+noise,Pixel,0.8434,0.003700
+noise,Pixel,0.8903,0.001253
+noise,Pixel,0.9373,0.0002246
+noise,Pixel,0.9844,0.000002519
+noise,Fourier,3.179e-7,0.7503
+noise,Fourier,9.537e-7,0.2517
+noise,Fourier,0.000001272,0.2517
+noise,Fourier,0.000001589,0.2517
+noise,Fourier,0.000001907,0.2517
+noise,Fourier,0.000002225,0.2517
+noise,Fourier,0.000002543,0.2517
+noise,Fourier,0.000002861,0.2517
+noise,Fourier,0.000003179,0.2517
+noise,Fourier,0.000003497,0.2516
+noise,Fourier,0.000003815,0.2516
+noise,Fourier,0.000004133,0.2516
+noise,Fourier,0.000004450,0.2516
+noise,Fourier,0.000004768,0.2516
+noise,Fourier,0.000005086,0.2516
+noise,Fourier,0.000005404,0.2516
+noise,Fourier,0.000005722,0.2516
+noise,Fourier,0.000006040,0.2516
+noise,Fourier,0.000006358,0.2516
+noise,Fourier,0.000006676,0.2516
+noise,Fourier,0.000007312,0.2516
+noise,Fourier,0.000007947,0.2516
+noise,Fourier,0.000008583,0.2516
+noise,Fourier,0.000009219,0.2516
+noise,Fourier,0.000009855,0.2516
+noise,Fourier,0.00001049,0.2516
+noise,Fourier,0.00001113,0.2516
+noise,Fourier,0.00001176,0.2516
+noise,Fourier,0.00001240,0.2516
+noise,Fourier,0.00001303,0.2516
+noise,Fourier,0.00001399,0.2516
+noise,Fourier,0.00001494,0.2516
+noise,Fourier,0.00001589,0.2516
+noise,Fourier,0.00001685,0.2516
+noise,Fourier,0.00001780,0.2516
+noise,Fourier,0.00001876,0.2516
+noise,Fourier,0.00002003,0.2516
+noise,Fourier,0.00002130,0.2516
+noise,Fourier,0.00002289,0.2516
+noise,Fourier,0.00002416,0.2515
+noise,Fourier,0.00002543,0.2515
+noise,Fourier,0.00002670,0.2515
+noise,Fourier,0.00002829,0.2515
+noise,Fourier,0.00002988,0.2515
+noise,Fourier,0.00003147,0.2515
+noise,Fourier,0.00003306,0.2515
+noise,Fourier,0.00003592,0.2515
+noise,Fourier,0.00003783,0.2515
+noise,Fourier,0.00004005,0.2515
+noise,Fourier,0.00004228,0.2515
+noise,Fourier,0.00004514,0.2515
+noise,Fourier,0.00004800,0.2514
+noise,Fourier,0.00005086,0.2514
+noise,Fourier,0.00005436,0.2514
+noise,Fourier,0.00005722,0.2514
+noise,Fourier,0.00006040,0.2514
+noise,Fourier,0.00006358,0.2514
+noise,Fourier,0.00006676,0.2514
+noise,Fourier,0.00007089,0.2514
+noise,Fourier,0.00007566,0.2513
+noise,Fourier,0.00008011,0.2513
+noise,Fourier,0.00008424,0.2513
+noise,Fourier,0.00008901,0.2513
+noise,Fourier,0.00009378,0.2513
+noise,Fourier,0.00009886,0.2512
+noise,Fourier,0.0001052,0.2512
+noise,Fourier,0.0001109,0.2512
+noise,Fourier,0.0001176,0.2512
+noise,Fourier,0.0001249,0.2511
+noise,Fourier,0.0001319,0.2511
+noise,Fourier,0.0001408,0.2511
+noise,Fourier,0.0001491,0.2511
+noise,Fourier,0.0001567,0.2510
+noise,Fourier,0.0001666,0.2510
+noise,Fourier,0.0001761,0.2510
+noise,Fourier,0.0001860,0.2509
+noise,Fourier,0.0001974,0.2509
+noise,Fourier,0.0002098,0.2508
+noise,Fourier,0.0002203,0.2508
+noise,Fourier,0.0002324,0.2508
+noise,Fourier,0.0002448,0.2507
+noise,Fourier,0.0002575,0.2507
+noise,Fourier,0.0002721,0.2506
+noise,Fourier,0.0002867,0.2506
+noise,Fourier,0.0003049,0.2505
+noise,Fourier,0.0003208,0.2505
+noise,Fourier,0.0003379,0.2504
+noise,Fourier,0.0003560,0.2504
+noise,Fourier,0.0003780,0.2503
+noise,Fourier,0.0003999,0.2502
+noise,Fourier,0.0004206,0.2502
+noise,Fourier,0.0004435,0.2501
+noise,Fourier,0.0004657,0.2500
+noise,Fourier,0.0004902,0.2499
+noise,Fourier,0.0005178,0.2499
+noise,Fourier,0.0005509,0.2498
+noise,Fourier,0.0005789,0.2497
+noise,Fourier,0.0006097,0.2496
+noise,Fourier,0.0006440,0.2495
+noise,Fourier,0.0006806,0.2494
+noise,Fourier,0.0007165,0.2493
+noise,Fourier,0.0007607,0.2491
+noise,Fourier,0.0008062,0.2490
+noise,Fourier,0.0008504,0.2489
+noise,Fourier,0.0008933,0.2488
+noise,Fourier,0.0009425,0.2486
+noise,Fourier,0.0009899,0.2485
+noise,Fourier,0.001040,0.2484
+noise,Fourier,0.001095,0.2482
+noise,Fourier,0.001157,0.2481
+noise,Fourier,0.001221,0.2479
+noise,Fourier,0.001297,0.2477
+noise,Fourier,0.001379,0.2475
+noise,Fourier,0.001465,0.2473
+noise,Fourier,0.001539,0.2471
+noise,Fourier,0.001632,0.2468
+noise,Fourier,0.001736,0.2466
+noise,Fourier,0.001824,0.2464
+noise,Fourier,0.001940,0.2461
+noise,Fourier,0.002056,0.2458
+noise,Fourier,0.002166,0.2455
+noise,Fourier,0.002279,0.2453
+noise,Fourier,0.002403,0.2450
+noise,Fourier,0.002532,0.2447
+noise,Fourier,0.002665,0.2444
+noise,Fourier,0.002803,0.2441
+noise,Fourier,0.002970,0.2437
+noise,Fourier,0.003147,0.2433
+noise,Fourier,0.003312,0.2430
+noise,Fourier,0.003515,0.2425
+noise,Fourier,0.003727,0.2421
+noise,Fourier,0.003953,0.2416
+noise,Fourier,0.004191,0.2411
+noise,Fourier,0.004404,0.2407
+noise,Fourier,0.004657,0.2401
+noise,Fourier,0.004926,0.2396
+noise,Fourier,0.005212,0.2390
+noise,Fourier,0.005508,0.2385
+noise,Fourier,0.005822,0.2379
+noise,Fourier,0.006156,0.2372
+noise,Fourier,0.006525,0.2365
+noise,Fourier,0.006892,0.2358
+noise,Fourier,0.007280,0.2351
+noise,Fourier,0.007695,0.2344
+noise,Fourier,0.008125,0.2336
+noise,Fourier,0.008595,0.2328
+noise,Fourier,0.009132,0.2319
+noise,Fourier,0.009610,0.2311
+noise,Fourier,0.01011,0.2302
+noise,Fourier,0.01072,0.2292
+noise,Fourier,0.01127,0.2283
+noise,Fourier,0.01194,0.2272
+noise,Fourier,0.01266,0.2261
+noise,Fourier,0.01330,0.2251
+noise,Fourier,0.01410,0.2239
+noise,Fourier,0.01495,0.2226
+noise,Fourier,0.01578,0.2214
+noise,Fourier,0.01666,0.2201
+noise,Fourier,0.01757,0.2188
+noise,Fourier,0.01854,0.2174
+noise,Fourier,0.01955,0.2160
+noise,Fourier,0.02066,0.2145
+noise,Fourier,0.02180,0.2130
+noise,Fourier,0.02307,0.2113
+noise,Fourier,0.02442,0.2096
+noise,Fourier,0.02578,0.2079
+noise,Fourier,0.02732,0.2060
+noise,Fourier,0.02898,0.2039
+noise,Fourier,0.03071,0.2019
+noise,Fourier,0.03249,0.1998
+noise,Fourier,0.03436,0.1977
+noise,Fourier,0.03633,0.1955
+noise,Fourier,0.03833,0.1933
+noise,Fourier,0.04038,0.1911
+noise,Fourier,0.04265,0.1888
+noise,Fourier,0.04495,0.1864
+noise,Fourier,0.04752,0.1838
+noise,Fourier,0.05029,0.1811
+noise,Fourier,0.05325,0.1783
+noise,Fourier,0.05634,0.1754
+noise,Fourier,0.05947,0.1726
+noise,Fourier,0.06277,0.1697
+noise,Fourier,0.06615,0.1668
+noise,Fourier,0.06976,0.1638
+noise,Fourier,0.07380,0.1605
+noise,Fourier,0.07793,0.1572
+noise,Fourier,0.08239,0.1538
+noise,Fourier,0.08701,0.1503
+noise,Fourier,0.09180,0.1468
+noise,Fourier,0.09662,0.1434
+noise,Fourier,0.1020,0.1397
+noise,Fourier,0.1076,0.1360
+noise,Fourier,0.1136,0.1322
+noise,Fourier,0.1198,0.1284
+noise,Fourier,0.1261,0.1246
+noise,Fourier,0.1330,0.1206
+noise,Fourier,0.1405,0.1164
+noise,Fourier,0.1482,0.1123
+noise,Fourier,0.1560,0.1083
+noise,Fourier,0.1644,0.1041
+noise,Fourier,0.1732,0.09986
+noise,Fourier,0.1823,0.09572
+noise,Fourier,0.1921,0.09143
+noise,Fourier,0.2024,0.08712
+noise,Fourier,0.2131,0.08285
+noise,Fourier,0.2245,0.07850
+noise,Fourier,0.2365,0.07419
+noise,Fourier,0.2492,0.06981
+noise,Fourier,0.2623,0.06556
+noise,Fourier,0.2760,0.06134
+noise,Fourier,0.2906,0.05711
+noise,Fourier,0.3059,0.05295
+noise,Fourier,0.3220,0.04884
+noise,Fourier,0.3392,0.04475
+noise,Fourier,0.3571,0.04079
+noise,Fourier,0.3760,0.03691
+noise,Fourier,0.3956,0.03320
+noise,Fourier,0.4162,0.02962
+noise,Fourier,0.4381,0.02614
+noise,Fourier,0.4609,0.02285
+noise,Fourier,0.4848,0.01975
+noise,Fourier,0.5102,0.01681
+noise,Fourier,0.5368,0.01408
+noise,Fourier,0.5648,0.01157
+noise,Fourier,0.5940,0.009313
+noise,Fourier,0.6249,0.007282
+noise,Fourier,0.6572,0.005515
+noise,Fourier,0.6909,0.004012
+noise,Fourier,0.7263,0.002765
+noise,Fourier,0.7636,0.001771
+noise,Fourier,0.8028,0.001023
+noise,Fourier,0.8438,0.0005063
+noise,Fourier,0.8870,0.0001909
+noise,Fourier,0.9324,0.00004088
+noise,Fourier,0.9800,0.000001063
+noise,DCT,3.179e-7,0.7503
+noise,DCT,9.537e-7,0.2517
+noise,DCT,0.000001272,0.2517
+noise,DCT,0.000001589,0.2517
+noise,DCT,0.000001907,0.2517
+noise,DCT,0.000002225,0.2517
+noise,DCT,0.000002543,0.2517
+noise,DCT,0.000002861,0.2517
+noise,DCT,0.000003179,0.2517
+noise,DCT,0.000003497,0.2516
+noise,DCT,0.000003815,0.2516
+noise,DCT,0.000004133,0.2516
+noise,DCT,0.000004450,0.2516
+noise,DCT,0.000004768,0.2516
+noise,DCT,0.000005086,0.2516
+noise,DCT,0.000005404,0.2516
+noise,DCT,0.000005722,0.2516
+noise,DCT,0.000006040,0.2516
+noise,DCT,0.000006358,0.2516
+noise,DCT,0.000006676,0.2516
+noise,DCT,0.000007629,0.2516
+noise,DCT,0.000008265,0.2516
+noise,DCT,0.000008901,0.2516
+noise,DCT,0.000009537,0.2516
+noise,DCT,0.00001017,0.2516
+noise,DCT,0.00001113,0.2516
+noise,DCT,0.00001176,0.2516
+noise,DCT,0.00001240,0.2516
+noise,DCT,0.00001303,0.2516
+noise,DCT,0.00001431,0.2516
+noise,DCT,0.00001526,0.2516
+noise,DCT,0.00001621,0.2516
+noise,DCT,0.00001717,0.2516
+noise,DCT,0.00001812,0.2516
+noise,DCT,0.00001907,0.2516
+noise,DCT,0.00002035,0.2516
+noise,DCT,0.00002162,0.2516
+noise,DCT,0.00002289,0.2516
+noise,DCT,0.00002448,0.2515
+noise,DCT,0.00002575,0.2515
+noise,DCT,0.00002734,0.2515
+noise,DCT,0.00002893,0.2515
+noise,DCT,0.00003052,0.2515
+noise,DCT,0.00003211,0.2515
+noise,DCT,0.00003401,0.2515
+noise,DCT,0.00003592,0.2515
+noise,DCT,0.00003783,0.2515
+noise,DCT,0.00004005,0.2515
+noise,DCT,0.00004228,0.2515
+noise,DCT,0.00004546,0.2515
+noise,DCT,0.00004832,0.2514
+noise,DCT,0.00005086,0.2514
+noise,DCT,0.00005372,0.2514
+noise,DCT,0.00005658,0.2514
+noise,DCT,0.00005945,0.2514
+noise,DCT,0.00006294,0.2514
+noise,DCT,0.00006676,0.2514
+noise,DCT,0.00007121,0.2514
+noise,DCT,0.00007566,0.2513
+noise,DCT,0.00007947,0.2513
+noise,DCT,0.00008392,0.2513
+noise,DCT,0.00009060,0.2513
+noise,DCT,0.00009632,0.2513
+noise,DCT,0.0001020,0.2512
+noise,DCT,0.0001084,0.2512
+noise,DCT,0.0001154,0.2512
+noise,DCT,0.0001224,0.2512
+noise,DCT,0.0001297,0.2511
+noise,DCT,0.0001370,0.2511
+noise,DCT,0.0001443,0.2511
+noise,DCT,0.0001520,0.2511
+noise,DCT,0.0001596,0.2510
+noise,DCT,0.0001678,0.2510
+noise,DCT,0.0001764,0.2510
+noise,DCT,0.0001869,0.2509
+noise,DCT,0.0001980,0.2509
+noise,DCT,0.0002085,0.2509
+noise,DCT,0.0002200,0.2508
+noise,DCT,0.0002314,0.2508
+noise,DCT,0.0002460,0.2507
+noise,DCT,0.0002607,0.2507
+noise,DCT,0.0002766,0.2506
+noise,DCT,0.0002912,0.2506
+noise,DCT,0.0003074,0.2505
+noise,DCT,0.0003249,0.2505
+noise,DCT,0.0003430,0.2504
+noise,DCT,0.0003605,0.2504
+noise,DCT,0.0003786,0.2503
+noise,DCT,0.0004015,0.2502
+noise,DCT,0.0004231,0.2502
+noise,DCT,0.0004447,0.2501
+noise,DCT,0.0004714,0.2500
+noise,DCT,0.0004969,0.2499
+noise,DCT,0.0005283,0.2498
+noise,DCT,0.0005569,0.2498
+noise,DCT,0.0005852,0.2497
+noise,DCT,0.0006154,0.2496
+noise,DCT,0.0006491,0.2495
+noise,DCT,0.0006847,0.2494
+noise,DCT,0.0007242,0.2493
+noise,DCT,0.0007610,0.2492
+noise,DCT,0.0008074,0.2490
+noise,DCT,0.0008580,0.2489
+noise,DCT,0.0009047,0.2488
+noise,DCT,0.0009505,0.2486
+noise,DCT,0.001005,0.2485
+noise,DCT,0.001070,0.2483
+noise,DCT,0.001124,0.2482
+noise,DCT,0.001191,0.2480
+noise,DCT,0.001263,0.2478
+noise,DCT,0.001332,0.2476
+noise,DCT,0.001407,0.2474
+noise,DCT,0.001480,0.2472
+noise,DCT,0.001569,0.2470
+noise,DCT,0.001664,0.2468
+noise,DCT,0.001749,0.2466
+noise,DCT,0.001839,0.2463
+noise,DCT,0.001939,0.2461
+noise,DCT,0.002037,0.2459
+noise,DCT,0.002146,0.2456
+noise,DCT,0.002272,0.2453
+noise,DCT,0.002392,0.2450
+noise,DCT,0.002520,0.2447
+noise,DCT,0.002652,0.2444
+noise,DCT,0.002811,0.2441
+noise,DCT,0.002987,0.2437
+noise,DCT,0.003138,0.2434
+noise,DCT,0.003337,0.2429
+noise,DCT,0.003535,0.2425
+noise,DCT,0.003713,0.2421
+noise,DCT,0.003938,0.2417
+noise,DCT,0.004139,0.2412
+noise,DCT,0.004351,0.2408
+noise,DCT,0.004619,0.2403
+noise,DCT,0.004896,0.2397
+noise,DCT,0.005181,0.2391
+noise,DCT,0.005482,0.2386
+noise,DCT,0.005818,0.2379
+noise,DCT,0.006153,0.2373
+noise,DCT,0.006510,0.2366
+noise,DCT,0.006875,0.2359
+noise,DCT,0.007305,0.2351
+noise,DCT,0.007726,0.2344
+noise,DCT,0.008175,0.2336
+noise,DCT,0.008654,0.2327
+noise,DCT,0.009089,0.2320
+noise,DCT,0.009549,0.2312
+noise,DCT,0.01003,0.2304
+noise,DCT,0.01053,0.2296
+noise,DCT,0.01107,0.2287
+noise,DCT,0.01173,0.2276
+noise,DCT,0.01246,0.2265
+noise,DCT,0.01317,0.2254
+noise,DCT,0.01397,0.2242
+noise,DCT,0.01478,0.2229
+noise,DCT,0.01565,0.2216
+noise,DCT,0.01656,0.2203
+noise,DCT,0.01750,0.2190
+noise,DCT,0.01847,0.2176
+noise,DCT,0.01951,0.2162
+noise,DCT,0.02062,0.2146
+noise,DCT,0.02178,0.2131
+noise,DCT,0.02307,0.2114
+noise,DCT,0.02447,0.2096
+noise,DCT,0.02589,0.2078
+noise,DCT,0.02751,0.2058
+noise,DCT,0.02916,0.2038
+noise,DCT,0.03093,0.2017
+noise,DCT,0.03270,0.1997
+noise,DCT,0.03456,0.1975
+noise,DCT,0.03648,0.1954
+noise,DCT,0.03852,0.1932
+noise,DCT,0.04060,0.1910
+noise,DCT,0.04283,0.1886
+noise,DCT,0.04517,0.1862
+noise,DCT,0.04763,0.1838
+noise,DCT,0.05037,0.1811
+noise,DCT,0.05332,0.1783
+noise,DCT,0.05642,0.1754
+noise,DCT,0.05967,0.1725
+noise,DCT,0.06293,0.1696
+noise,DCT,0.06627,0.1667
+noise,DCT,0.06976,0.1638
+noise,DCT,0.07360,0.1607
+noise,DCT,0.07790,0.1573
+noise,DCT,0.08235,0.1538
+noise,DCT,0.08697,0.1504
+noise,DCT,0.09171,0.1469
+noise,DCT,0.09662,0.1435
+noise,DCT,0.1016,0.1400
+noise,DCT,0.1073,0.1363
+noise,DCT,0.1133,0.1324
+noise,DCT,0.1195,0.1286
+noise,DCT,0.1258,0.1248
+noise,DCT,0.1325,0.1209
+noise,DCT,0.1399,0.1167
+noise,DCT,0.1475,0.1127
+noise,DCT,0.1553,0.1086
+noise,DCT,0.1636,0.1045
+noise,DCT,0.1725,0.1002
+noise,DCT,0.1816,0.09605
+noise,DCT,0.1914,0.09173
+noise,DCT,0.2018,0.08736
+noise,DCT,0.2125,0.08308
+noise,DCT,0.2237,0.07879
+noise,DCT,0.2356,0.07449
+noise,DCT,0.2481,0.07016
+noise,DCT,0.2613,0.06584
+noise,DCT,0.2754,0.06151
+noise,DCT,0.2899,0.05729
+noise,DCT,0.3051,0.05314
+noise,DCT,0.3213,0.04900
+noise,DCT,0.3384,0.04492
+noise,DCT,0.3564,0.04091
+noise,DCT,0.3750,0.03708
+noise,DCT,0.3947,0.03333
+noise,DCT,0.4151,0.02977
+noise,DCT,0.4367,0.02632
+noise,DCT,0.4594,0.02305
+noise,DCT,0.4832,0.01993
+noise,DCT,0.5082,0.01701
+noise,DCT,0.5344,0.01430
+noise,DCT,0.5619,0.01181
+noise,DCT,0.5911,0.009511
+noise,DCT,0.6216,0.007475
+noise,DCT,0.6537,0.005683
+noise,DCT,0.6876,0.004142
+noise,DCT,0.7228,0.002872
+noise,DCT,0.7599,0.001856
+noise,DCT,0.7989,0.001084
+noise,DCT,0.8399,0.0005450
+noise,DCT,0.8829,0.0002122
+noise,DCT,0.9280,0.00004900
+noise,DCT,0.9754,0.000001952
+noise,Wavelet: Haar,3.179e-7,0.9990
+noise,Wavelet: Haar,6.358e-7,0.9980
+noise,Wavelet: Haar,0.000001272,0.9959
+noise,Wavelet: Haar,0.000001589,0.9949
+noise,Wavelet: Haar,0.000001907,0.9939
+noise,Wavelet: Haar,0.000002543,0.9918
+noise,Wavelet: Haar,0.000002861,0.9908
+noise,Wavelet: Haar,0.000003179,0.9898
+noise,Wavelet: Haar,0.000004133,0.9868
+noise,Wavelet: Haar,0.000004768,0.9848
+noise,Wavelet: Haar,0.000005722,0.9817
+noise,Wavelet: Haar,0.000006676,0.9787
+noise,Wavelet: Haar,0.000007312,0.9767
+noise,Wavelet: Haar,0.000008901,0.9717
+noise,Wavelet: Haar,0.00001049,0.9666
+noise,Wavelet: Haar,0.00001240,0.9606
+noise,Wavelet: Haar,0.00001335,0.9576
+noise,Wavelet: Haar,0.00001526,0.9516
+noise,Wavelet: Haar,0.00001653,0.9476
+noise,Wavelet: Haar,0.00001939,0.9386
+noise,Wavelet: Haar,0.00002066,0.9346
+noise,Wavelet: Haar,0.00002225,0.9296
+noise,Wavelet: Haar,0.00002702,0.9146
+noise,Wavelet: Haar,0.00002925,0.9076
+noise,Wavelet: Haar,0.00003179,0.8997
+noise,Wavelet: Haar,0.00003338,0.8947
+noise,Wavelet: Haar,0.00003719,0.8828
+noise,Wavelet: Haar,0.00004133,0.8699
+noise,Wavelet: Haar,0.00004641,0.8540
+noise,Wavelet: Haar,0.00004959,0.8441
+noise,Wavelet: Haar,0.00005213,0.8362
+noise,Wavelet: Haar,0.00005945,0.8135
+noise,Wavelet: Haar,0.00006644,0.7918
+noise,Wavelet: Haar,0.00007089,0.7780
+noise,Wavelet: Haar,0.00007502,0.7652
+noise,Wavelet: Haar,0.00008106,0.7465
+noise,Wavelet: Haar,0.00008742,0.7268
+noise,Wavelet: Haar,0.00009346,0.7082
+noise,Wavelet: Haar,0.00009918,0.6906
+noise,Wavelet: Haar,0.0001074,0.6652
+noise,Wavelet: Haar,0.0001160,0.6388
+noise,Wavelet: Haar,0.0001249,0.6115
+noise,Wavelet: Haar,0.0001326,0.5882
+noise,Wavelet: Haar,0.0001408,0.5630
+noise,Wavelet: Haar,0.0001500,0.5349
+noise,Wavelet: Haar,0.0001631,0.4952
+noise,Wavelet: Haar,0.0001752,0.4585
+noise,Wavelet: Haar,0.0001856,0.4267
+noise,Wavelet: Haar,0.0001974,0.3912
+noise,Wavelet: Haar,0.0002104,0.3520
+noise,Wavelet: Haar,0.0002241,0.3110
+noise,Wavelet: Haar,0.0002359,0.2760
+noise,Wavelet: Haar,0.0002502,0.2516
+noise,Wavelet: Haar,0.0002642,0.2515
+noise,Wavelet: Haar,0.0002791,0.2515
+noise,Wavelet: Haar,0.0002947,0.2514
+noise,Wavelet: Haar,0.0003096,0.2513
+noise,Wavelet: Haar,0.0003268,0.2513
+noise,Wavelet: Haar,0.0003455,0.2512
+noise,Wavelet: Haar,0.0003653,0.2511
+noise,Wavelet: Haar,0.0003881,0.2511
+noise,Wavelet: Haar,0.0004110,0.2510
+noise,Wavelet: Haar,0.0004320,0.2509
+noise,Wavelet: Haar,0.0004543,0.2509
+noise,Wavelet: Haar,0.0004775,0.2508
+noise,Wavelet: Haar,0.0005054,0.2507
+noise,Wavelet: Haar,0.0005356,0.2506
+noise,Wavelet: Haar,0.0005690,0.2505
+noise,Wavelet: Haar,0.0006075,0.2504
+noise,Wavelet: Haar,0.0006399,0.2503
+noise,Wavelet: Haar,0.0006758,0.2502
+noise,Wavelet: Haar,0.0007181,0.2501
+noise,Wavelet: Haar,0.0007575,0.2500
+noise,Wavelet: Haar,0.0008017,0.2499
+noise,Wavelet: Haar,0.0008526,0.2497
+noise,Wavelet: Haar,0.0008965,0.2496
+noise,Wavelet: Haar,0.0009454,0.2495
+noise,Wavelet: Haar,0.0009931,0.2494
+noise,Wavelet: Haar,0.001055,0.2492
+noise,Wavelet: Haar,0.001115,0.2490
+noise,Wavelet: Haar,0.001182,0.2489
+noise,Wavelet: Haar,0.001243,0.2487
+noise,Wavelet: Haar,0.001311,0.2486
+noise,Wavelet: Haar,0.001379,0.2484
+noise,Wavelet: Haar,0.001464,0.2482
+noise,Wavelet: Haar,0.001548,0.2480
+noise,Wavelet: Haar,0.001634,0.2478
+noise,Wavelet: Haar,0.001728,0.2476
+noise,Wavelet: Haar,0.001815,0.2474
+noise,Wavelet: Haar,0.001921,0.2471
+noise,Wavelet: Haar,0.002048,0.2468
+noise,Wavelet: Haar,0.002151,0.2466
+noise,Wavelet: Haar,0.002272,0.2463
+noise,Wavelet: Haar,0.002406,0.2460
+noise,Wavelet: Haar,0.002552,0.2457
+noise,Wavelet: Haar,0.002687,0.2454
+noise,Wavelet: Haar,0.002834,0.2451
+noise,Wavelet: Haar,0.003012,0.2448
+noise,Wavelet: Haar,0.003188,0.2444
+noise,Wavelet: Haar,0.003358,0.2440
+noise,Wavelet: Haar,0.003581,0.2436
+noise,Wavelet: Haar,0.003765,0.2432
+noise,Wavelet: Haar,0.003981,0.2428
+noise,Wavelet: Haar,0.004218,0.2423
+noise,Wavelet: Haar,0.004439,0.2419
+noise,Wavelet: Haar,0.004722,0.2414
+noise,Wavelet: Haar,0.004972,0.2409
+noise,Wavelet: Haar,0.005249,0.2404
+noise,Wavelet: Haar,0.005556,0.2398
+noise,Wavelet: Haar,0.005892,0.2392
+noise,Wavelet: Haar,0.006238,0.2386
+noise,Wavelet: Haar,0.006577,0.2380
+noise,Wavelet: Haar,0.006976,0.2373
+noise,Wavelet: Haar,0.007412,0.2365
+noise,Wavelet: Haar,0.007791,0.2359
+noise,Wavelet: Haar,0.008295,0.2350
+noise,Wavelet: Haar,0.008850,0.2341
+noise,Wavelet: Haar,0.009355,0.2332
+noise,Wavelet: Haar,0.009859,0.2324
+noise,Wavelet: Haar,0.01050,0.2314
+noise,Wavelet: Haar,0.01118,0.2303
+noise,Wavelet: Haar,0.01184,0.2293
+noise,Wavelet: Haar,0.01251,0.2283
+noise,Wavelet: Haar,0.01319,0.2273
+noise,Wavelet: Haar,0.01398,0.2261
+noise,Wavelet: Haar,0.01488,0.2248
+noise,Wavelet: Haar,0.01578,0.2235
+noise,Wavelet: Haar,0.01663,0.2223
+noise,Wavelet: Haar,0.01764,0.2209
+noise,Wavelet: Haar,0.01856,0.2196
+noise,Wavelet: Haar,0.01960,0.2182
+noise,Wavelet: Haar,0.02073,0.2167
+noise,Wavelet: Haar,0.02202,0.2151
+noise,Wavelet: Haar,0.02324,0.2135
+noise,Wavelet: Haar,0.02471,0.2117
+noise,Wavelet: Haar,0.02601,0.2101
+noise,Wavelet: Haar,0.02755,0.2082
+noise,Wavelet: Haar,0.02907,0.2064
+noise,Wavelet: Haar,0.03082,0.2043
+noise,Wavelet: Haar,0.03279,0.2021
+noise,Wavelet: Haar,0.03485,0.1998
+noise,Wavelet: Haar,0.03674,0.1977
+noise,Wavelet: Haar,0.03883,0.1955
+noise,Wavelet: Haar,0.04084,0.1934
+noise,Wavelet: Haar,0.04297,0.1912
+noise,Wavelet: Haar,0.04538,0.1887
+noise,Wavelet: Haar,0.04778,0.1864
+noise,Wavelet: Haar,0.05033,0.1839
+noise,Wavelet: Haar,0.05323,0.1811
+noise,Wavelet: Haar,0.05646,0.1782
+noise,Wavelet: Haar,0.05967,0.1753
+noise,Wavelet: Haar,0.06272,0.1726
+noise,Wavelet: Haar,0.06612,0.1697
+noise,Wavelet: Haar,0.06996,0.1665
+noise,Wavelet: Haar,0.07372,0.1634
+noise,Wavelet: Haar,0.07763,0.1603
+noise,Wavelet: Haar,0.08254,0.1565
+noise,Wavelet: Haar,0.08714,0.1531
+noise,Wavelet: Haar,0.09154,0.1499
+noise,Wavelet: Haar,0.09700,0.1460
+noise,Wavelet: Haar,0.1026,0.1422
+noise,Wavelet: Haar,0.1087,0.1381
+noise,Wavelet: Haar,0.1150,0.1341
+noise,Wavelet: Haar,0.1218,0.1299
+noise,Wavelet: Haar,0.1283,0.1260
+noise,Wavelet: Haar,0.1355,0.1218
+noise,Wavelet: Haar,0.1426,0.1179
+noise,Wavelet: Haar,0.1504,0.1137
+noise,Wavelet: Haar,0.1586,0.1095
+noise,Wavelet: Haar,0.1667,0.1055
+noise,Wavelet: Haar,0.1753,0.1013
+noise,Wavelet: Haar,0.1844,0.09716
+noise,Wavelet: Haar,0.1959,0.09212
+noise,Wavelet: Haar,0.2079,0.08711
+noise,Wavelet: Haar,0.2203,0.08219
+noise,Wavelet: Haar,0.2334,0.07732
+noise,Wavelet: Haar,0.2470,0.07248
+noise,Wavelet: Haar,0.2612,0.06777
+noise,Wavelet: Haar,0.2767,0.06290
+noise,Wavelet: Haar,0.2925,0.05822
+noise,Wavelet: Haar,0.3104,0.05331
+noise,Wavelet: Haar,0.3275,0.04892
+noise,Wavelet: Haar,0.3454,0.04467
+noise,Wavelet: Haar,0.3629,0.04079
+noise,Wavelet: Haar,0.3843,0.03641
+noise,Wavelet: Haar,0.4070,0.03216
+noise,Wavelet: Haar,0.4309,0.02812
+noise,Wavelet: Haar,0.4561,0.02429
+noise,Wavelet: Haar,0.4814,0.02083
+noise,Wavelet: Haar,0.5078,0.01763
+noise,Wavelet: Haar,0.5347,0.01476
+noise,Wavelet: Haar,0.5677,0.01172
+noise,Wavelet: Haar,0.6009,0.009132
+noise,Wavelet: Haar,0.6340,0.006985
+noise,Wavelet: Haar,0.6712,0.005022
+noise,Wavelet: Haar,0.7080,0.003491
+noise,Wavelet: Haar,0.7465,0.002271
+noise,Wavelet: Haar,0.7890,0.001302
+noise,Wavelet: Haar,0.8324,0.0006499
+noise,Wavelet: Haar,0.8761,0.0002616
+noise,Wavelet: Haar,0.9273,0.00005279
+noise,Wavelet: Haar,0.9799,0.000001116
+noise,Wavelet: Daubechies 4,3.179e-7,0.9990
+noise,Wavelet: Daubechies 4,6.358e-7,0.9979
+noise,Wavelet: Daubechies 4,0.000001272,0.9959
+noise,Wavelet: Daubechies 4,0.000001589,0.9949
+noise,Wavelet: Daubechies 4,0.000001907,0.9938
+noise,Wavelet: Daubechies 4,0.000002543,0.9918
+noise,Wavelet: Daubechies 4,0.000002861,0.9908
+noise,Wavelet: Daubechies 4,0.000003179,0.9898
+noise,Wavelet: Daubechies 4,0.000003815,0.9878
+noise,Wavelet: Daubechies 4,0.000004450,0.9857
+noise,Wavelet: Daubechies 4,0.000004768,0.9847
+noise,Wavelet: Daubechies 4,0.000005722,0.9817
+noise,Wavelet: Daubechies 4,0.000006676,0.9787
+noise,Wavelet: Daubechies 4,0.000007947,0.9746
+noise,Wavelet: Daubechies 4,0.000008901,0.9716
+noise,Wavelet: Daubechies 4,0.000009537,0.9696
+noise,Wavelet: Daubechies 4,0.00001113,0.9646
+noise,Wavelet: Daubechies 4,0.00001176,0.9626
+noise,Wavelet: Daubechies 4,0.00001335,0.9575
+noise,Wavelet: Daubechies 4,0.00001462,0.9535
+noise,Wavelet: Daubechies 4,0.00001589,0.9495
+noise,Wavelet: Daubechies 4,0.00001748,0.9445
+noise,Wavelet: Daubechies 4,0.00001844,0.9415
+noise,Wavelet: Daubechies 4,0.00002066,0.9345
+noise,Wavelet: Daubechies 4,0.00002321,0.9265
+noise,Wavelet: Daubechies 4,0.00002480,0.9215
+noise,Wavelet: Daubechies 4,0.00002702,0.9146
+noise,Wavelet: Daubechies 4,0.00003179,0.8996
+noise,Wavelet: Daubechies 4,0.00003529,0.8887
+noise,Wavelet: Daubechies 4,0.00004037,0.8728
+noise,Wavelet: Daubechies 4,0.00004323,0.8639
+noise,Wavelet: Daubechies 4,0.00004546,0.8570
+noise,Wavelet: Daubechies 4,0.00004896,0.8461
+noise,Wavelet: Daubechies 4,0.00005245,0.8352
+noise,Wavelet: Daubechies 4,0.00005627,0.8234
+noise,Wavelet: Daubechies 4,0.00005976,0.8125
+noise,Wavelet: Daubechies 4,0.00006644,0.7918
+noise,Wavelet: Daubechies 4,0.00007057,0.7790
+noise,Wavelet: Daubechies 4,0.00007852,0.7544
+noise,Wavelet: Daubechies 4,0.00008329,0.7397
+noise,Wavelet: Daubechies 4,0.00009187,0.7132
+noise,Wavelet: Daubechies 4,0.00009727,0.6966
+noise,Wavelet: Daubechies 4,0.0001040,0.6760
+noise,Wavelet: Daubechies 4,0.0001119,0.6516
+noise,Wavelet: Daubechies 4,0.0001205,0.6253
+noise,Wavelet: Daubechies 4,0.0001278,0.6029
+noise,Wavelet: Daubechies 4,0.0001386,0.5698
+noise,Wavelet: Daubechies 4,0.0001485,0.5398
+noise,Wavelet: Daubechies 4,0.0001570,0.5137
+noise,Wavelet: Daubechies 4,0.0001653,0.4885
+noise,Wavelet: Daubechies 4,0.0001742,0.4615
+noise,Wavelet: Daubechies 4,0.0001853,0.4279
+noise,Wavelet: Daubechies 4,0.0001977,0.3904
+noise,Wavelet: Daubechies 4,0.0002101,0.3531
+noise,Wavelet: Daubechies 4,0.0002225,0.3159
+noise,Wavelet: Daubechies 4,0.0002340,0.2817
+noise,Wavelet: Daubechies 4,0.0002473,0.2516
+noise,Wavelet: Daubechies 4,0.0002616,0.2515
+noise,Wavelet: Daubechies 4,0.0002769,0.2515
+noise,Wavelet: Daubechies 4,0.0002928,0.2514
+noise,Wavelet: Daubechies 4,0.0003099,0.2513
+noise,Wavelet: Daubechies 4,0.0003274,0.2513
+noise,Wavelet: Daubechies 4,0.0003462,0.2512
+noise,Wavelet: Daubechies 4,0.0003659,0.2511
+noise,Wavelet: Daubechies 4,0.0003846,0.2511
+noise,Wavelet: Daubechies 4,0.0004056,0.2510
+noise,Wavelet: Daubechies 4,0.0004298,0.2509
+noise,Wavelet: Daubechies 4,0.0004571,0.2508
+noise,Wavelet: Daubechies 4,0.0004845,0.2507
+noise,Wavelet: Daubechies 4,0.0005096,0.2507
+noise,Wavelet: Daubechies 4,0.0005363,0.2506
+noise,Wavelet: Daubechies 4,0.0005678,0.2505
+noise,Wavelet: Daubechies 4,0.0006034,0.2504
+noise,Wavelet: Daubechies 4,0.0006421,0.2503
+noise,Wavelet: Daubechies 4,0.0006790,0.2502
+noise,Wavelet: Daubechies 4,0.0007140,0.2501
+noise,Wavelet: Daubechies 4,0.0007534,0.2499
+noise,Wavelet: Daubechies 4,0.0007912,0.2498
+noise,Wavelet: Daubechies 4,0.0008411,0.2497
+noise,Wavelet: Daubechies 4,0.0008850,0.2496
+noise,Wavelet: Daubechies 4,0.0009305,0.2495
+noise,Wavelet: Daubechies 4,0.0009874,0.2493
+noise,Wavelet: Daubechies 4,0.001039,0.2492
+noise,Wavelet: Daubechies 4,0.001100,0.2490
+noise,Wavelet: Daubechies 4,0.001166,0.2488
+noise,Wavelet: Daubechies 4,0.001226,0.2487
+noise,Wavelet: Daubechies 4,0.001291,0.2485
+noise,Wavelet: Daubechies 4,0.001357,0.2483
+noise,Wavelet: Daubechies 4,0.001441,0.2481
+noise,Wavelet: Daubechies 4,0.001523,0.2479
+noise,Wavelet: Daubechies 4,0.001603,0.2477
+noise,Wavelet: Daubechies 4,0.001686,0.2475
+noise,Wavelet: Daubechies 4,0.001771,0.2473
+noise,Wavelet: Daubechies 4,0.001881,0.2471
+noise,Wavelet: Daubechies 4,0.001979,0.2468
+noise,Wavelet: Daubechies 4,0.002081,0.2466
+noise,Wavelet: Daubechies 4,0.002193,0.2463
+noise,Wavelet: Daubechies 4,0.002329,0.2460
+noise,Wavelet: Daubechies 4,0.002449,0.2458
+noise,Wavelet: Daubechies 4,0.002604,0.2454
+noise,Wavelet: Daubechies 4,0.002739,0.2451
+noise,Wavelet: Daubechies 4,0.002877,0.2448
+noise,Wavelet: Daubechies 4,0.003023,0.2445
+noise,Wavelet: Daubechies 4,0.003179,0.2442
+noise,Wavelet: Daubechies 4,0.003339,0.2438
+noise,Wavelet: Daubechies 4,0.003546,0.2434
+noise,Wavelet: Daubechies 4,0.003727,0.2430
+noise,Wavelet: Daubechies 4,0.003942,0.2426
+noise,Wavelet: Daubechies 4,0.004181,0.2421
+noise,Wavelet: Daubechies 4,0.004420,0.2416
+noise,Wavelet: Daubechies 4,0.004684,0.2411
+noise,Wavelet: Daubechies 4,0.004960,0.2406
+noise,Wavelet: Daubechies 4,0.005254,0.2400
+noise,Wavelet: Daubechies 4,0.005577,0.2394
+noise,Wavelet: Daubechies 4,0.005891,0.2388
+noise,Wavelet: Daubechies 4,0.006227,0.2382
+noise,Wavelet: Daubechies 4,0.006593,0.2376
+noise,Wavelet: Daubechies 4,0.006965,0.2369
+noise,Wavelet: Daubechies 4,0.007327,0.2363
+noise,Wavelet: Daubechies 4,0.007763,0.2355
+noise,Wavelet: Daubechies 4,0.008223,0.2347
+noise,Wavelet: Daubechies 4,0.008698,0.2339
+noise,Wavelet: Daubechies 4,0.009217,0.2330
+noise,Wavelet: Daubechies 4,0.009761,0.2321
+noise,Wavelet: Daubechies 4,0.01036,0.2312
+noise,Wavelet: Daubechies 4,0.01100,0.2301
+noise,Wavelet: Daubechies 4,0.01167,0.2291
+noise,Wavelet: Daubechies 4,0.01240,0.2279
+noise,Wavelet: Daubechies 4,0.01303,0.2270
+noise,Wavelet: Daubechies 4,0.01370,0.2260
+noise,Wavelet: Daubechies 4,0.01453,0.2247
+noise,Wavelet: Daubechies 4,0.01538,0.2235
+noise,Wavelet: Daubechies 4,0.01629,0.2222
+noise,Wavelet: Daubechies 4,0.01725,0.2208
+noise,Wavelet: Daubechies 4,0.01831,0.2194
+noise,Wavelet: Daubechies 4,0.01939,0.2179
+noise,Wavelet: Daubechies 4,0.02050,0.2164
+noise,Wavelet: Daubechies 4,0.02166,0.2149
+noise,Wavelet: Daubechies 4,0.02287,0.2133
+noise,Wavelet: Daubechies 4,0.02408,0.2118
+noise,Wavelet: Daubechies 4,0.02535,0.2102
+noise,Wavelet: Daubechies 4,0.02683,0.2084
+noise,Wavelet: Daubechies 4,0.02846,0.2064
+noise,Wavelet: Daubechies 4,0.03023,0.2043
+noise,Wavelet: Daubechies 4,0.03205,0.2022
+noise,Wavelet: Daubechies 4,0.03398,0.2000
+noise,Wavelet: Daubechies 4,0.03597,0.1978
+noise,Wavelet: Daubechies 4,0.03804,0.1956
+noise,Wavelet: Daubechies 4,0.04017,0.1933
+noise,Wavelet: Daubechies 4,0.04238,0.1910
+noise,Wavelet: Daubechies 4,0.04466,0.1887
+noise,Wavelet: Daubechies 4,0.04706,0.1863
+noise,Wavelet: Daubechies 4,0.04966,0.1838
+noise,Wavelet: Daubechies 4,0.05247,0.1811
+noise,Wavelet: Daubechies 4,0.05549,0.1783
+noise,Wavelet: Daubechies 4,0.05876,0.1753
+noise,Wavelet: Daubechies 4,0.06205,0.1724
+noise,Wavelet: Daubechies 4,0.06554,0.1694
+noise,Wavelet: Daubechies 4,0.06906,0.1664
+noise,Wavelet: Daubechies 4,0.07281,0.1633
+noise,Wavelet: Daubechies 4,0.07672,0.1602
+noise,Wavelet: Daubechies 4,0.08109,0.1568
+noise,Wavelet: Daubechies 4,0.08580,0.1533
+noise,Wavelet: Daubechies 4,0.09065,0.1497
+noise,Wavelet: Daubechies 4,0.09559,0.1462
+noise,Wavelet: Daubechies 4,0.1008,0.1426
+noise,Wavelet: Daubechies 4,0.1062,0.1390
+noise,Wavelet: Daubechies 4,0.1122,0.1351
+noise,Wavelet: Daubechies 4,0.1184,0.1312
+noise,Wavelet: Daubechies 4,0.1249,0.1273
+noise,Wavelet: Daubechies 4,0.1315,0.1234
+noise,Wavelet: Daubechies 4,0.1388,0.1193
+noise,Wavelet: Daubechies 4,0.1465,0.1151
+noise,Wavelet: Daubechies 4,0.1543,0.1110
+noise,Wavelet: Daubechies 4,0.1623,0.1069
+noise,Wavelet: Daubechies 4,0.1712,0.1026
+noise,Wavelet: Daubechies 4,0.1804,0.09829
+noise,Wavelet: Daubechies 4,0.1898,0.09410
+noise,Wavelet: Daubechies 4,0.2003,0.08961
+noise,Wavelet: Daubechies 4,0.2110,0.08525
+noise,Wavelet: Daubechies 4,0.2223,0.08084
+noise,Wavelet: Daubechies 4,0.2343,0.07640
+noise,Wavelet: Daubechies 4,0.2465,0.07211
+noise,Wavelet: Daubechies 4,0.2595,0.06774
+noise,Wavelet: Daubechies 4,0.2734,0.06338
+noise,Wavelet: Daubechies 4,0.2876,0.05913
+noise,Wavelet: Daubechies 4,0.3030,0.05482
+noise,Wavelet: Daubechies 4,0.3190,0.05062
+noise,Wavelet: Daubechies 4,0.3358,0.04650
+noise,Wavelet: Daubechies 4,0.3533,0.04249
+noise,Wavelet: Daubechies 4,0.3718,0.03855
+noise,Wavelet: Daubechies 4,0.3911,0.03476
+noise,Wavelet: Daubechies 4,0.4115,0.03107
+noise,Wavelet: Daubechies 4,0.4330,0.02751
+noise,Wavelet: Daubechies 4,0.4556,0.02412
+noise,Wavelet: Daubechies 4,0.4792,0.02091
+noise,Wavelet: Daubechies 4,0.5041,0.01789
+noise,Wavelet: Daubechies 4,0.5302,0.01507
+noise,Wavelet: Daubechies 4,0.5577,0.01246
+noise,Wavelet: Daubechies 4,0.5865,0.01009
+noise,Wavelet: Daubechies 4,0.6168,0.007965
+noise,Wavelet: Daubechies 4,0.6489,0.006080
+noise,Wavelet: Daubechies 4,0.6823,0.004472
+noise,Wavelet: Daubechies 4,0.7174,0.003126
+noise,Wavelet: Daubechies 4,0.7543,0.002042
+noise,Wavelet: Daubechies 4,0.7930,0.001213
+noise,Wavelet: Daubechies 4,0.8337,0.0006266
+noise,Wavelet: Daubechies 4,0.8763,0.0002567
+noise,Wavelet: Daubechies 4,0.9211,0.00006654
+noise,Wavelet: Daubechies 4,0.9682,0.000004374

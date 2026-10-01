@@ -67,6 +67,9 @@ function wavelet(h) {
 
 // In the order the playground's menu lists them.
 export const BASES = {
+  // The identity: the basis the image arrives in, and the baseline every other
+  // basis has to beat.
+  Pixel: (n) => fill(n, (r, i) => (r === i ? 1 : 0)),
   // The real Fourier basis: DC, then a cosine and a sine per frequency, then
   // the alternating Nyquist row. The same space as the complex DFT, but real
   // and counted one number per coefficient like every other basis here.

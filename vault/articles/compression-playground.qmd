@@ -11,9 +11,15 @@ toc: false
 page-layout: full
 ---
 
-Every basis here is a matrix $B$: the coefficients of an image $X$ are $C = B_h X B_w^\top$, and the
-reconstruction is $B_h^\top C B_w$ after the small coefficients are set to zero. Both products run
-on your GPU, through WebGPU.
+How many coefficients does an image need before it looks like itself? Choose a
+basis, then move the **keep** slider below the images. Start at 5% and compare
+Fourier, the DCT (discrete cosine transform), and the wavelets on the same
+photograph. For the reasoning behind
+the experiment, read [Compression via Sparsity](compression-via-sparsity.qmd).
+
+The experiment keeps the largest coefficients **in absolute value**, across
+all three RGB channels together. It measures reconstruction error, not encoded
+file size. The transforms run locally in your browser and require WebGPU.
 
 ```{=html}
 <style>
@@ -71,7 +77,7 @@ on your GPU, through WebGPU.
   .playground-readout > div { padding: 0.25rem 0.75rem; }
   .playground-readout > div + div { border-left: 0; }
   /* Every other decade, or the labels overlap. */
-  .keep-slider .ticks span:nth-child(even) { display: none; }
+  .keep-slider .ticks span:nth-child(even):not(:last-child) { display: none; }
 }
 .playground-status { font-size: 0.85rem; opacity: 0.75; min-height: 1.3em; }
 
@@ -121,7 +127,13 @@ viewof maxSide = Inputs.radio([1024, 1536, 2048], { value: 1536, label: "longest
 ```
 
 ```{ojs}
-viewof basisName = Inputs.select(Object.keys(BASES), { value: "Fourier", label: "basis" })
+// Pixel is the identity, which is no transform at all, so the menu leaves it
+// out. scripts/export-compression-figures.ts adds ?pixel to the URL to render
+// the article's pixel-basis baseline.
+viewof basisName = Inputs.select(
+  Object.keys(BASES).filter((name) => name !== "Pixel" || new URLSearchParams(location.search).has("pixel")),
+  { value: "Fourier", label: "basis" },
+)
 ```
 
 ```{ojs}
@@ -134,11 +146,17 @@ status = {
 }
 ```
 
+Scroll over an image to zoom, drag to pan, and double-click to reset. The
+original and reconstruction move together, as do the two coefficient panels.
+Select **error × 10** to see absolute RGB differences: black means no error.
+The image is resized to the selected limit and centred on dimensions divisible
+by 64, trimming the edges when needed; the status line gives the actual size.
+
 ```{ojs}
 html`<div class="playground-flow playground-wide">
   <div class="space at-1-1"></div><div class="space at-1-3"></div>
-  <div class="title at-1-1">Pixel space</div>
-  <div class="title at-1-3">Transform space</div>
+  <div class="title at-1-1">Pixel coordinates</div>
+  <div class="title at-1-3">Transform coordinates</div>
   ${panel("original", canvases.original, "at-2-1")}
   <div class="arrow right at-2-2"><span>transform</span><i></i></div>
   ${panel("coefficients", canvases.coefficients, "at-2-3")}
@@ -154,9 +172,9 @@ html`<div class="playground-flow playground-wide">
 // share is the dashed cut, the energy is the energy curve. PSNR is also given
 // as the RMS error in 8-bit levels, which is easier to picture.
 html`<div class="playground-readout">${[
-  ["kept", `${+keepPct.toPrecision(2)}%`, `${cut.kept.toLocaleString()} of ${analysis.n.toLocaleString()} coefficients`, col.series[2]],
-  ["energy retained", `${(100 * cut.energy).toFixed(2)}%`, `${(100 * (1 - cut.energy)).toPrecision(2)}% thrown away`, col.series[1]],
-  ["PSNR", `${cut.psnr.toFixed(1)} dB`, `RMS error ${(255 * 10 ** (-cut.psnr / 20)).toFixed(1)} of 255 levels`, "inherit"],
+  ["kept", `${+(100 * cut.kept / analysis.n).toPrecision(3)}%`, `${cut.kept.toLocaleString()} of ${analysis.n.toLocaleString()} coefficients`, col.series[2]],
+  ["energy retained", analysis.total ? `${(100 * cut.energy).toFixed(2)}%` : "—", analysis.total ? `${(100 * (1 - cut.energy)).toPrecision(2)}% thrown away` : "original has zero energy", col.series[1]],
+  ["PSNR", `${Number.isFinite(cut.psnr) ? cut.psnr.toFixed(1) : "∞"} dB`, `RMS error ${(255 * 10 ** (-cut.psnr / 20)).toFixed(1)} of 255 levels`, "inherit"],
 ].map(([label, value, detail, color]) => html`<div>
   <div class="label">${label}</div>
   <div class="value" style="color: ${color}">${value}</div>
@@ -172,7 +190,7 @@ keepInput = {
   const n = 3 * image.h * image.w
   const lo = Math.log10(100 / n)
   const keep = Math.min(100, Math.max(100 / n, this?.value ?? 5))
-  const range = html`<input type="range" aria-label="coefficients kept, log scale" min=${lo} max="2" step="0.01" value=${Math.log10(keep)}>`
+  const range = html`<input type="range" aria-label="coefficients kept, log scale" min=${lo} max="2" step="any" value=${Math.log10(keep)}>`
   const at = (d) => `calc(${(100 * (d - lo)) / (2 - lo)}%)`
   const form = html`<div class="keep-slider playground-wide">
     <div class="label">keep<br>(log)</div>
@@ -193,10 +211,17 @@ keepInput = {
 // slider's cut.
 {
   const { curve, n } = analysis
-  // Map 0–100% onto the magnitude's log range, so the two curves share the
-  // plot's height.
-  const [m0, m1] = d3.extent(curve, (d) => Math.log10(d.magnitude))
-  const y = (pct) => 10 ** (m0 + (pct / 100) * (m1 - m0))
+  // The energy is plotted by its nines, -log10(1 - energy), so 90%, 99% and
+  // 99.9% are evenly spaced, and that range is mapped onto the magnitude's log
+  // range so the two curves share the plot's height. The last coefficients
+  // push the count towards infinity and into float rounding, so the axis
+  // stops at five nines, 99.999%, and the curve is clipped there.
+  const nines = (e) => -Math.log10(1 - e)
+  const top = 5
+  const extent = d3.extent(curve, (d) => Math.log10(d.magnitude))
+  const m0 = extent[0], m1 = Math.max(extent[1], m0 + 1)
+  const y = (k) => 10 ** (m0 + (Math.min(k, top) / top) * (m1 - m0))
+  const ninesLabel = (k) => k === 0 ? "0%" : k === 1 ? "90%" : `99${k > 2 ? "." + "9".repeat(k - 2) : ""}%`
   return html`<div class="playground-wide">${Plot.plot({
     ...plotBase,
     width: wideWidth,
@@ -205,20 +230,65 @@ keepInput = {
     marginRight: 60,
     marginBottom: 52,
     x: { type: "log", domain: [1, n], label: "rank (coefficients, largest first)", labelAnchor: "center", labelOffset: 42, grid: true },
-    y: { type: "log", axis: null },
+    y: { type: "log", domain: [10 ** m0, 10 ** m1], axis: null },
     marks: [
       Plot.gridY({ strokeOpacity: 0.07 }),
       Plot.axisY({ anchor: "left", label: "↑ magnitude", color: col.series[0] }),
-      Plot.axisY(d3.range(0, 101, 20), {
-        anchor: "right", y, tickFormat: (v) => `${v}%`, label: "↑ energy retained", color: col.series[1],
+      Plot.axisY(d3.range(0, top + 1), {
+        anchor: "right", y, tickFormat: ninesLabel, label: "↑ energy retained", color: col.series[1],
       }),
       Plot.line(curve, { x: "rank", y: "magnitude", stroke: col.series[0], strokeWidth: 1.5 }),
-      Plot.line(curve, { x: "rank", y: (d) => y(100 * d.energy), stroke: col.series[1], strokeWidth: 1.5 }),
+      Plot.line(curve, { x: "rank", y: (d) => y(nines(d.energy)), stroke: col.series[1], strokeWidth: 1.5 }),
+      Plot.dot(curve.length === 1 ? curve : [], { x: "rank", y: "magnitude", fill: col.series[0] }),
+      Plot.dot(curve.length === 1 && analysis.total ? curve : [], { x: "rank", y: (d) => y(nines(d.energy)), fill: col.series[1] }),
       Plot.ruleX([cut.kept], { stroke: col.series[2], strokeDasharray: "4,3" }),
     ],
   })}</div>`
 }
 ```
+
+The coefficient panels show the sum of absolute magnitudes across RGB channels
+on a logarithmic colour scale: brighter means larger. Each original/sparse pair
+shares a scale, but the scale resets when the image or basis changes. For the
+DCT, the top left holds the lowest frequencies; the wavelet layout groups
+coefficients by scale and position.
+
+The plot sorts coefficients from largest to smallest. Read **magnitude** on
+the left axis and **cumulative energy retained** on the right. Both rank and
+magnitude use logarithmic scales; the energy axis spaces 90%, 99%, and 99.9%
+equally to reveal the last few percent of error. The dashed line marks the
+actual number retained. A fast drop in magnitude and fast rise in energy mean
+that relatively few coefficients describe much of the image.
+
+The slider requests a coefficient budget; the implementation chooses a nearby
+magnitude threshold. Ties and narrow magnitude bins can keep more than requested.
+The **kept** readout shows the actual count.
+Energy is the sum of squared values, so a bright average can dominate it even
+when fine detail is missing. PSNR measures squared error, not perceptual quality.
+
+For each channel matrix $X$, the rows of $B_h$ and $B_w$ are orthonormal basis
+vectors. The calculation is
+
+$$
+C = B_h X B_w^{\mathsf T},\qquad
+\hat X = B_h^{\mathsf T}\tilde C B_w,
+$$
+
+where $\tilde C$ contains the retained coefficients. This is the companion
+article's notation with $B=\Psi^{\mathsf T}$. With $N=3hw$ channel values in
+$[0,1]$, orthonormality gives
+
+$$
+\mathrm{MSE}=\frac{1}{N}\sum_{\text{discarded }k} c_k^2,
+\qquad \mathrm{PSNR}=10\log_{10}\frac{1}{\mathrm{MSE}}\;\text{dB}.
+$$
+
+The readouts use this identity before display clipping and rounding. At 100%
+kept the theoretical error is zero (infinite PSNR), though floating-point GPU
+calculations still introduce tiny numerical errors. Fourier uses a real
+sine/cosine basis; Daubechies 4 means `db4` (four vanishing moments, eight taps).
+The wavelets use six levels along each axis with periodic boundaries. None of
+these options implements a complete JPEG or JPEG 2000 codec.
 
 ```{ojs}
 //| output: false
@@ -253,14 +323,22 @@ view = Generators.input(viewInput)
 
 ```{ojs}
 //| output: false
-// One captioned panel with a save button; `caption` replaces the name.
+// Per-panel PNG download buttons, for making figures. Readers don't need them.
+SHOW_SAVE = false
+```
+
+```{ojs}
+//| output: false
+// One captioned panel; `caption` replaces the name.
 panel = (name, canvas, cls, caption = html`<span>${name}</span>`) => html`<figure class="${cls}">
   <div class="viewport">${canvas}</div>
-  <figcaption>${caption}${DOM.download(
-    () => new Promise((resolve) => canvas.toBlob(resolve)),
+  <figcaption>${caption}${SHOW_SAVE ? DOM.download(
+    // Redraw first, in the same task: a WebGPU canvas reads back empty once
+    // its frame is on screen.
+    () => new Promise((resolve) => { canvas.redraw(); canvas.toBlob(resolve) }),
     `${name.replaceAll(" ", "-")}.png`,
     "save",
-  )}</figcaption>
+  ) : ""}</figcaption>
 </figure>`
 ```
 
@@ -574,6 +652,16 @@ res = {
     sparse: panel(canvases.sparse, B.C),
     reconstruction: panel(canvases.reconstruction, B.Xh, B.X),
   }
+  // Redraw one panel with its current settings. A WebGPU canvas reads back
+  // empty once its frame is on screen, so scripts/export-compression-figures.ts
+  // calls this and reads the canvas in the same task.
+  for (const [name, p] of Object.entries(panels)) {
+    canvases[name].redraw = () => {
+      const encoder = device.createCommandEncoder()
+      p.draw(encoder)
+      device.queue.submit([encoder.finish()])
+    }
+  }
 
   // Redraws run one at a time, and while one is waiting a newer one replaces
   // it, so a fast drag on a slow GPU renders the latest position instead of
@@ -625,7 +713,8 @@ analysis = {
 // instead of a sort. Magnitudes go into log-spaced bins holding a count and an
 // energy; summed from the top, bin b says how many coefficients are at least
 // its lower edge and how much energy they carry. Thresholding at a bin edge is
-// therefore exact, and with 2^16 bins the edges are 0.04% apart. C is planar,
+// nearly exact (the GPU rounds the threshold to f32), and with 2^16 bins the
+// edges are 0.04% apart. C is planar,
 // all of one channel and then the next.
 histogram = function (C, h, w) {
   const BINS = 1 << 16
@@ -637,19 +726,24 @@ histogram = function (C, h, w) {
   const scale = (BINS - 1) / (top - bottom)
   const count = new Float64Array(BINS), energy = new Float64Array(BINS)
   const field = new Float32Array(hw)
-  let total = 0
   for (let i = 0; i < C.length; i++) {
     const a = Math.abs(C[i])
-    const b = a > 0 ? Math.max(0, Math.floor((Math.log(a) - bottom) * scale)) : 0
+    const b = a > 0 ? Math.min(BINS - 1, Math.max(0, Math.floor((Math.log(a) - bottom) * scale))) : 0
     count[b]++
     energy[b] += a * a
-    total += a * a
     field[i % hw] += a
   }
+  // Sum the discarded tail directly. Subtracting retained energy from total
+  // loses tiny errors to cancellation when almost all energy is retained.
+  const discarded = new Float64Array(BINS)
+  for (let b = 1; b < BINS; b++) discarded[b] = discarded[b - 1] + energy[b - 1]
   for (let b = BINS - 2; b >= 0; b--) {
     count[b] += count[b + 1]
     energy[b] += energy[b + 1]
   }
+  // Use the same summation order for numerator and denominator, so retaining
+  // everything gives exactly 100% energy rather than a rounding residual.
+  const total = energy[0]
   // The colour range of the coefficient panels, from percentiles of the log
   // field; a few enormous low-frequency coefficients would wash out the rest.
   const sample = d3.range(0, hw, 7).map((i) => Math.log(field[i] + 1e-12)).sort(d3.ascending)
@@ -663,9 +757,10 @@ histogram = function (C, h, w) {
       last = count[b]
     }
   }
+  const lo = d3.quantileSorted(sample, 0.01), hi = d3.quantileSorted(sample, 0.999)
   return {
-    n: C.length, count, energy, total, edge, curve,
-    span: [d3.quantileSorted(sample, 0.01), d3.quantileSorted(sample, 0.999)],
+    n: C.length, count, energy, discarded, total, edge, curve,
+    span: [lo, hi > lo ? hi : lo + 1],
   }
 }
 ```
@@ -676,11 +771,11 @@ histogram = function (C, h, w) {
 // error of the reconstruction is exactly the energy thrown away (Parseval),
 // before the display clips it to [0, 1].
 cut = {
-  const { n, count, energy, total, edge } = analysis
+  const { n, count, energy, discarded, total, edge } = analysis
   const want = Math.max(1, Math.round((keepPct / 100) * n))
   let b = count.length - 1
   while (b > 0 && count[b] < want) b--
-  const mse = (total - energy[b]) / n
+  const mse = discarded[b] / n
   return {
     t: b === 0 ? 0 : edge(b),
     kept: count[b],

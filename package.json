@@ -11,13 +11,15 @@
     "serve": "cd generated/site && python3 -m http.server 8080",
     "validate": "npm run build && scripts/validate-site.sh",
     "test": "node --experimental-strip-types --test scripts/*.test.ts",
-    "design-tokens": "node --experimental-strip-types scripts/generate-design-tokens.ts"
+    "design-tokens": "node --experimental-strip-types scripts/generate-design-tokens.ts",
+    "export-compression-figures": "node --experimental-strip-types scripts/export-compression-figures.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@shikijs/themes": "^4.4.3",
+    "playwright-core": "^1.63.0",
     "wrangler": "^4.125.0"
   }
 }
